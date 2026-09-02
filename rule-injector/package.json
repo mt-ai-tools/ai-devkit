@@ -1,0 +1,12 @@
+{
+  "name": "rule-injector",
+  "version": "0.1.0",
+  "description": "Puts the rules a project stands on in front of a coding agent before it acts.",
+  "private": true,
+  "scripts": {
+    "test": "bats tests"
+  },
+  "devDependencies": {
+    "bats": "1.13.0"
+  }
+}
