@@ -6,10 +6,6 @@ what puts them in front of it, and what judges the work against them.
 Each folder here is one tool, standing on its own. What one needs from a
 project, it states in its own README.
 
-Three of them serve a project and are mounted in it. The fourth, the way
-into a server's sessions, serves the developer's own machine: clone the kit
-there and use that one from the clone.
-
 ## What a project keeps, and where
 
 The tools here find a project's own material at fixed places under the
