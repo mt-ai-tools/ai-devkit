@@ -1,4 +1,4 @@
-# agentic-review
+# reviewer
 
 An adversarial reviewer for Claude Code.
 

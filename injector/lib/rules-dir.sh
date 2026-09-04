@@ -8,7 +8,7 @@
 # other has no rules to inject. Resolved to an absolute path because every line that names it is
 # read by someone who is not standing where this ran.
 rules_dir() {
-  local dir="$(dirname "${BASH_SOURCE[0]}")/../../agentic-rules/rules"
+  local dir="$(dirname "${BASH_SOURCE[0]}")/../../rules"
   if [ -d "$dir" ]; then (cd "$dir" && pwd); else printf '%s' "$dir"; fi
 }
 

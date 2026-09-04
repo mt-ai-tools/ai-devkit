@@ -4,7 +4,7 @@
 	"description": "Rules for a coding agent, the hook that injects them, and the reviewer that enforces them.",
 	"private": true,
 	"scripts": {
-		"test": "bats rule-injector/tests"
+		"test": "bats injector/tests"
 	},
 	"devDependencies": {
 		"bats": "1.13.0"

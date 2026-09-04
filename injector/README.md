@@ -1,4 +1,4 @@
-# rule-injector
+# injector
 
 A rule-injecting prompt hook for Claude Code: one summary line per rule,
 every turn.

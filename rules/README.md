@@ -1,4 +1,4 @@
-# agentic-rules
+# rules
 
 Coding rules for AI-agent-driven development. Markdown only — nothing here
 runs, and nothing here depends on anything.
