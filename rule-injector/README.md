@@ -9,9 +9,9 @@ points back to the file holding the rest. It never reads the prompt: nothing
 it prints depends on what was typed, so no parser stands between it and the
 turn.
 
-Reads the rules from the sibling tool that ships them, and points at the
-project's conventions where the kit's README says they live — an absent
-collection simply goes unmentioned. Needs nothing but `bash`.
+Reads the kit's rules, and names the project's conventions collection where
+the project keeps one — an absent collection simply goes unmentioned. Needs
+nothing but `bash`.
 
 ## Develop
 
