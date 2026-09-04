@@ -12,10 +12,3 @@ turn.
 Reads the kit's rules, and names the project's conventions collection where
 the project keeps one — an absent collection simply goes unmentioned. Needs
 nothing but `bash`.
-
-## Develop
-
-```sh
-npm install
-npm test
-```

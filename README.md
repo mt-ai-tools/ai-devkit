@@ -31,3 +31,10 @@ files where Claude Code looks for a project's agents and commands. The
 hook is what tells the agent, every turn, where the rules and the
 conventions are; the reviewer runs on what that hook has said, so a mount
 without the hook has no reviewer either.
+
+## Develop
+
+```sh
+pnpm install
+pnpm test
+```
