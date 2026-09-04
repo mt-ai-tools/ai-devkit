@@ -12,7 +12,8 @@ project is stated here and nowhere else in it.
 ## What a project keeps, and where
 
 The kit finds a project's own material at a fixed place under the project
-root, and nothing declares that place anywhere else.
+root. The injector resolves that place, the reviewer is handed the result,
+and this is where the operator learns its name.
 
 - `conventions` holds the project's written conventions. One convention
   per file, named for the convention, stating what to do — never what

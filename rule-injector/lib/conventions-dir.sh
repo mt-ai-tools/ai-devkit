@@ -3,10 +3,12 @@
 # one place, so the stages cannot drift on either. Sourced, never executed.
 . "$(dirname "${BASH_SOURCE[0]}")/collection.sh"
 
-# The collection sits at a fixed place under the project root — the kit's
-# README states it, and nothing declares it a second time. The root is the one
-# the hook is run for; on a machine with no such variable set, the working
-# directory stands in.
+# The collection sits at a fixed place under the project root. This is the
+# one place in the kit that resolves it: everything else in the kit is handed
+# the result, and the kit's README tells the operator the same name only
+# because a folder they must create cannot be described to them in roles.
+# The root is the one the hook is run for; on a machine with no such variable
+# set, the working directory stands in.
 conventions_dir() {
 	printf '%s/conventions' "${CLAUDE_PROJECT_DIR:-$PWD}"
 }

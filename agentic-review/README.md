@@ -9,7 +9,9 @@ where it starts rather than where it stops. It keeps no record between runs:
 what to read is said each time it is run.
 
 Judges against the kit's rules, and — where a rule defers to one — the
-project's conventions, where the kit's README says they live. Keeps the queue a run cannot answer alone in a notes folder of the
-project's own: `.agentic-review/state` under the project root, written by the
-run and read by nobody else, and worth ignoring from version control. Needs
-git: outside a repository there is no defined change to judge.
+project's conventions; the command hands it both locations from what the
+injector printed at the start of the turn, so it runs only where the kit is
+mounted whole. Keeps the queue a run cannot answer alone in a notes folder of
+the project's own, written by the run and read by nobody else, and worth
+ignoring from version control. Needs git: outside a repository there is no
+defined change to judge.

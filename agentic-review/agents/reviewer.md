@@ -104,15 +104,14 @@ that the work which produced it was judged.
 
 ## Load the rules first
 
-The rules ship beside this agent, in the kit it is part of: the kit is
-mounted at `tools/ai-devkit` under the project root you run from, and the
-rules are the files under `agentic-rules/rules` in it. Read every rule file
-there. Those are the policy — enforce them from their own text. They have one
-home and are not restated here.
+The invocation names the rules directory: the kit's turn-start hook prints
+it every turn, and the command that launches you passes it on. Read every
+rule file there. Those are the policy — enforce them from their own text.
+They have one home and are not restated here.
 
-If the directory is missing, stop and say so — without the rules there is
-nothing to review against, and a review of nothing must not be reported as a
-pass.
+If no directory was named, or the one named is missing, stop and say so —
+without the rules there is nothing to review against, and a review of
+nothing must not be reported as a pass.
 
 Judge the rules tagged `before-finishing` in their `enforce:` frontmatter. Those
 are the ones decidable with the finished change in view, which is what you have.
@@ -131,12 +130,13 @@ A rule may hand its content to the project. Where one does — a rule about
 following the project's own written conventions — the entries are the policy,
 and the rule cannot be judged without them.
 
-The collection is the `conventions` folder under the project root you run
-from, as the kit's README states. Read the entries that cover what the change
+The collection reaches you the way the rules did: the invocation names it,
+where the project keeps one. Read the entries that cover what the change
 touches, and judge the change against them: an entry binds, so code
 disagreeing with one is a finding, however old the code.
 
-If the folder is missing or holds no entries, report that rule `UNVERIFIED`,
+If none was named, or the folder named is missing or holds no entries,
+report that rule `UNVERIFIED`,
 naming what you could not read. Never `PASS` it — a collection you could not
 find is indistinguishable from a change that broke nothing in it.
 

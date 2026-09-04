@@ -26,9 +26,14 @@ Run a review.
 
    Bare `/review` means `--scope :all`.
 
-3. Launch the `reviewer` agent with the scope. On a re-review add the
-   findings the operator declined, and nothing else: it finds the diff, the
-   rules and the context itself — that independence is the point.
+3. Launch the `reviewer` agent with the scope, and with the two locations
+   the turn-start digest names: the rules directory, and the conventions
+   collection where one was named. The reviewer has no other way to learn
+   them — it starts empty, and that is the point. No digest in view means
+   the kit is not mounted whole for this project: stop and say so.
+
+   On a re-review add the findings the operator declined, and nothing else:
+   it finds the diff and the context itself.
 
    Every launch is a new reviewer. Never continue one that has already run: the
    empty context is the reason it is a separate agent at all, and one reading
@@ -72,8 +77,8 @@ Run a review.
    binds however old the code is.
 
 7. Write each held finding down as it is held — the rule, the paths, the
-   lines, and what the fix would have been — in the notes folder, the place
-   the README declares. Never ask mid-run. A run that
+   lines, and what the fix would have been — in the notes folder step 1
+   names. Never ask mid-run. A run that
    stops for an answer stalls until somebody comes back to it, and the whole
    point of one that fixes what it may is that it does not need anybody
    there. The queue waits; the run does not.

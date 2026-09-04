@@ -3,9 +3,9 @@
 # stages cannot drift on either. Sourced, never executed.
 . "$(dirname "${BASH_SOURCE[0]}")/collection.sh"
 
-# The rules ship in the sibling tool, so there is nothing to configure: the
-# two travel together, and a mount taking one without the other has no rules
-# to inject. Resolved to an absolute path because every line that names it is
+# The rules are a part of the same kit as this resolver, so there is nothing
+# to configure: the kit mounts whole, and a mount taking one part without the
+# other has no rules to inject. Resolved to an absolute path because every line that names it is
 # read by someone who is not standing where this ran.
 rules_dir() {
   local dir="$(dirname "${BASH_SOURCE[0]}")/../../agentic-rules/rules"
