@@ -17,7 +17,9 @@
 # the model's context before the turn begins. The event is never read. Nothing
 # printed depends on the prompt, so no JSON parser is needed and none can be
 # missing. Whether a turn is a question is the model's to judge with the whole
-# prompt in view — a word-list guess here missed often enough to be noise.
+# prompt in view — a word-list guess here missed often enough to be noise. The
+# event is drained anyway, so the writer never meets a closed pipe — skipped
+# on a terminal, where there is nothing to drain and waiting would hang.
 #
 # Fail closed: the rules are the point of this hook, so a turn they did not
 # reach must not run. Any step failing — a crash, or a rules directory with
@@ -40,8 +42,6 @@ refuse_turn() {
 }
 trap refuse_turn ERR
 
-# Drain the event so the writer never meets a closed pipe. Skipped on a
-# terminal, where there is nothing to drain and cat would wait for a keypress.
 [ -t 0 ] || cat >/dev/null
 
 "$tool_root/steps/rules-digest.sh" "$(rules_dir)"
