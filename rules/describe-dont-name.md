@@ -38,6 +38,10 @@ Exempt:
 - A placeholder form may show a shape a convention prescribes, when the shape
   is the point. Use it sparingly: a form shown in one entry and withheld in
   the next reads as a distinction that isn't there.
+- A place the operator must make by hand — a folder the tool looks for, a
+  file it expects — may be named where they are told to make it. A name to
+  create cannot be given in roles, and it goes stale only with the code that
+  looks for it, a change that already owes its note.
 
 Related:
 - [single-source-of-truth](single-source-of-truth.md) — its premise; the identifier's home is the code.
