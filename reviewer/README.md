@@ -11,7 +11,6 @@ what to read is said each time it is run.
 Judges against the kit's rules, and — where a rule defers to one — the
 project's conventions; the command hands it both locations from what the
 injector printed at the start of the turn, so it runs only where the kit is
-mounted whole. Keeps the queue a run cannot answer alone in a notes folder of
-the project's own, written by the run and read by nobody else, and worth
-ignoring from version control. Needs git: outside a repository there is no
+mounted whole. Keeps the queue a run cannot answer alone in a notes
+folder of the project's own. Needs git: outside a repository there is no
 defined change to judge.

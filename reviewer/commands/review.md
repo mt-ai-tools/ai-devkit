@@ -6,7 +6,7 @@ argument-hint: [--scope :all|<path>|<revision>]
 Run a review.
 
 1. Look first for a run that never finished. A run records the finding it is
-   about to fix — in the notes folder, `.agentic-review/state` under the
+   about to fix — in the notes folder the kit's README declares, under the
    project root you run from — and clears that record when the fix is
    committed; a record still standing means the last run died between those
    two moments.
