@@ -185,8 +185,8 @@ Run a review.
     machine output the run has produced since. Each question carries, in this
     order —
 
-        Finding 3 of 7 — <what is wrong> (<the rule, or the entry where a
-        convention was broken>)
+        Finding 3 of 7, §R13.52 — <what is wrong> (<the rule, or the entry
+        where a convention was broken>)
         <path:line>, <path:line>…
 
           <the offending lines>
@@ -195,7 +195,10 @@ Run a review.
 
     — and the choices under it carry nothing but which way it goes.
 
-    The rule and the paths always: the rule because a finding is a claim made
+    The key from the notes always, beside the count: the count is this
+    run's, and an operator holding two sessions has two counts, while the
+    key is the one name a finding keeps across runs and windows. The rule
+    and the paths always: the rule because a finding is a claim made
     under something, the paths so the operator can look for themselves. Where
     a convention was broken, name the entry rather than the rule that defers
     to it — one rule stands in for a whole collection, and its name says
