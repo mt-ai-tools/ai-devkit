@@ -1,8 +1,11 @@
+bats_require_minimum_version 1.5.0
+
 # Behavior tests for the digest: tagged summaries appear, untagged ones don't,
 # and a rule with broken frontmatter is named instead of silently dropped.
 
 setup() {
   digest="$BATS_TEST_DIRNAME/../steps/rules-digest.sh"
+  . "$BATS_TEST_DIRNAME/../lib/refusal.sh"
   rules="$BATS_TEST_TMPDIR/rules"
   mkdir "$rules"
   printf -- '---\nenforce: [premise]\nsummary: Premise summary.\n---\n# P\n' >"$rules/premise-rule.md"
@@ -32,8 +35,9 @@ setup() {
   [[ "$output" == *"no-frontmatter — no enforce: and summary:"* ]]
 }
 
-@test "a missing rules directory is reported, not passed over" {
-  run "$digest" "$BATS_TEST_TMPDIR/nowhere"
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"No rules loaded"* ]]
+@test "a missing rules directory refuses the turn and says where it looked" {
+  run --separate-stderr "$digest" "$BATS_TEST_TMPDIR/nowhere"
+  [ "$status" -eq 2 ]
+  [ -z "$output" ]
+  [[ "$stderr" == *"$(no_rules_note "$BATS_TEST_TMPDIR/nowhere")"* ]]
 }

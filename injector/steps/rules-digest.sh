@@ -20,18 +20,16 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/rules-dir.sh"
 . "$tool_root/lib/rule-format.sh"
+. "$tool_root/lib/refusal.sh"
 
 rules_from="$1"
 
-# The rules live outside this repo, so they can simply be absent. Printing
-# "Rules in force" over an empty list would be the worst of both — the agent
-# told that rules apply, and shown none of them.
+# A directory with no rule files is a refused turn, not an empty digest. The
+# reason goes to the operator on stderr, and the exit code is the one the hook
+# refuses with, so this step means the same thing run alone as run from it.
 if ! has_rule_files "$rules_from"; then
-  echo "## No rules loaded"
-  echo
-  echo "No rule files at: $rules_from"
-  echo "Nothing is enforcing any rules this turn."
-  exit 0
+  no_rules_note "$rules_from" >&2
+  exit 2
 fi
 
 # Read every rule's frontmatter once. One parse, so the digest and the report
