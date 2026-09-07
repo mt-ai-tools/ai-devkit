@@ -14,6 +14,11 @@ Keep layers and features separate. No reaching across.
 - No cross-feature imports — features talk through shared, declared interfaces, not each other's internals.
 - No import cycles. A cycle says something sits in the wrong module; it is not
   a graph that needs an exception.
+- Time is a boundary too. What runs in production never depends on what
+  exists only to build, test, or deploy it — those sit above it, and a
+  deployed artifact runs with its runtime dependencies alone. A decision the
+  running code must make is never taken from a module that stops existing
+  once it is deployed.
 
 Related:
 - [keep-modules-independent](keep-modules-independent.md) — its behavioral sibling: fix a problem where it lives.
