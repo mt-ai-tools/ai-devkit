@@ -18,9 +18,16 @@ being there first.
   operator's call, never a side effect of the task at hand.
 - Conventions can be outgrown too: propose amending the entry rather
   than following it into a corner.
+- A block's stated boundary is a decision as well. When new work fits
+  a block by responsibility but its README says the block stops short
+  of it, the choice is to amend the boundary or to split — and it goes
+  to the operator with a recommendation. Never route the work to
+  another block, or a new one, only because the line reads that way
+  today.
 
 Related:
 - [follow-conventions](follow-conventions.md) — conform until ratified otherwise; this rule asks when "otherwise" looks due.
 - [propose-dont-decide](propose-dont-decide.md) — the rethink itself is the operator's call.
 - [stay-in-scope](stay-in-scope.md) — flagging is in scope; restructuring uninvited is not.
 - [keep-modules-independent](keep-modules-independent.md) — when the strained decision lives in another module.
+- [ship-readmes](ship-readmes.md) — where a block's boundary is written; this rule says when it may move.
