@@ -2,7 +2,6 @@
 name: reviewer
 description: Adversarial reviewer. Reports findings against the agentic rules; never fixes.
 tools: Read, Grep, Glob, Bash
-model: opus
 ---
 
 # Review agent
