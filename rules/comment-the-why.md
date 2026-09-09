@@ -15,6 +15,9 @@ Comments explain why, not what. The code already says what.
 - Comment hidden constraints, trade-offs, invariants, or a fix for a specific bug.
 - If changing or removing something carries a non-obvious risk you know today — a guard, exception, threshold, constant, or ordering —
   comment the risk, so a future reader can judge whether it's safe to touch.
+- Where a tempting alternative was tried or rejected, say which one and what
+  it broke, so nobody walks back into the same hole. The shape alone shows
+  what was chosen; only the comment shows what was not, and why.
 - Don't restate what the code plainly does.
 - Use why-comments freely. The bar: would a future reader wonder *why* this was done, or whether it's *safe to delete or change*? If yes, add one line.
 - One line is almost always enough. No code-restating docblocks.
