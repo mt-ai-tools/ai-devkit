@@ -32,8 +32,10 @@ Every block that ships on its own ships a README with it.
   fact recorded nowhere else may stay, wherever it sits, until it has a
   proper home. A misplaced fact is a smaller debt than a lost one, and
   rehoming it is work that waits for whoever next touches its subject.
-- It grows with the block. An embryonic one owes only its opening — the rest
-  arrives with the content it would describe, never ahead of it.
+- It grows with the block. A name held for a block that ships nothing yet —
+  no manifest, no code — owes nothing, and its heading alone is the whole of
+  it. The opening arrives with the first thing that ships, the rest with the
+  content it would describe, never ahead of it.
 
 Related:
 - [describe-dont-name](describe-dont-name.md) — how every line of it is written.
