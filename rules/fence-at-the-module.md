@@ -24,4 +24,4 @@ Related:
 - [respect-boundaries](respect-boundaries.md) — the same containment among your own layers.
 - [library-first](library-first.md) — use a library freely; this says where it stops.
 - [blocks-not-bundles](blocks-not-bundles.md) — a block declares what it needs as a contract, not a place.
-- [compose-dont-invent](compose-dont-invent.md) — what a product reaches for directly is a module that does not exist yet.
+- [compose-dont-invent](compose-dont-invent.md) — what a consumer reaches for directly is a module that does not exist yet.
