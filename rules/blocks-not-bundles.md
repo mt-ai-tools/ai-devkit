@@ -15,6 +15,16 @@ Build from small independent blocks. Each one ships, versions, and is replaced b
 itself.
 
 - Split at the seam where a piece could be useful on its own — not where it is convenient today.
+- Where there is no seam, there is no block. A piece that only reads as one
+  step of its caller gains a name, a version and a mount, and little else — a
+  split follows a boundary rather than making one.
+- A shared subject is not a shared shape. A piece built around one consumer's
+  data model is that consumer's, however general its topic sounds; worth
+  asking before the topic answers for you.
+- Split early rather than late. Splitting early draws the shape from its only
+  caller, and that cost is paid once and in the open, where the next consumer
+  can push back on it. Splitting late is paid less visibly, in a copy somebody
+  made because reaching for the block was the harder path.
 - "They are always used together" is a reason to compose them, not to ship them as one.
 - A block never knows its consumers. No naming them, no describing where they sit, no explaining the system it happens to be part of.
 - A block may declare what it *needs* — as a contract it accepts, not a place it expects to find one. "A directory of rule files" is a contract; "the folder next to me" is a layout assumption.
