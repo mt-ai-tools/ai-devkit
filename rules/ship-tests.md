@@ -35,6 +35,9 @@ argues it per file:
 - More is owed only where a failure would be invisible in use — an
   authentication path, a data write — because there the tests are the only
   witness.
+- A door's tests include the stranger: nobody signed in, the wrong role,
+  and someone else's record, each refused. The invited caller proves the
+  door opens; only the stranger proves it closes.
 - A surface still changing shape gets the floor and nothing more. A test
   written against a shape that moves next week is written twice.
 

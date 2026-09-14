@@ -10,6 +10,9 @@ Before hand-rolling non-trivial work, check for a maintained library.
 - If a well-maintained library solves it, use it.
 - If you still hand-roll, justify why in writing.
 - Watch for accumulation: several hand-rolled pieces can add up to something a library now covers. Sweep for this periodically, not just per-feature.
+- Adding a dependency is a supply-chain decision. Who maintains it, how
+  old the release is, whether it runs a script at install, and what it
+  pulls in beneath it — the proposal says so, beside what it solves.
 - This is a policy about process. It names no specific library — each project picks its own.
 
 Related:
