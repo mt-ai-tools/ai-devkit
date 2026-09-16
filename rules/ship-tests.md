@@ -35,6 +35,10 @@ argues it per file:
 - More is owed only where a failure would be invisible in use — an
   authentication path, a data write — because there the tests are the only
   witness.
+- A feature about several things relating — grouped, shared, ordered,
+  ranked, colliding — is not proved with one of them. One is the case
+  where every reading of the code agrees, so the test passes whichever
+  was built, and the reading nobody chose is found in use instead.
 - A door's tests include the stranger: nobody signed in, the wrong role,
   and someone else's record, each refused. The invited caller proves the
   door opens; only the stranger proves it closes.
