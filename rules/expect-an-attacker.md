@@ -18,6 +18,10 @@ what it guards.
   data, or a boundary with the outside, write three lines: what an
   attacker gains if this is wrong, and the check that stops them. They
   open the proposal, and are read before the code is.
+- The check that stops them is named where it is enforced, not only in
+  the proposal it opened. A line whose danger lies in the change
+  somebody would make to it reads as bookkeeping until it says
+  otherwise, and a proposal is not read by whoever edits the line.
 - Fail closed. What cannot be decided is refused: no reasons means no
   access, unreadable configuration means no boot, an error nobody
   classified is not retried, and no error path grants what the happy
