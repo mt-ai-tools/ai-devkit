@@ -18,7 +18,9 @@ Every block that ships on its own ships a README with it.
 - Then where it stops: what it does not depend on, know, or own. Write only
   what you would defend — a boundary the block should fail review for
   breaking, never a fact about today's contents. The code already shows what
-  is there; this line is the only place that says what must never be. Why it
+  is there; this line is the only place that says what must never be. A
+  promise here is kept for its reason, never for being written here; it
+  moves when the reason no longer holds. Why it
   stops there stays out: reasons belong where they were decided, dated and
   reviewed.
 - Where a block does nothing until something is supplied, the same line says

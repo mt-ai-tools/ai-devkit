@@ -18,12 +18,14 @@ being there first.
   operator's call, never a side effect of the task at hand.
 - Conventions can be outgrown too: propose amending the entry rather
   than following it into a corner.
-- A block's stated boundary is a decision as well. When new work fits
-  a block by responsibility but its README says the block stops short
-  of it, the choice is to amend the boundary or to split — and it goes
-  to the operator with a recommendation. Never route the work to
-  another block, or a new one, only because the line reads that way
-  today.
+- A block's stated boundary is a decision as well, and the line stating
+  it is never itself the argument. When new work fits a block by
+  responsibility but its README says the block stops short of it, weigh
+  the work on its merits: a boundary worth keeping shows its reason when
+  argued, and one that shows none was a description of today. Either
+  way, amending the boundary or splitting goes to the operator with a
+  recommendation. Never route the work to another block, or a new one,
+  only because the line reads that way today.
 
 Related:
 - [follow-conventions](follow-conventions.md) — conform until ratified otherwise; this rule asks when "otherwise" looks due.
