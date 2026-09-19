@@ -34,7 +34,7 @@ write.
 ## Mounting
 
 A project mounts the kit whole. It registers the injector's hook script
-for the turn-start event, and exposes the reviewer's agent and command
+for the turn-start event, and exposes the reviewer's agents and command
 files where Claude Code looks for a project's agents and commands. The
 hook is what tells the agent, every turn, where the rules and the
 conventions are; the reviewer runs on what that hook has said, so a mount

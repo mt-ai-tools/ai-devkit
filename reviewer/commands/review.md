@@ -95,8 +95,20 @@ Run a review.
 
 8. Then do the work, in the report's order, one finding at a time. Never two
    at once: a fix landing on ground another is still moving is the one
-   failure this ordering exists to prevent. For each — implement it, verify it
-   where it landed, and commit it on its own before starting the next.
+   failure this ordering exists to prevent. For each — hand it to a fixer,
+   judge what came back, and commit it on its own before starting the next.
+
+   The fix is made by the `fixer` agent. Launch it with the finding, the
+   two locations step 3 passed on, and — for a finding the operator
+   decided — their answer. It starts empty as the reviewer does, so what
+   it is not handed it does not know. Every finding gets a new fixer: one
+   carrying the last fix in its context reads this site through it.
+
+   It returns what it changed and how it watched the change fail. Read that
+   beside the diff: a report of red that does not say what was broken is a
+   claim, not a verification. A fixer that could not verify is a failure under
+   step 9. What it noticed and left alone is the next round's to find, not
+   this fix's to widen into.
 
    A finding annotated `IN MOTION` gets one step before anything else:
    re-read the site as it stands now. Still violating — fix it as any other.
@@ -111,20 +123,6 @@ Run a review.
    only thing that should have touched the tree; outside them nothing is
    half-done. That is what lets a later run tell an interrupted fix from
    ordinary uncommitted work.
-
-   Verifying means the fix is watched failing, not merely watched passing.
-   Where there is something to break — a value, a condition, a name a test
-   asserts — break it, see the suite go red, and put it back. A green run over
-   a test that asserts nothing is the same green as a working one, and that is
-   how a quoting error can pass every file it broke.
-
-   A verification is only as real as the tool that ran it: reach tools
-   through the package's own declared dependencies, never by bare name
-   from the network — a wrong tool that exits clean is a pass that
-   checked nothing.
-
-   Where nothing can be broken — a rename, a reworded line of prose — say what
-   was checked instead, and do not dress a reading up as a verification.
 
    Read the fix against the rules before committing it, the ones a fix breaks
    most: duplication, placement, naming. Nearly everything a run finds in its
