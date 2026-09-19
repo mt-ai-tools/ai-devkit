@@ -95,20 +95,31 @@ Run a review.
 
 8. Then do the work, in the report's order, one finding at a time. Never two
    at once: a fix landing on ground another is still moving is the one
-   failure this ordering exists to prevent. For each — hand it to a fixer,
-   judge what came back, and commit it on its own before starting the next.
+   failure this ordering exists to prevent. For each — plan the fix, hand it
+   to a fixer, judge what came back, and commit it on its own before starting
+   the next.
+
+   The plan is the run's: what changes, where, and what will be broken to
+   watch it fail. A taken finding was already pictured when step 5 judged
+   it of a kind its rule grants, and a held one carries the fix the
+   operator approved — write that down, rather than leave the shape of the
+   fix to whoever types it.
 
    The fix is made by the `fixer` agent. Launch it with the finding, the
-   two locations step 3 passed on, and — for a finding the operator
-   decided — their answer. It starts empty as the reviewer does, so what
-   it is not handed it does not know. Every finding gets a new fixer: one
-   carrying the last fix in its context reads this site through it.
+   plan, the two locations step 3 passed on, and — for a finding the
+   operator decided — their answer. It starts empty as the reviewer does,
+   so what it is not handed it does not know. Every finding gets a new
+   fixer: one carrying the last fix in its context reads this site through
+   it.
 
    It returns what it changed and how it watched the change fail. Read that
    beside the diff: a report of red that does not say what was broken is a
    claim, not a verification. A fixer that could not verify is a failure under
-   step 9. What it noticed and left alone is the next round's to find, not
-   this fix's to widen into.
+   step 9. One that found the plan did not fit the code comes back with
+   nothing changed: plan again from what it saw, or hold the finding under
+   step 10 where the new plan is no longer what was granted or approved.
+   What it noticed and left alone is the next round's to find, not this
+   fix's to widen into.
 
    A finding annotated `IN MOTION` gets one step before anything else:
    re-read the site as it stands now. Still violating — fix it as any other.
