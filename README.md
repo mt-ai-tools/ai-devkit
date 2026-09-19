@@ -18,9 +18,8 @@ reviewer is handed the result, while the second is the reviewer's own to
 write.
 
 - `conventions` holds the project's written conventions. One convention
-  per file, named for the convention, stating what to do — never what
-  currently exists where. An entry is written when a convention is
-  decided, or when one had to be inferred and was worth keeping. It may
+  per file, named for the convention; what an entry holds is the
+  follow-conventions rule's to say. It may
   declare, in its frontmatter, what an unattended run is allowed to put
   right without asking; silence there means nothing is taken unasked. A
   README in that folder is not an entry. The folder may be absent: a
