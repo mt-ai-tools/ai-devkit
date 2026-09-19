@@ -225,6 +225,13 @@ Run a review.
     in a single unbroken stretch of the operator's attention, so waiting on
     work never interrupts deciding.
 
+    After the last of them, one more question: start another round once
+    these fixes land? It is asked here and only here — it rides on a
+    stretch of attention the operator is already giving, and a round with
+    nothing held rolls on without stopping to ask.
+    A no is the operator stopping the run: the answered fixes are still
+    made, the close is written, and no reviewer runs again.
+
     Answer each in the notes as it is settled, fixed or declined and why, so
     the file ends as a record of the run rather than a queue nobody emptied.
     Then do the work as step 8 describes. The run is over when the last held
@@ -237,9 +244,10 @@ Run a review.
     the close into the run's notes beside the queue: a report only spoken is a
     report gone by morning.
 
-14. Then, unless the operator stopped the run, run the reviewer again, naming
-    any findings they declined — re-review is cheap, and the run is not done
-    until the report closes `PASS`. A stop is an answer about what happens
+14. Then, unless the operator stopped the run — told to, or by answering
+    no in step 12 — run the reviewer again, naming any findings they
+    declined: re-review is cheap, and the run is not done until the report
+    closes `PASS`. A stop is an answer about what happens
     next, and it outranks this.
 
 15. A finding the operator declines is allowed — record the decline and its
