@@ -11,10 +11,18 @@ Carries out the plan for one finding's fix, verifies it, and reports what it
 did. The run that launched it keeps everything else: which finding is next,
 the plan, its notes, judging the fix, and the commit.
 
-The model is pinned while the run's is not. Writing the change is the part a
-coding model does best; deciding what to take, planning the fix, and
-judging what came back stay with whatever the session runs — so a session
-started on either model still completes a run.
+The model is pinned while the run's is not. Opus writes the change because
+it is more than enough for code work and costs less; deciding what to take,
+planning the fix, and judging what came back stay with whatever the session
+runs, which the operator may start on Fable for its longer horizon — and a
+session started on Opus, when Fable runs out, still completes a run.
+
+The reviewer names no model on purpose, since which one judges is the
+operator's to choose. This pin is not that choice made for them: a fixer on
+the session's model is the session typing its own fix with extra steps, so
+the pin is the reason this agent exists. It sits here rather than in the
+mount because a project cannot set one agent's model without copying the
+file.
 
 ## What you are handed
 
