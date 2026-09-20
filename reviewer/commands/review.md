@@ -24,8 +24,6 @@ Run a review.
        --scope <revision>   everything committed since that revision, plus
                             uncommitted and untracked work
 
-   Bare `/review` means `--scope :all`.
-
 3. Launch the `reviewer` agent with the scope, and with the two locations
    the turn-start digest names: the rules directory, and the conventions
    collection where one was named. The reviewer has no other way to learn
