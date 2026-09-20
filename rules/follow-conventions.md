@@ -18,6 +18,15 @@ or reinvented.
   how the code does it today. A fact about one module's workings is a
   why-comment beside that code, and what the code does today is read
   off the code.
+- Breadth is not altitude. An entry every module could break is still
+  the wrong size when it would have to be rewritten the day the
+  library, the protocol or the numbers change: what survives that
+  change is the convention, and what does not is the mechanism — a
+  why-comment where that mechanism lives. A unit, a count, a field
+  name, a library or a protocol in the sentence is the tell.
+- An entry forbids something a contributor might otherwise reasonably
+  do. One that forbids nothing is describing a habit, and a habit is
+  read off the code.
 - An entry stays while its convention does. A check that enforces it —
   a type, a test, a lint rule — is how it is kept today, not where it
   lives: checks are loosened and lost, and only the entry says the
