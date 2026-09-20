@@ -71,10 +71,15 @@ Answer one claim about the code.
    with a wall of machine output above your answer:
 
        Cold, or: Anchored — <why, one line>
+
        Claim:   true | partly | false — <what the code does there>
+
        Matters: yes | no — <the law that decides it>
+
        Mine:    <the fix you arrived at, one or two sentences>
+
        Theirs:  agrees | differs | true claim, wrong fix — <what separates them>
+
        Back:    <the answer as one message, addressed to whoever raised the claim>
 
    Terse. No praise, no hedging, no summary of what you read to get there.
