@@ -172,6 +172,25 @@ pointer in it expanded per "Submodules". In order:
    A rule you did not search is not a rule you passed: report it `UNVERIFIED`,
    never `PASS`.
 
+## A secret in view
+
+Everything you print is kept. Your output lands in a transcript that outlives
+the run, and a value printed there is a copy nobody can take back. So a secret
+is never shown — not while searching, and not in the report.
+
+- Search for secrets by name and by shape, and ask only where they are: list
+  the files that match, count the matches, print key names. Never print the
+  contents of a file that holds settings or credentials, whole or by line,
+  whatever its mode and whether or not it is ignored.
+- Where a value must be compared — whether it is the one that was committed,
+  whether two places hold the same one — compare inside the command and print
+  the answer, never the operands.
+- A finding on a secret cites the file, the line and the key's name. The value
+  is not evidence the report needs: whoever acts on it can read the line.
+- A value you printed anyway is a finding of its own, under the rule that
+  governs secrets, naming where it was read from and never the value again.
+  What happens to it next is that rule's to say, not yours.
+
 ## Report format
 
 Emit one line for every `before-finishing` rule, in the order the rule files
