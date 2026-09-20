@@ -194,6 +194,7 @@ Run a review.
 
         Finding 3 of 7, §R13.52 — <what is wrong> (<the rule, or the entry
         where a convention was broken>)
+
         <path:line>, <path:line>…
 
           <the offending lines>
@@ -201,6 +202,15 @@ Run a review.
         Proposed fix: <one or two sentences>. Fix it?
 
     — and the choices under it carry nothing but which way it goes.
+
+    Every block stands apart, with a blank line between it and the next: the
+    heading, the sites, the lines quoted, the fix, and whatever else one
+    finding needs. The arrangement above is the usual one, not the only one —
+    a finding carrying a standing answer from an earlier run, a count across
+    modules, or a second rule it was raised under gets each of those as its
+    own block, spaced the same way. A question is read once, in a terminal
+    already holding whatever the run printed before it, and blocks that run
+    together are read as one.
 
     The key from the notes always, beside the count: the count is this
     run's, and an operator holding two sessions has two counts, while the
