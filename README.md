@@ -1,8 +1,9 @@
 # ai-devkit
 
-One tool for agentic development, in three parts: the rules a coding agent
-works under, the injector that puts them in front of it every turn, and the
-reviewer that judges the work against them.
+One tool for agentic development, in four parts: the rules a coding agent
+works under, the injector that puts them in front of it every turn, the
+reviewer that judges the work against them, and the advisor that gives a
+single finding a second, independent reading.
 
 The parts ship, version and mount as one. What the kit needs from a
 project is stated here and nowhere else in it.
@@ -26,9 +27,10 @@ root, and this is where the operator learns their names.
 ## Mounting
 
 A project mounts the kit whole. It registers the injector's hook script
-for the turn-start event, and exposes the reviewer's agents and command
-files where Claude Code looks for a project's agents and commands.
-Without the hook the reviewer cannot run.
+for the turn-start event, and exposes the agent and command files the
+reviewer and the advisor ship, where Claude Code looks for a project's
+agents and commands. Without the hook the reviewer cannot run, and the
+advisor cannot say whether a finding matters.
 
 ## Develop
 
