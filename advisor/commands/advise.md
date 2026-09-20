@@ -72,6 +72,8 @@ Answer one claim about the code.
 
        Cold, or: Anchored — <why, one line>
 
+       Plainly: <the whole answer in one everyday sentence>
+
        Claim:   true | partly | false — <what the code does there>
 
        Matters: yes | no — <the law that decides it>
@@ -83,6 +85,13 @@ Answer one claim about the code.
        Back:    <the answer as one message, addressed to whoever raised the claim>
 
    Terse. No praise, no hedging, no summary of what you read to get there.
+
+   The plain line is for a reader who has not read the law and should not
+   have to. One or two sentences, in the words someone would use who does
+   not know the rule: what is actually wrong, and what it costs. No rule
+   names, no identifiers, no vocabulary from the tools. It is the whole
+   answer, not a heading for it — the lines under it are where the detail
+   goes.
 
    The last line is the only one not written to the operator. Address it to
    whoever raised the claim, and write it to stand alone: the site, what holds

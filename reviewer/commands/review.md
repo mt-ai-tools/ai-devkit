@@ -195,6 +195,8 @@ Run a review.
         Finding 3 of 7, §R13.52 — <what is wrong> (<the rule, or the entry
         where a convention was broken>)
 
+        <what is wrong and what it costs, in everyday words>
+
         <path:line>, <path:line>…
 
           <the offending lines>
@@ -202,6 +204,13 @@ Run a review.
         Proposed fix: <one or two sentences>. Fix it?
 
     — and the choices under it carry nothing but which way it goes.
+
+    The plain block is for a reader who has not read the law and should not
+    have to. One or two sentences, in the words someone would use who does
+    not know the rule: what is actually wrong, and what it costs. No rule
+    names, no identifiers, no vocabulary from the tools. It never restates
+    the heading — the heading is the technical name for the thing, and this
+    is what the thing means.
 
     Every block stands apart, with a blank line between it and the next: the
     heading, the sites, the lines quoted, the fix, and whatever else one
