@@ -31,11 +31,14 @@ Answer the operator in short, easily understandable form.
   position in a list that lives somewhere else. The reader may hold none
   of it in mind, and an answer that only makes sense in sequence makes
   sense to nobody arriving at it later.
-- Show the lines the answer turns on, with their path, rather than
-  describing them. Only those lines — not the surrounding function, not
-  the whole file. Where showing the point would take more than a handful
-  of lines, the point has not been found yet, and saying so is the
-  answer.
+- Say it in words and give the path. Code is the last thing to reach
+  for: a path lets the reader look if they want, while a block of code
+  makes them read it to get the point. Where the subject is words — a
+  comment, a document, a message, a failing line of output — showing
+  them is showing the subject itself, and that is fine. Where the
+  subject is code, one line quoted inside a sentence is the most that
+  should be needed, and wanting more than that means the point has not
+  been found yet.
 - Cut words that carry nothing; never cut a word that carries something.
   A word saying whether a thing is new or already given, finished or
   still open, is information, and brevity is not a reason to drop it.
