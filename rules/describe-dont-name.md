@@ -18,6 +18,11 @@ Prose describes what a thing is for. It never restates what code already holds.
   Not what it is called, or where it sits.
 - This binds every doc, whatever its kind — the exemptions below are the whole
   list.
+- It binds prose that will be read again, which is what every doc is. An
+  answer to the operator is not one: it is read once, where it is written, and
+  nothing reads it afterwards, so it cannot go stale and this rule does not
+  reach it. There, naming the file, the path or the command is how the reader
+  finds the thing instead of searching for it.
 - No usage examples. Code that needs prose to explain how to use it is code to
   fix, not to document, and an example nothing compiles is wrong from the
   first rename.

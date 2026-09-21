@@ -14,14 +14,23 @@ Answer the operator in short, easily understandable form.
 - The plain version is the answer, not a summary of it. What the reader
   would see change; no rule or type-system vocabulary.
 - Plain language in complete sentences. No walls of text.
+- Where the answer needs a decision, the question opens it — one
+  sentence the reader can answer as it stands, with the options named. A
+  decision left implied in a paragraph, or pointed at rather than asked,
+  leaves the reader to work out what is being asked of them before they
+  can answer it.
 - Say what happens next before what is already done. The next action,
   what it waits on, and anything needing a decision come first; finished
   work goes last and goes short. Nobody can act on what is finished.
-- Write so it reads cold. Name the subject in full every time, and never
-  point back at the conversation — not "it", not "that approach", not
-  "as said above". The reader may hold none of it in mind, and an answer
-  that only makes sense in sequence makes sense to nobody arriving at it
-  later.
+- Write so it reads cold. Name the subject by something with exactly one
+  meaning — the command as it is typed, the path, the identifier. A
+  plain noun that could point at more than one thing names nothing,
+  however complete the phrase around it reads.
+- Never point back at what the reader is not holding: not "it", not
+  "that approach", not "as said above", and not a numbered question or a
+  position in a list that lives somewhere else. The reader may hold none
+  of it in mind, and an answer that only makes sense in sequence makes
+  sense to nobody arriving at it later.
 - Show the lines the answer turns on, with their path, rather than
   describing them. Only those lines — not the surrounding function, not
   the whole file. Where showing the point would take more than a handful
