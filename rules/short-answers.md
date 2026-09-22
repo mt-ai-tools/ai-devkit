@@ -19,6 +19,11 @@ Answer the operator in short, easily understandable form.
   decision left implied in a paragraph, or pointed at rather than asked,
   leaves the reader to work out what is being asked of them before they
   can answer it.
+- When work is stopped, the stop is the first line: what is stopped,
+  what would unstick it, and the ways forward named — waiting for
+  somebody else counts as one. Work finished before the stop goes after
+  it, short. A stop caused by another session is still a stop, and whose
+  it is changes nothing about needing to see it first.
 - Say what happens next before what is already done. The next action,
   what it waits on, and anything needing a decision come first; finished
   work goes last and goes short. Nobody can act on what is finished.
