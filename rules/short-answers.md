@@ -5,7 +5,12 @@ summary: Answer the operator short and plainly — open with the point in everyd
 
 # Short answers
 
-Answer the operator in short, easily understandable form.
+An answer is arranged so the reader can stop early. The first line says
+what is going on and what is wanted from them; every line after it is
+one they could have stopped before. Shortness still holds — nothing
+padded, nothing said twice — but what makes an answer work is the order,
+not the length. Nothing true is left out to keep it short. It goes
+further down.
 
 - Lead with the conclusion, in everyday words — the first sentence
   answers the question, and a reader who has never seen the project
