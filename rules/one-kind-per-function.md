@@ -9,7 +9,9 @@ Every function is one kind, and no function is two.
 
 - A transform takes values and returns values. It reaches for nothing: no
   clock, no client, no filesystem, no global.
-- A read touches the world and leaves it as it found it.
+- A read touches the world and leaves it as it found it. A line it logs
+  or a figure it reports changes nothing the program reads back, so
+  neither makes it a write.
 - A write changes something.
 - A factory is the fourth, and the only one: it constructs, and what it hands
   back carries the three. Building may reach outside — a client has to come
