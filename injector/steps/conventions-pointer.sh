@@ -16,6 +16,10 @@ tool_root="$(cd "$here/.." && pwd)"
 
 has_convention_entries "${1:-}" || exit 0
 
+# The moment named is any of the three, not writing alone: an agent proposing
+# or asking about something it has not yet built reads "shaping" as "writing"
+# and skips the entry, and the operator then has to answer a question the
+# entry had already settled.
 echo
 echo "Written conventions live in: $1"
-echo "Read the entry that covers what you are shaping before you shape it."
+echo "Read the entry that covers what you are shaping before you shape it, propose it or ask about it."

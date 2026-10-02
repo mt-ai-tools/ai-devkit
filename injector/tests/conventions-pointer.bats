@@ -14,6 +14,14 @@ setup() {
   [[ "$output" == *"$BATS_TEST_TMPDIR/conventions"* ]]
 }
 
+@test "the pointer names proposing and asking, not only shaping" {
+  mkdir "$BATS_TEST_TMPDIR/conventions"
+  printf '# Spacing\n' >"$BATS_TEST_TMPDIR/conventions/spacing.md"
+  run "$pointer" "$BATS_TEST_TMPDIR/conventions"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"propose it or ask about it"* ]]
+}
+
 @test "a collection holding only its README says nothing" {
   mkdir "$BATS_TEST_TMPDIR/conventions"
   printf '# conventions\n' >"$BATS_TEST_TMPDIR/conventions/README.md"
