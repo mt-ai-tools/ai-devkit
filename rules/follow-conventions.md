@@ -11,8 +11,10 @@ or reinvented.
 - Written conventions live in the project's conventions collection — a
   directory of one-file-per-convention entries. Find it before shaping
   new code, and follow what it says.
-- Entries are normative: code conforms to the entry, never the other
-  way around. Code that disagrees with an entry is wrong, however old.
+- Entries are normative, as the rules are: code conforms to them, never
+  the other way around. Code that disagrees with one is wrong, however
+  old — point it out, never copy it as the house style. A comment in the
+  code describes the code; it is never an entry or a rule.
 - An entry holds a convention the project settled, nothing more: one
   that many modules could break, stated as what must hold rather than
   how the code does it today. A fact about one module's workings is a
