@@ -26,7 +26,7 @@ itself.
   can push back on it. Splitting late is paid less visibly, in a copy somebody
   made because reaching for the block was the harder path.
 - "They are always used together" is a reason to compose them, not to ship them as one.
-- A block never knows its consumers. No naming them, no describing where they sit, no explaining the system it happens to be part of.
+- Think in layers: a block stands on what it uses and carries what uses it. It may know the layers beneath it, and nothing of the layers above — whatever they are, however close they sit. No naming them, no describing where they sit, no explaining the system it happens to be part of.
 - A block may declare what it *needs* — as a contract it accepts, not a place it expects to find one. "A directory of rule files" is a contract; "the folder next to me" is a layout assumption.
 - Where a dependency must be named, name it once, in one place, and let the location be configurable.
 - A block that cannot be described without describing its neighbours is not a block yet.
