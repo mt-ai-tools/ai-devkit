@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Where the rules live and which files count as rules — in one place, so the
 # stages cannot drift on either. Sourced, never executed.
-. "$(dirname "${BASH_SOURCE[0]}")/collection.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/collection.sh"
 
 # The rules are a part of the same kit as this resolver, so there is nothing
 # to configure: the kit mounts whole, and a mount taking one part without the

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Where the conventions collection lives, and which files count as entries — in
 # one place, so the stages cannot drift on either. Sourced, never executed.
-. "$(dirname "${BASH_SOURCE[0]}")/collection.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/collection.sh"
 
 # The collection sits at a fixed place under the project root. This is the
 # one place in the kit that resolves it: everything else in the kit is handed

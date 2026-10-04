@@ -10,11 +10,13 @@ setup() {
 }
 
 # A private copy of the kit, so a test can break a part of it without touching
-# the real one. The rules folder comes along only when asked for.
+# the real one. The rules folder comes along only when asked for; the kit's
+# shared readers always do, since the injector reads through them.
 copy_kit() {
   kit="$BATS_TEST_TMPDIR/kit"
   mkdir -p "$kit"
   cp -r "$BATS_TEST_DIRNAME/.." "$kit/injector"
+  cp -r "$BATS_TEST_DIRNAME/../../lib" "$kit/lib"
   if [ "${1:-}" = "with-rules" ]; then
     cp -r "$BATS_TEST_DIRNAME/../../rules" "$kit/rules"
   fi
