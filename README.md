@@ -21,6 +21,12 @@ root, and this is where the operator learns their names.
   asking; silence there means nothing is taken unasked. A README in that
   folder is not an entry. The folder may be absent: a project without a
   collection has nothing to point at.
+- `aidk-config.env` says where the kit finds what it reads, where that is
+  not the default: the rules among them, so a project may bring its own in
+  place of the set the kit ships. To start one, copy the example at the
+  kit's root, which lists every setting with its default. Absent, every
+  default holds. A file the kit cannot read, or a path set in it that does
+  not exist, stops every turn until it is fixed.
 - `.agentic-review` holds the reviewer's own working notes, read by
   nothing else: worth ignoring from version control, and safe to
   delete.

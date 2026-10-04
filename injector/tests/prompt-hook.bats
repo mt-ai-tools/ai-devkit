@@ -4,9 +4,14 @@ bats_require_minimum_version 1.5.0
 # every turn whatever the prompt, the declared collection named, and the turn
 # refused whenever the rules did not reach it.
 
+# Every test runs against an empty project of its own unless it says
+# otherwise: the hook reads the project's config file, and the project a
+# session runs the suite from may well keep one.
 setup() {
   hook="$BATS_TEST_DIRNAME/../hooks/prompt-hook.sh"
   . "$BATS_TEST_DIRNAME/../lib/refusal.sh"
+  export CLAUDE_PROJECT_DIR="$BATS_TEST_TMPDIR/empty-project"
+  mkdir -p "$CLAUDE_PROJECT_DIR"
 }
 
 # A private copy of the kit, so a test can break a part of it without touching
@@ -18,7 +23,8 @@ copy_kit() {
   cp -r "$BATS_TEST_DIRNAME/.." "$kit/injector"
   cp -r "$BATS_TEST_DIRNAME/../../lib" "$kit/lib"
   if [ "${1:-}" = "with-rules" ]; then
-    cp -r "$BATS_TEST_DIRNAME/../../rules" "$kit/rules"
+    mkdir -p "$kit/presets"
+    cp -r "$BATS_TEST_DIRNAME/../../presets/rules" "$kit/presets/rules"
   fi
   copied_hook="$kit/injector/hooks/prompt-hook.sh"
 }
@@ -55,11 +61,11 @@ copy_kit() {
 
 @test "a rules folder holding no rule files refuses the turn" {
   copy_kit
-  mkdir "$kit/rules"
-  printf 'not a rule\n' >"$kit/rules/README.md"
+  mkdir -p "$kit/presets/rules"
+  printf 'not a rule\n' >"$kit/presets/rules/README.md"
   run --separate-stderr bash -c "printf '{}' | '$copied_hook'"
   [ "$status" -eq 2 ]
-  [[ "$stderr" == *"$(no_rules_note "$kit/rules")"* ]]
+  [[ "$stderr" == *"$(no_rules_note "$kit/presets/rules")"* ]]
   [[ "$stderr" == *"$(turn_refused_note)"* ]]
 }
 
@@ -85,4 +91,36 @@ copy_kit() {
   run --separate-stderr bash -c "printf '{}' | '$copied_hook'"
   [ "$status" -eq 2 ]
   [[ "$stderr" == *"Nothing runs until this is fixed."* ]]
+}
+
+@test "with no config file the rules are read from the kit's own preset" {
+  kit_root="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
+  run bash -c "printf '{}' | CLAUDE_PROJECT_DIR='$BATS_TEST_TMPDIR' '$hook'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Full text: $kit_root/presets/rules"* ]]
+  [[ "$output" == *"- design-for-growth — "* ]]
+}
+
+@test "a rules folder set in the project's config file is the one read" {
+  project="$BATS_TEST_TMPDIR/project"
+  mkdir -p "$project/own-rules"
+  printf -- '---\nenforce: [premise]\nsummary: The project'"'"'s own premise.\n---\n# Own\n' >"$project/own-rules/own-premise.md"
+  printf 'AIDK_RULES=own-rules\n' >"$project/aidk-config.env"
+  run bash -c "printf '{}' | CLAUDE_PROJECT_DIR='$project' '$hook'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Full text: $project/own-rules"* ]]
+  [[ "$output" == *"- own-premise — The project's own premise."* ]]
+  [[ "$output" != *"design-for-growth"* ]]
+}
+
+@test "a config file the kit refuses refuses the turn with the config's own reason" {
+  . "$BATS_TEST_DIRNAME/../../lib/readers/config.sh"
+  project="$BATS_TEST_TMPDIR/project"
+  mkdir -p "$project"
+  printf 'AIDK_RULES=no-such-folder\n' >"$project/aidk-config.env"
+  run --separate-stderr bash -c "printf '{}' | CLAUDE_PROJECT_DIR='$project' '$hook'"
+  [ "$status" -eq 2 ]
+  [[ "$stderr" == *"$(config_path_missing_note 1 AIDK_RULES "$project/no-such-folder")"* ]]
+  [[ "$stderr" == *"$(turn_refused_note)"* ]]
+  [[ "$stderr" != *"$(no_rules_note "")"* ]]
 }

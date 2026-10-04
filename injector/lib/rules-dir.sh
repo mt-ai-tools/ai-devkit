@@ -2,14 +2,18 @@
 # Where the rules live and which files count as rules — in one place, so the
 # stages cannot drift on either. Sourced, never executed.
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/collection.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/config.sh"
 
-# The rules are a part of the same kit as this resolver, so there is nothing
-# to configure: the kit mounts whole, and a mount taking one part without the
-# other has no rules to inject. Resolved to an absolute path because every line that names it is
-# read by someone who is not standing where this ran.
+# Where the rules live is the project's to say, through the kit's config: a
+# project may bring its own rulebook, and the one the kit ships is a preset it
+# falls back on, not a part of its machinery. Unlike other folders the kit
+# reads, the rules are required, so a missing one is not made silent here: the
+# path is handed on all the same, and the digest refuses the turn over it. A
+# config file the reader refuses fails this lookup, with the reader's own
+# reason already on stderr; a caller must let that failure end it, or the
+# operator is shown the wrong reason.
 rules_dir() {
-  local dir="$(dirname "${BASH_SOURCE[0]}")/../../rules"
-  if [ -d "$dir" ]; then (cd "$dir" && pwd); else printf '%s' "$dir"; fi
+  get_config_path AIDK_RULES
 }
 
 # True if the directory holds any rule files at all.

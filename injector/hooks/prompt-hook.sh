@@ -22,12 +22,13 @@
 # on a terminal, where there is nothing to drain and waiting would hang.
 #
 # Fail closed: the rules are the point of this hook, so a turn they did not
-# reach must not run. Any step failing — a crash, or a rules directory with
-# nothing in it — refuses the turn with exit 2, which Claude Code honours by
-# withholding the prompt and showing the operator what went to stderr. The
-# operator fixes the cause and sends the prompt again; until then the session
-# does nothing, and that is the intent. Advice that silently went missing is
-# worse than a session that stops and says so.
+# reach must not run. Any step failing — a crash, a config file the kit
+# refuses, or a rules directory with nothing in it — refuses the turn with
+# exit 2, which Claude Code honours by withholding the prompt and showing the
+# operator what went to stderr. The operator fixes the cause and sends the
+# prompt again; until then the session does nothing, and that is the intent.
+# Advice that silently went missing is worse than a session that stops and
+# says so.
 set -euo pipefail
 
 # The refusal is armed before anything is loaded, and on the way out rather
@@ -56,9 +57,16 @@ tool_root="$(cd "$here/.." && pwd)"
 
 [ -t 0 ] || cat >/dev/null
 
-"$tool_root/steps/rules-digest.sh" "$(rules_dir)"
+# Resolved into a variable before any step runs, never inline as a step's
+# argument: a failing command substitution inside an argument does not end the
+# script, so a refused config file would reach the digest as an empty path and
+# be reported as missing rules, hiding the config reader's own reason. A plain
+# assignment does end it, and the refusal above takes over.
+rules_from="$(rules_dir)"
+
+"$tool_root/steps/rules-digest.sh" "$rules_from"
 
 "$tool_root/steps/conventions-pointer.sh" "$(conventions_dir)"
 
-"$tool_root/steps/question-rule.sh" "$(rules_dir)"
+"$tool_root/steps/question-rule.sh" "$rules_from"
 exit 0

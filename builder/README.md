@@ -9,6 +9,6 @@ nothing between steps — what it knows of the work is what the brief and the
 rules say. Where the step needs a decision the brief does not make, it stops
 and reports rather than decides.
 
-Needs a brief written down, and the locations of the kit's rules and the
+Needs a brief written down, and the locations of the rules and the
 project's conventions handed to it by the session, which reads them from
 what the injector printed at the start of the turn.
