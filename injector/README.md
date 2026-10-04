@@ -14,4 +14,4 @@ turn.
 Reads the rules where the project's config file puts them, and the set the
 kit ships where it says nothing. Names the project's conventions collection
 where the project keeps one — an absent collection simply goes unmentioned.
-Needs nothing but `bash`.
+Needs nothing but `bash` and `awk`.

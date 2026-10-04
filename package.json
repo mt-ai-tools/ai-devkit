@@ -1,7 +1,7 @@
 {
 	"name": "ai-devkit",
 	"version": "0.1.0",
-	"description": "Rules for a coding agent, the hook that injects them, and the reviewer that enforces them.",
+	"description": "Rules for a coding agent, the hook that injects them, and the tools that review, advise and build under them.",
 	"private": true,
 	"scripts": {
 		"test": "bats injector/tests lib/tests"
