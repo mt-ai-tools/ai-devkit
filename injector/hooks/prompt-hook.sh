@@ -63,10 +63,11 @@ tool_root="$(cd "$here/.." && pwd)"
 # be reported as missing rules, hiding the config reader's own reason. A plain
 # assignment does end it, and the refusal above takes over.
 rules_from="$(rules_dir)"
+conventions_from="$(conventions_dir)"
 
 "$tool_root/steps/rules-digest.sh" "$rules_from"
 
-"$tool_root/steps/conventions-pointer.sh" "$(conventions_dir)"
+"$tool_root/steps/conventions-pointer.sh" "$conventions_from"
 
 "$tool_root/steps/question-rule.sh" "$rules_from"
 exit 0

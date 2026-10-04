@@ -11,10 +11,11 @@ project is stated here and nowhere else in it.
 
 ## What a project keeps, and where
 
-The kit finds a project's own material at fixed places under the project
-root, and this is where the operator learns their names.
+The kit finds a project's own material under the project root, each at a
+default place the config file can move, and this is where the operator
+learns their names.
 
-- `conventions` holds the project's written conventions. One convention
+- `aidk-conventions` holds the project's written conventions. One convention
   per file, named for the convention; what an entry holds is the
   follow-conventions rule's to say. An entry may declare, in its
   frontmatter, what an unattended run is allowed to put right without

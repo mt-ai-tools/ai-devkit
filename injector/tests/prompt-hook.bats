@@ -38,15 +38,32 @@ copy_kit() {
 }
 
 @test "the project's conventions folder is named when it holds entries" {
-  mkdir "$BATS_TEST_TMPDIR/conventions"
-  printf '# Spacing\n' >"$BATS_TEST_TMPDIR/conventions/spacing.md"
-  run bash -c "printf '{}' | CLAUDE_PROJECT_DIR='$BATS_TEST_TMPDIR' '$hook'"
+  mkdir "$CLAUDE_PROJECT_DIR/aidk-conventions"
+  printf '# Spacing\n' >"$CLAUDE_PROJECT_DIR/aidk-conventions/spacing.md"
+  run bash -c "printf '{}' | '$hook'"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"$BATS_TEST_TMPDIR/conventions"* ]]
+  [[ "$output" == *"Written conventions live in: $CLAUDE_PROJECT_DIR/aidk-conventions"* ]]
+}
+
+@test "a conventions folder set in the project's config file is the one named" {
+  mkdir -p "$CLAUDE_PROJECT_DIR/docs/conventions"
+  printf '# Spacing\n' >"$CLAUDE_PROJECT_DIR/docs/conventions/spacing.md"
+  printf 'AIDK_CONVENTIONS=docs/conventions\n' >"$CLAUDE_PROJECT_DIR/aidk-config.env"
+  run bash -c "printf '{}' | '$hook'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Written conventions live in: $CLAUDE_PROJECT_DIR/docs/conventions"* ]]
+}
+
+@test "a conventions folder set but missing refuses the turn with the config's reason" {
+  printf 'AIDK_CONVENTIONS=docs/no-such-folder\n' >"$CLAUDE_PROJECT_DIR/aidk-config.env"
+  run --separate-stderr bash -c "printf '{}' | '$hook'"
+  [ "$status" -eq 2 ]
+  [[ "$stderr" == *"AIDK_CONVENTIONS is set to $CLAUDE_PROJECT_DIR/docs/no-such-folder"* ]]
+  [[ "$stderr" == *"$(turn_refused_note)"* ]]
 }
 
 @test "a project without a conventions folder gets no pointer" {
-  run bash -c "printf '{}' | CLAUDE_PROJECT_DIR='$BATS_TEST_TMPDIR' '$hook'"
+  run bash -c "printf '{}' | '$hook'"
   [ "$status" -eq 0 ]
   [[ "$output" != *"Written conventions live in"* ]]
 }

@@ -2,15 +2,16 @@
 # Where the conventions collection lives, and which files count as entries — in
 # one place, so the stages cannot drift on either. Sourced, never executed.
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/collection.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/config.sh"
 
-# The collection sits at a fixed place under the project root. This is the
-# one place in the kit that resolves it: everything else in the kit is handed
-# the result, and the kit's README tells the operator the same name only
-# because a folder they must create cannot be described to them in roles.
-# The root is the one the hook is run for; on a machine with no such variable
-# set, the working directory stands in.
+# Where the collection lives is the project's to say, through the kit's
+# config; the default is a folder under the project root. This is the one
+# place in the injector that asks: everything else is handed the result. A
+# default folder that is missing comes back all the same, and the pointer
+# stays silent over it; a config file the reader refuses fails this lookup
+# with the reader's own reason, and a caller must let that failure end it.
 conventions_dir() {
-	printf '%s/conventions' "${CLAUDE_PROJECT_DIR:-$PWD}"
+	get_config_path AIDK_CONVENTIONS
 }
 
 # True if the directory holds any entries at all. An empty one is a collection
