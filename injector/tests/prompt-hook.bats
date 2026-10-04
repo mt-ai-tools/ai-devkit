@@ -70,3 +70,19 @@ copy_kit() {
   [ "$status" -eq 2 ]
   [[ "$stderr" == *"$(turn_refused_note)"* ]]
 }
+
+@test "a shared reader that cannot be loaded refuses the turn" {
+  copy_kit with-rules
+  rm "$kit/lib/readers/collection.sh"
+  run --separate-stderr bash -c "printf '{}' | '$copied_hook'"
+  [ "$status" -eq 2 ]
+  [[ "$stderr" == *"$(turn_refused_note)"* ]]
+}
+
+@test "a missing refusal wording still refuses the turn" {
+  copy_kit with-rules
+  rm "$kit/injector/lib/refusal.sh"
+  run --separate-stderr bash -c "printf '{}' | '$copied_hook'"
+  [ "$status" -eq 2 ]
+  [[ "$stderr" == *"Nothing runs until this is fixed."* ]]
+}

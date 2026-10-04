@@ -30,17 +30,29 @@
 # worse than a session that stops and says so.
 set -euo pipefail
 
-here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-tool_root="$(cd "$here/.." && pwd)"
-. "$tool_root/lib/rules-dir.sh"
-. "$tool_root/lib/conventions-dir.sh"
-. "$tool_root/lib/refusal.sh"
-
+# The refusal is armed before anything is loaded, and on the way out rather
+# than on an error: bash ends the script outright when a file it was told to
+# load is missing, with an ordinary error and no ERR trap run — and Claude
+# Code shows an ordinary error and then runs the turn anyway, without the
+# rules. Any way out but a clean finish is therefore turned into a refusal.
+# Where the words file itself is what is missing, the refusal has its own.
 refuse_turn() {
-  turn_refused_note >&2
+  local status=$?
+  [ "$status" -eq 0 ] && return
+  if declare -F turn_refused_note >/dev/null; then
+    turn_refused_note >&2
+  else
+    printf 'Rules hook failed: a part of the kit could not be loaded. Nothing runs until this is fixed.\n' >&2
+  fi
   exit 2
 }
-trap refuse_turn ERR
+trap refuse_turn EXIT
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+tool_root="$(cd "$here/.." && pwd)"
+. "$tool_root/lib/refusal.sh"
+. "$tool_root/lib/rules-dir.sh"
+. "$tool_root/lib/conventions-dir.sh"
 
 [ -t 0 ] || cat >/dev/null
 
