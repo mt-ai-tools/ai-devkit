@@ -6,8 +6,10 @@ argument-hint: [--scope :all|<path>|<revision>]
 Run a review.
 
 1. Look first for a run that never finished. A run records the finding it is
-   about to fix — in the notes folder the kit's README declares, under the
-   project root you run from — and clears that record when the fix is
+   about to fix — in the reviewer's notes folder: the one `AIDK_REVIEW`
+   names in the project's `aidk-config.env`, or, where the file sets none,
+   the default the kit's README declares, under the project root you run
+   from — and clears that record when the fix is
    committed; a record still standing means the last run died between those
    two moments.
 

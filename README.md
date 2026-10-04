@@ -28,9 +28,9 @@ learns their names.
   kit's root, which lists every setting with its default. Absent, every
   default holds. A file the kit cannot read, or a path set in it that does
   not exist, stops every turn until it is fixed.
-- `.agentic-review` holds the reviewer's own working notes, read by
+- `aidk-review` holds the reviewer's own working notes, read by
   nothing else: worth ignoring from version control, and safe to
-  delete.
+  delete. The config file can move it, as it can the collection.
 
 ## Mounting
 
