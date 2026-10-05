@@ -41,9 +41,13 @@ learns their names.
 A project mounts the kit whole. It registers the injector's hook script
 for the turn-start event, and exposes the agent and command files the
 reviewer, the advisor and the builder ship, where Claude Code looks for a
-project's agents and commands. Without the hook the reviewer cannot run,
+project's agents and commands, and the skill the organizer ships, where it
+looks for a project's skills. Without the hook the reviewer cannot run,
 the advisor cannot say whether a finding matters, and the builder is not
-told where the rules it builds under live.
+told where the rules it builds under live. Beside the skill, the project
+registers the organizer's hook script for the after-tool event of the
+Skill tool: the hook is what shows the list, and the skill alone only
+says that it could not.
 
 ## Develop
 

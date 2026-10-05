@@ -115,6 +115,25 @@ list_problem_line() {
   printf -- '- %s\n' "$1"
 }
 
+# --- The skill's hook. The notes go to the model, which never sees what the
+# hook showed the user, so each says what was shown rather than repeating it.
+
+skill_list_shown_note() {
+  printf 'The organizer'\''s list of briefs (%s lines) has been shown to the user above, exactly as printed.\n' "$1"
+}
+
+skill_organizer_unrunnable_note() {
+  printf 'The organizer could not be run: %s is missing or not executable.\n' "$1"
+}
+
+skill_unrunnable_shown_note() {
+  printf 'The organizer could not be run, and the reason has been shown to the user above.\n'
+}
+
+skill_name_unreadable_note() {
+  printf 'The organizer'\''s skill hook cannot read the skill'\''s name from %s.\n' "$1"
+}
+
 # --- Ages, by the unit format_age picked.
 
 age_minutes_words() { printf '%s min' "$1"; }
