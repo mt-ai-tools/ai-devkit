@@ -33,8 +33,11 @@ Exempt:
   Those names are not yours to change, so they cannot go stale from within.
 - Languages, formats, and platform features may be named. They are the medium
   the prose is written about, not identifiers your code holds.
-- Prose may point at sibling prose. A broken link is findable; a stale
-  identifier is not.
+- Prose may point at sibling prose that lives at least as long as it
+  does. A broken link is findable; a stale identifier is not. A lasting
+  text never points at a temporary one — a plan, a note, a working
+  file — that will be deleted while it still stands: it says the thing
+  itself instead.
 - A migration note names freely. It records what one past release broke,
   frozen at its date — its identifiers are history, and history cannot rot.
 - A why-comment may name the specific library, tool, or version that caused
