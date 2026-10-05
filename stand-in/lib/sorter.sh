@@ -24,21 +24,6 @@ to_sorter_prompt() {
   to_filled_prompt "$PROMPTS_DIR/sorter.md" "$prose" "$values"
 }
 
-# The reader's form, checked again and holding a question; a refusal on
-# stderr and a non-zero status otherwise. Checked again rather than trusted
-# from whoever handed it in: the sorter is only ever asked about a form the
-# check passed, and only about a question, since a reply that asks nothing has
-# no kind to be.
-refuse_unsortable_form() {
-  local form
-  form="$(refuse_bad_reader_form "$1")" || return 1
-  if ! jq -e '.asks_operator' >/dev/null <<<"$form"; then
-    refuse_nothing_to_sort_note >&2
-    return 1
-  fi
-  printf '%s\n' "$form"
-}
-
 # --- Reads.
 
 # The checked sorter's answer for one question, as one line of JSON, given the
@@ -47,7 +32,7 @@ refuse_unsortable_form() {
 # cannot be read, the model could not be asked, or its answer does not pass.
 get_sorter_answer() {
   local form reply="$2" preset="$3" kinds risks kind_names risk_names prose prompt schema answer
-  form="$(refuse_unsortable_form "$1")" || return 1
+  form="$(refuse_questionless_form "$1")" || return 1
   kinds="$(list_kinds "$preset")" || return 1
   risks="$(list_risks "$preset")" || return 1
   kind_names="$(to_names "$kinds")"

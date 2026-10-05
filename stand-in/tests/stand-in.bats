@@ -64,7 +64,7 @@ setup() {
   form='{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":true,"guidance_answer":""}'
   run --separate-stderr "$script" sort "$form" <<<"Done."
   [ "$status" -eq 1 ]
-  [ "$stderr" = "$(refuse_nothing_to_sort_note)" ]
+  [ "$stderr" = "$(refuse_no_question_note)" ]
   [ ! -e "$FAKE_ARGS" ]
 }
 

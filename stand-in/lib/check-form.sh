@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# The form check: whether a reader's form or a sorter's answer is whole and
-# means one thing, decided in code and never by a model. Every function here
-# is a transform. Sourced, never executed.
+# The form check: whether a reader's form, a sorter's answer or a checker's
+# answer is whole and means one thing, decided in code and never by a model.
+# Every function here is a transform. Sourced, never executed.
 #
 # A form that fails is refused with every reason found, never repaired or
 # guessed at: a guessed field is a decision taken by nobody, and a refused
@@ -66,6 +66,23 @@ CHECK_SORTER_RULES='
   (.risks[] | tostring as $r | select(any($risks[]; . == $r) | not) | ["unknown-risk", $r])
   | join($us)'
 
+# What is wrong with a checker's answer whose shape is right: a list item that
+# is not an object of exactly its fields, each a string with words in it, and
+# a broken entry the checker was not handed. An entry the checker names that
+# the project does not hold would send the agent to read something that is
+# not there.
+CHECK_CHECKER_RULES='
+  def bad_item($fields):
+    type != "object"
+    or ((keys - $fields) != [])
+    or (($fields - keys) != [])
+    or any(.[]; type != "string" or test("^\\s*$"));
+  (.breaks[] | select(bad_item($break_fields)) | ["bad-break"]),
+  (.breaks[] | objects | .entry | strings | . as $e
+    | select(any($names[]; . == $e) | not) | ["unknown-entry", $e]),
+  (.miscalled[] | select(bad_item($miscalled_fields)) | ["bad-miscalled"])
+  | join($us)'
+
 # The input as one compact JSON value; a non-zero status where it is not
 # exactly one. Two values one after the other are refused like none: which of
 # them is the form would be a guess.
@@ -108,6 +125,20 @@ derive_sorter_answer_problems() {
     "$CHECK_SORTER_RULES" <<<"$1"
 }
 
+# Every problem of a checker's answer, one row each, given the names of the
+# entries it was handed as a JSON array.
+derive_checker_answer_problems() {
+  local shape
+  shape="$(derive_shape_problems "$1" "$CHECKER_ANSWER_FIELDS")"
+  if [ -n "$shape" ]; then
+    printf '%s\n' "$shape"
+    return 0
+  fi
+  jq -r --argjson names "$2" --argjson break_fields "$CHECKER_BREAK_FIELDS" \
+    --argjson miscalled_fields "$CHECKER_MISCALLED_FIELDS" --arg us "$CHECK_US" \
+    "$CHECK_CHECKER_RULES" <<<"$1"
+}
+
 # The words for each problem row, the form called by the label given.
 to_problem_notes() {
   local label="$1" code arg type
@@ -125,6 +156,9 @@ to_problem_notes() {
       guidance-outside) refuse_guidance_outside_note "$arg" ;;
       unknown-kind) refuse_unknown_kind_note "$arg" ;;
       unknown-risk) refuse_unknown_risk_note "$arg" ;;
+      bad-break) refuse_bad_break_note ;;
+      unknown-entry) refuse_unknown_entry_note "$arg" ;;
+      bad-miscalled) refuse_bad_miscalled_note ;;
     esac
   done
 }
@@ -162,4 +196,36 @@ refuse_bad_sorter_answer() {
     return 1
   fi
   printf '%s\n' "$answer"
+}
+
+# The checker's answer, compact, where it is whole and names only the entries
+# given; every reason it is not on stderr and a non-zero status otherwise.
+refuse_bad_checker_answer() {
+  local answer problems label
+  label="$(checker_answer_words)"
+  if ! answer="$(to_one_json_value "$1")"; then
+    refuse_not_json_note "$label" >&2
+    return 1
+  fi
+  problems="$(derive_checker_answer_problems "$answer" "$2")"
+  if [ -n "$problems" ]; then
+    to_problem_notes "$label" <<<"$problems" >&2
+    return 1
+  fi
+  printf '%s\n' "$answer"
+}
+
+# The reader's form, checked again and holding a question; a refusal on
+# stderr and a non-zero status otherwise. Checked again rather than trusted
+# from whoever handed it in: the sorter and the checker are only ever asked
+# about a form the check passed, and only about a question, since a reply that
+# asks nothing has no kind to be and no option to break anything.
+refuse_questionless_form() {
+  local form
+  form="$(refuse_bad_reader_form "$1")" || return 1
+  if ! jq -e '.asks_operator' >/dev/null <<<"$form"; then
+    refuse_no_question_note >&2
+    return 1
+  fi
+  printf '%s\n' "$form"
 }

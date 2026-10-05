@@ -12,6 +12,11 @@
 PRESET_KINDS_FOLDER="questions"
 PRESET_RISKS_FILE="challenges/risks.md"
 
+# The two routes a kind of question may take, as its header writes them: to
+# the operator always, or up the challenge ladder.
+ROUTE_ASK="ask"
+ROUTE_LADDER="ladder"
+
 # --- Transforms.
 
 # A risks file's text as rows, one per bullet, in the order written:
@@ -94,6 +99,34 @@ list_kinds() {
     return 1
   fi
   printf '%s' "$kinds" | jq -cs .
+}
+
+# One kind of question's entry, as JSON {name, summary, route, challenge,
+# second_challenge}, the challenges empty where it has none; a refusal on
+# stderr and a non-zero status where it cannot be read, its route is neither
+# of the two, or it has a second challenge with no first. A route that cannot
+# be read is never taken for either: the one it was meant to be is a guess,
+# and guessing ladder would let a question the operator keeps for themselves
+# pass without them.
+get_kind_entry() {
+  local preset="$1" name="$2" file summary route challenge second
+  file="$preset/$PRESET_KINDS_FOLDER/$name.md"
+  if [ ! -f "$file" ] || [ ! -r "$file" ]; then
+    refuse_unreadable_file_note "$file" >&2
+    return 1
+  fi
+  IFS="$HEADER_US" read -r summary route challenge second < <(read_header_fields "$file" summary route challenge second-challenge)
+  if [ "$route" != "$ROUTE_ASK" ] && [ "$route" != "$ROUTE_LADDER" ]; then
+    refuse_kind_route_note "$name" "$route" "$ROUTE_ASK" "$ROUTE_LADDER" >&2
+    return 1
+  fi
+  if [ -z "$challenge" ] && [ -n "$second" ]; then
+    refuse_second_challenge_alone_note "$name" >&2
+    return 1
+  fi
+  jq -cn --arg name "$name" --arg summary "$summary" --arg route "$route" \
+    --arg challenge "$challenge" --arg second "$second" \
+    '{name: $name, summary: $summary, route: $route, challenge: $challenge, second_challenge: $second}'
 }
 
 # The risks in a preset, as parse_risks hands them back.

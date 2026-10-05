@@ -37,6 +37,12 @@ learns their names.
 - `aidk-organizer` is the organizer's working folder: which briefs
   sessions are working on, on this machine only. Worth ignoring from
   version control. The config file can move it.
+- `aidk-stand-in` is the stand-in's working folder. Its `answers` holds
+  real past cases, worth keeping in version control. Its `on` (which
+  sessions the stand-in is switched on for), `sessions` (where the gate
+  stands with each) and `log` are this machine's alone and worth
+  ignoring; the last two may hold raw agent text. The config file can move
+  it.
 
 ## Mounting
 
@@ -53,7 +59,11 @@ says that it could not. For the briefs sessions take, it registers the
 organizer's turn reminder for the turn-start event, beside the injector's
 hook, and its end hook for the session-end event: without the one a
 session holding a brief is not told so each turn, and without the other
-a brief stays taken after its session has ended.
+a brief stays taken after its session has ended. For the stand-in, it
+registers the stand-in's gate for the end-of-reply event, with a time
+limit no shorter than the one the gate declares: without the gate no
+question is caught, and a gate stopped by its time limit lets a reply
+pass unjudged and unsaid.
 
 ## Develop
 

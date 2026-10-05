@@ -71,3 +71,30 @@ setup() {
   run list_risks "$BATS_TEST_DIRNAME/../../presets/stand-in"
   [ "$status" -eq 0 ]
 }
+
+@test "a kind's entry holds its route and its challenges" {
+  preset "alpha:First." "one"
+  printf -- '---\nsummary: First.\nroute: ladder\nchallenge: Sure?\nsecond-challenge: Read them?\n---\n' >"$preset_dir/questions/alpha.md"
+  run get_kind_entry "$preset_dir" alpha
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"name":"alpha","summary":"First.","route":"ladder","challenge":"Sure?","second_challenge":"Read them?"}' ]
+}
+
+@test "a kind with no known route, or a second challenge alone, is refused" {
+  preset "alpha:First." "one"
+  printf -- '---\nsummary: First.\n---\n' >"$preset_dir/questions/alpha.md"
+  run --separate-stderr get_kind_entry "$preset_dir" alpha
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_kind_route_note alpha "" ask ladder)" ]
+  printf -- '---\nsummary: First.\nroute: ask\nsecond-challenge: Read them?\n---\n' >"$preset_dir/questions/alpha.md"
+  run --separate-stderr get_kind_entry "$preset_dir" alpha
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_second_challenge_alone_note alpha)" ]
+}
+
+@test "every kind of the kit's own preset reads whole" {
+  for entry in "$BATS_TEST_DIRNAME/../../presets/stand-in/questions/"*.md; do
+    run get_kind_entry "$BATS_TEST_DIRNAME/../../presets/stand-in" "$(basename "$entry" .md)"
+    [ "$status" -eq 0 ]
+  done
+}

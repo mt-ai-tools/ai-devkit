@@ -14,23 +14,66 @@ setup_fake_claude() {
   mkdir -p "$fakebin"
   export FAKE_ARGS="$BATS_TEST_TMPDIR/claude-args"
   export FAKE_PROMPT="$BATS_TEST_TMPDIR/claude-prompt"
+  export FAKE_CALLS="$BATS_TEST_TMPDIR/claude-calls"
+  export FAKE_ANSWERS="$BATS_TEST_TMPDIR/claude-answers"
+  mkdir -p "$FAKE_ANSWERS"
   # FAKE_ENVELOPE, when set, is printed as it stands in place of the envelope;
-  # FAKE_STATUS is the status the fake ends with; FAKE_SLEEP holds it up.
+  # FAKE_STATUS is the status the fake ends with; FAKE_SLEEP holds it up. Where
+  # one run asks several jobs, each job's answer and status may be given apart,
+  # by answer_for and status_for: the job is told by the first field its
+  # schema requires, since two jobs may run on one model. Every call is logged
+  # in turn as "<job> <model>", and its arguments and prompt kept under the
+# job's name.
   cat >"$fakebin/claude" <<'FAKE'
 #!/usr/bin/env bash
+model="" schema="" previous=""
+for arg in "$@"; do
+  [ "$previous" = --model ] && model="$arg"
+  [ "$previous" = --json-schema ] && schema="$arg"
+  previous="$arg"
+done
+case "$(jq -r '.required[0] // empty' <<<"$schema" 2>/dev/null)" in
+  asks_operator) job=reader ;;
+  breaks) job=checker ;;
+  kind) job=sorter ;;
+  *) job=other ;;
+esac
+printf '%s %s\n' "$job" "$model" >>"$FAKE_CALLS"
 printf '%s\n' "$@" >"$FAKE_ARGS"
+cp "$FAKE_ARGS" "$FAKE_ARGS.$job"
 cat >"$FAKE_PROMPT"
+cp "$FAKE_PROMPT" "$FAKE_PROMPT.$job"
 [ -n "${FAKE_SLEEP:-}" ] && sleep "$FAKE_SLEEP"
+[ -f "$FAKE_ANSWERS/$job.status" ] && exit "$(cat "$FAKE_ANSWERS/$job.status")"
 if [ -n "${FAKE_ENVELOPE+set}" ]; then
   printf '%s' "$FAKE_ENVELOPE"
 else
-  jq -cn --argjson answer "${FAKE_ANSWER:-null}" \
+  answer="${FAKE_ANSWER:-null}"
+  [ -f "$FAKE_ANSWERS/$job" ] && answer="$(cat "$FAKE_ANSWERS/$job")"
+  jq -cn --argjson answer "$answer" \
     '{type: "result", is_error: false, result: ($answer | tojson), structured_output: $answer}'
 fi
 exit "${FAKE_STATUS:-0}"
 FAKE
   chmod +x "$fakebin/claude"
   export PATH="$fakebin:$PATH"
+}
+
+# The answer the fake gives when the job named is asked: reader, checker or
+# sorter.
+answer_for() {
+  printf '%s' "$2" >"$FAKE_ANSWERS/$1"
+}
+
+# The status the fake ends with when the job named is asked, answering
+# nothing.
+status_for() {
+  printf '%s' "$2" >"$FAKE_ANSWERS/$1.status"
+}
+
+# The calls so far, one "<job> <model>" line each, in order.
+calls() {
+  cat "$FAKE_CALLS" 2>/dev/null || true
 }
 
 # A preset of the suite's own, with the kinds and risks given, so no suite

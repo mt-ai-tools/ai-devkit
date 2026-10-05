@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# The two fixed forms the stand-in's agents fill — the reader's and the
-# sorter's — in one place: every field and its JSON type, from which both the
-# schema a model answers to and the check in code are drawn, so the two can
-# never disagree on what a form holds. What each field means is the prompts'
+# The fixed forms the stand-in's agents fill — the reader's, the sorter's and
+# the checker's — in one place: every field and its JSON type, from which both
+# the schema a model answers to and the check in code are drawn, so the two
+# can never disagree on what a form holds. What each field means is the prompts'
 # to say. Sourced, never executed.
 
 # The reader's form. asks_operator: the reply puts a question to the operator
@@ -22,7 +22,10 @@ READER_FORM_FIELDS='{
 # The words an answer to a guidance challenge may be, the empty one for a
 # reply that answers none. Keeping part of a proposal is told apart from
 # keeping all of it so the log shows which, though both count as keeping.
-GUIDANCE_ANSWERS='["drop", "keep-part", "keep-all", ""]'
+GUIDANCE_DROP="drop"
+GUIDANCE_KEEP_PART="keep-part"
+GUIDANCE_KEEP_ALL="keep-all"
+GUIDANCE_ANSWERS="[\"$GUIDANCE_DROP\", \"$GUIDANCE_KEEP_PART\", \"$GUIDANCE_KEEP_ALL\", \"\"]"
 
 # The sorter's answer. kind: one kind of question from the preset. unsure:
 # the sorter could not tell. risks: the preset's risks the recommended option
@@ -32,6 +35,21 @@ SORTER_ANSWER_FIELDS='{
   "unsure": "boolean",
   "risks": "array"
 }'
+
+# The checker's answer. breaks: the entries an option or the recommendation
+# breaks, each {entry, why}. miscalled: what the reply calls a rule, a
+# convention or settled that no entry is, each {called, actually}.
+# explains_code: the question proposes a convention sentence that tells how
+# some code works rather than what must stay true.
+CHECKER_ANSWER_FIELDS='{
+  "breaks": "array",
+  "miscalled": "array",
+  "explains_code": "boolean"
+}'
+
+# The fields of one item of each of the checker's lists, every one a string.
+CHECKER_BREAK_FIELDS='["entry", "why"]'
+CHECKER_MISCALLED_FIELDS='["called", "actually"]'
 
 # --- Transforms.
 
@@ -64,4 +82,27 @@ reader_form_schema() {
 sorter_answer_schema() {
   to_form_schema "$SORTER_ANSWER_FIELDS" "$(jq -cn --argjson kinds "$1" --argjson risks "$2" \
     '{kind: {enum: $kinds}, risks: {items: {type: "string", enum: $risks}}}')"
+}
+
+# The schema for one list item whose fields are all strings, given the field
+# names as a JSON array; the extras, keyed by field, are merged into that
+# field's schema.
+to_item_schema() {
+  jq -cn --argjson fields "$1" --argjson extras "$2" '{
+    type: "object",
+    properties: (reduce $fields[] as $name ({}; .[$name] = ({type: "string"} * ($extras[$name] // {})))),
+    required: $fields,
+    additionalProperties: false
+  }'
+}
+
+# The schema the checker answers to, given the entry names it was handed as a
+# JSON array: a broken entry is named as it was handed, or not at all. The
+# item's schema replaces the string items every form array has by default.
+checker_answer_schema() {
+  local breaks miscalled
+  breaks="$(to_item_schema "$CHECKER_BREAK_FIELDS" "$(jq -cn --argjson names "$1" '{entry: {enum: $names}}')")"
+  miscalled="$(to_item_schema "$CHECKER_MISCALLED_FIELDS" '{}')"
+  to_form_schema "$CHECKER_ANSWER_FIELDS" "$(jq -cn --argjson breaks "$breaks" --argjson miscalled "$miscalled" \
+    '{breaks: {items: $breaks}, miscalled: {items: $miscalled}}')"
 }
