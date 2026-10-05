@@ -40,9 +40,9 @@ finish_brief() {
   local plans="$1" marks="$2" brief="$3" file rows name summary after rest items line draft
   local waiters=() drafts=()
   refuse_unknown_brief "$plans" "$brief" || return 1
-  # Asked first, though the mark is freed last: a finish that freed nothing
-  # after deleting the brief would leave a mark naming a brief that is gone.
-  refuse_unreadable_marks_dir "$marks" || return 1
+  # Asked before anything changes: a finish that could not free the mark after
+  # deleting the brief would leave a mark naming a brief that is gone.
+  refuse_unwritable_marks_dir "$marks" || return 1
   file="$(brief_file "$plans" "$brief")"
   rows="$(list_brief_rows "$plans")"
 
@@ -68,6 +68,18 @@ finish_brief() {
     fi
   done
 
+  # The mark is freed first of every change, not last: the folder may close
+  # between the check above and this removal, and a removal failing here is
+  # refused while every brief still stands as it was. Freed last, the same
+  # failure left the brief deleted and its waiters rewritten beside a mark
+  # naming a brief that is gone; freed first, a later failure leaves at worst
+  # a brief untaken, which the list shows and taking it again mends. The mark
+  # lives only on this machine and outside version control, so it is freed
+  # without being printed: a path printed here is one to commit.
+  if ! free_brief "$marks" "$brief"; then
+    rm -f "${drafts[@]}"
+    return 1
+  fi
   for name in "${waiters[@]}"; do
     mv "$plans/.$name.done.$$" "$(brief_file "$plans" "$name")"
   done
@@ -76,9 +88,6 @@ finish_brief() {
   for name in "${waiters[@]}"; do
     brief_file "$plans" "$name"
   done
-  # The mark lives only on this machine and outside version control, so it is
-  # freed without being printed: a path printed here is one to commit.
-  free_brief "$marks" "$brief"
 }
 
 # A file's copy at another path with one line replaced, every other byte as it

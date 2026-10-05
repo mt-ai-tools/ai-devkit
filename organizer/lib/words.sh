@@ -68,6 +68,10 @@ refuse_marks_unreadable_note() {
   printf 'The marks folder %s cannot be read, so which briefs are taken cannot be told.\n' "$1"
 }
 
+refuse_marks_unwritable_note() {
+  printf 'The marks folder %s cannot be written, so no brief can be taken, freed or finished.\n' "$1"
+}
+
 refuse_held_unreadable_note() {
   printf 'The taken mark for %s cannot be read, so which briefs a session holds cannot be told; free it.\n' "$1"
 }

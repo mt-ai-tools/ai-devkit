@@ -64,10 +64,30 @@ is_listable_marks_dir() {
 # to a glob as one holding no marks, which would offer taken briefs as ready,
 # let a held brief be taken, and make freeing do nothing without a word. What
 # cannot be told is refused, here in one place: reading the marks goes through
-# it, and so does every write, which may never be preceded by a read.
+# it, and so does every write, by way of the writable check below, since a
+# write may never be preceded by a read.
 refuse_unreadable_marks_dir() {
   is_listable_marks_dir "$1" && return 0
   refuse_marks_unreadable_note "$1" >&2
+  return 1
+}
+
+# True if marks can be added to and removed from the folder, or it is not
+# there at all: taking makes it, and freeing has nothing to remove.
+is_writable_marks_dir() {
+  [ ! -e "$1" ] && return 0
+  [ -d "$1" ] && [ -w "$1" ] && [ -x "$1" ]
+}
+
+# Nothing where the marks folder can be both listed and written; a refusal on
+# stderr and a non-zero status otherwise. Every write calls it before changing
+# anything, so none can forget it: let through, taking and freeing failed with
+# the shell's own words, and finishing deleted the brief before failing on its
+# mark, leaving a mark that names a brief now gone.
+refuse_unwritable_marks_dir() {
+  refuse_unreadable_marks_dir "$1" || return 1
+  is_writable_marks_dir "$1" && return 0
+  refuse_marks_unwritable_note "$1" >&2
   return 1
 }
 
@@ -123,16 +143,24 @@ take_brief() {
   local dir="$1" brief="$2" session="$3" now="$4" mark draft held since
   is_brief_name "$brief" || { refuse_bad_name_note "$brief" >&2; return 1; }
   is_session_id "$session" || { refuse_bad_session_note "$session" >&2; return 1; }
-  refuse_unreadable_marks_dir "$dir" || return 1
+  refuse_unwritable_marks_dir "$dir" || return 1
   mark="$dir/$brief"
   if [ -e "$mark" ]; then
     IFS="$HEADER_US" read -r held since < <(read_mark "$mark")
     refuse_held_mark "$brief" "$session" "$held" "$since"
     return
   fi
-  mkdir -p "$dir"
+  # A folder that is missing passed the check, and one that cannot be made, or
+  # was closed since the check, is refused in the organizer's own words.
+  if ! mkdir -p "$dir" 2>/dev/null; then
+    refuse_marks_unwritable_note "$dir" >&2
+    return 1
+  fi
   draft="$dir/.$brief.$$"
-  printf 'session: %s\nsince: %s\n' "$session" "$now" >"$draft"
+  if ! { printf 'session: %s\nsince: %s\n' "$session" "$now" >"$draft"; } 2>/dev/null; then
+    refuse_marks_unwritable_note "$dir" >&2
+    return 1
+  fi
   if ln "$draft" "$mark" 2>/dev/null; then
     rm -f "$draft"
     return 0
@@ -150,10 +178,11 @@ take_brief() {
 free_session() {
   local dir="$1" session="$2" rows brief held since
   is_session_id "$session" || { refuse_bad_session_note "$session" >&2; return 1; }
+  refuse_unwritable_marks_dir "$dir" || return 1
   rows="$(list_mark_rows "$dir")" || return 1
   while IFS="$HEADER_US" read -r brief held since; do
     [ -n "$brief" ] && [ "$held" = "$session" ] || continue
-    rm -f "$dir/$brief"
+    remove_mark "$dir" "$brief" || return 1
   done <<<"$rows"
 }
 
@@ -162,6 +191,17 @@ free_session() {
 free_brief() {
   local dir="$1" brief="$2"
   is_brief_name "$brief" || { refuse_bad_name_note "$brief" >&2; return 1; }
-  refuse_unreadable_marks_dir "$dir" || return 1
-  rm -f "$dir/$brief"
+  refuse_unwritable_marks_dir "$dir" || return 1
+  remove_mark "$dir" "$brief"
+}
+
+# Remove one brief's mark, where there is one. A removal that fails all the
+# same, the folder closed since the check, is refused in the organizer's own
+# words and with a non-zero status, which finishing relies on to stop before
+# it changes any brief.
+remove_mark() {
+  local dir="$1" brief="$2"
+  rm -f "$dir/$brief" 2>/dev/null && return 0
+  refuse_marks_unwritable_note "$dir" >&2
+  return 1
 }
