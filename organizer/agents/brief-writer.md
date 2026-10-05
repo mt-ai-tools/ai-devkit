@@ -27,7 +27,8 @@ points here.
 
 - The subject, and the operator's yes to writing a brief for it, in their
   own words where the session has them.
-- Every decision the operator already settled on it, with its date.
+- Every decision the operator already settled on it, with its date and
+  their own words.
 - The brief's name, where the operator gave one.
 - Whether the yes also said which existing briefs must now wait on this
   one.
@@ -131,8 +132,13 @@ stops them. Where nothing new reaches outside, say so and why.
 
 **`## Decisions`**: each one numbered, either settled, with the date the
 operator settled it, or open, with the options and one recommendation. A
-decision is settled only where the operator settled it; anything you
-reasoned out yourself is open, with your recommendation. Every reason
+decision is settled only where the operator decided it in so many words
+— a choice they answered, a "yes", an "agreed" — and the session hands
+you those words. The yes to writing the brief settles that a brief is
+written and nothing more: how the session described the problem, and any
+fix it proposed, are open, with a recommendation, as is anything you
+reasoned out yourself. A session's wording passed off as the operator's
+choice is a decision nobody made. Every reason
 goes beside the decision it explains, since the builder moves it into a
 code comment as the step lands and the brief is deleted once built. A
 decision that changes later replaces the old text; it is never kept
