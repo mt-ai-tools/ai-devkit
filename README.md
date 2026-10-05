@@ -1,11 +1,13 @@
 # ai-devkit
 
-One tool for agentic development, in six parts: the rules a coding agent
+One tool for agentic development, in seven parts: the rules a coding agent
 works under, the injector that puts them in front of it every turn, the
 reviewer that judges the work against them, the advisor that gives a
 single finding a second, independent reading, the builder that carries
-out one step of a written brief, and the organizer that says which briefs
-are ready, waiting or taken, and writes a new one on the operator's yes.
+out one step of a written brief, the organizer that says which briefs
+are ready, waiting or taken, and writes a new one on the operator's yes,
+and the stand-in that reads the questions an agent puts to the operator
+and sorts them against the operator's own judgement.
 
 The parts ship, version and mount as one. What the kit needs from a
 project is stated here and nowhere else in it.
