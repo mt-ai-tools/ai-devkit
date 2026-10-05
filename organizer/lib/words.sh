@@ -99,10 +99,6 @@ list_ready_line() {
   printf -- '- %s — %s\n' "$1" "$2"
 }
 
-list_same_place_ready_line() {
-  printf '  same place as ready %s\n' "$1"
-}
-
 list_same_place_taken_line() {
   printf '  same place as taken %s (%s)\n' "$1" "$2"
 }

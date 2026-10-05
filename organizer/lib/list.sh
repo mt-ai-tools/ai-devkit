@@ -106,14 +106,10 @@ format_list() {
 # The same-place lines under one ready brief, from what derive_same_places
 # found.
 format_same_places() {
-  local name="$1" same="$2" ready kind other age
-  while IFS="$HEADER_US" read -r ready kind other age; do
+  local name="$1" same="$2" ready taken age
+  while IFS="$HEADER_US" read -r ready taken age; do
     [ "$ready" = "$name" ] || continue
-    if [ "$kind" = taken ]; then
-      list_same_place_taken_line "$other" "$age"
-    else
-      list_same_place_ready_line "$other"
-    fi
+    list_same_place_taken_line "$taken" "$age"
   done <<<"$same"
 }
 

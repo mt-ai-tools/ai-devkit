@@ -17,12 +17,16 @@ is_inside_root_path() {
   return 0
 }
 
-# Which ready briefs share a place with another ready brief or a taken one.
-# Each line on stdin is "<kind><US><name><US><places><US><age>", kind being
-# `ready` or `taken`, places comma-joined, age empty for a ready brief. Each
-# line out is "<ready name><US><kind><US><other name><US><other's age>", in the
-# order the briefs came in. Rows carry the header reader's separator, since a
-# brief's row is built from what that reader hands back.
+# Which ready briefs share a place with a taken one. Each line on stdin is
+# "<kind><US><name><US><places><US><age>", kind being `ready` or `taken`,
+# places comma-joined, age empty for a ready brief. Each line out is
+# "<ready name><US><taken name><US><taken's age>", in the order the briefs came
+# in. Rows carry the header reader's separator, since a brief's row is built
+# from what that reader hands back.
+#
+# Two ready briefs are never compared: they collide only once both are worked
+# on, and the moment one is taken the other is marked against it. Marking them
+# earlier drowned the list, since nearly every brief works somewhere shared.
 #
 # Two paths are the same place when equal, or when one is the other followed
 # by a slash: a brief working in a folder works in everything inside it. The
@@ -49,8 +53,8 @@ derive_same_places() {
       for (i = 1; i <= count; i++) {
         if (kind[i] != "ready") continue
         for (j = 1; j <= count; j++) {
-          if (j == i || !overlapping(i, j)) continue
-          print name[i] US kind[j] US name[j] US age[j]
+          if (kind[j] != "taken" || !overlapping(i, j)) continue
+          print name[i] US name[j] US age[j]
         }
       }
     }

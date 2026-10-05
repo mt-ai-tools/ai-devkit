@@ -1,8 +1,9 @@
 bats_require_minimum_version 1.5.0
 
 # Behavior tests for the list: ready, waiting and taken briefs each in their
-# section and in name order, ages from the mark's since, briefs in the same
-# place marked, and a broken brief shown among the problems and nowhere else.
+# section and in name order, ages from the mark's since, a ready brief in a
+# taken brief's place marked, and a broken brief shown among the problems and
+# nowhere else.
 
 load project
 
@@ -78,15 +79,12 @@ $(list_taken_line held "15 min" 01234567)"
   [[ "$output" == *"$(list_taken_line second "0 min" s2)"* ]]
 }
 
-@test "ready briefs in the same place are kept and marked, each naming the other" {
+@test "ready briefs in the same place are both listed, and neither is marked" {
   brief file-trash "Trash." "[]" "[monoframe/mf-users]" "[]"
   brief frozen-account "Frozen." "[]" "[monoframe/mf-users/src]" "[]"
-  brief elsewhere "Elsewhere." "[]" "[monoframe/mf-media]" "[]"
   run organizer list
   [ "$status" -eq 0 ]
-  [[ "$output" == *"$(list_ready_line file-trash "Trash.")"$'\n'"$(list_same_place_ready_line frozen-account)"* ]]
-  [[ "$output" == *"$(list_ready_line frozen-account "Frozen.")"$'\n'"$(list_same_place_ready_line file-trash)"* ]]
-  [[ "$output" == *"$(list_ready_line elsewhere "Elsewhere.")"$'\n'"$(list_ready_line file-trash "Trash.")"* ]]
+  [ "$output" = "$(list_ready_heading)"$'\n'"$(list_ready_line file-trash "Trash.")"$'\n'"$(list_ready_line frozen-account "Frozen.")" ]
 }
 
 @test "a ready brief in a taken brief's place is marked with the mark's age" {
@@ -101,15 +99,16 @@ $(list_taken_line held "15 min" 01234567)"
 @test "one brief's touches and another's creates are the same place" {
   brief makes "Makes." "[]" "[]" "[monoframe/mf-media/thumbs]"
   brief edits "Edits." "[]" "[monoframe/mf-media]" "[]"
+  mark makes abc "2026-10-04T19:30:00Z"
   run organizer list
   [ "$status" -eq 0 ]
-  [[ "$output" == *"$(list_ready_line edits "Edits.")"$'\n'"$(list_same_place_ready_line makes)"* ]]
-  [[ "$output" == *"$(list_ready_line makes "Makes.")"$'\n'"$(list_same_place_ready_line edits)"* ]]
+  [[ "$output" == *"$(list_ready_line edits "Edits.")"$'\n'"$(list_same_place_taken_line makes "2 h")"* ]]
 }
 
 @test "a sibling sharing a prefix is not the same place" {
   brief users "Users." "[]" "[monoframe/mf-users]" "[]"
   brief users-old "Old." "[]" "[monoframe/mf-users-old]" "[]"
+  mark users-old abc "2026-10-04T19:30:00Z"
   run organizer list
   [ "$status" -eq 0 ]
   [[ "$output" != *"same place"* ]]
