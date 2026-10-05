@@ -34,9 +34,12 @@ derive_places() {
 
 # The list, from the check's problems, the briefs' rows, the marks' rows and
 # now. Each section is left out where it would be empty, and sections are
-# parted by a blank line.
+# parted by a blank line. Where the marks could not be read, a fifth argument
+# says so, and no brief is offered as ready or shown as taken: any of them may
+# be taken, and nobody can tell which. A waiting brief is still shown waiting,
+# since what it waits on is read from the briefs alone.
 format_list() {
-  local problems="$1" rows="$2" marks="$3" now="$4"
+  local problems="$1" rows="$2" marks="$3" now="$4" marks_unknown="${5:-}"
   local broken subject text brief session since name summary after touches creates items
   local ready=() waiting=() taken=() places_lines="" same="" opened=""
   local -A held_by since_of age_of summary_of after_of
@@ -54,7 +57,9 @@ format_list() {
     items="$(parse_flow_list "$after")"
     summary_of[$name]="$summary"
     after_of[$name]="$items"
-    if [ -n "${held_by[$name]+held}" ]; then
+    if [ -n "$marks_unknown" ]; then
+      [ -z "$items" ] || waiting+=("$name")
+    elif [ -n "${held_by[$name]+held}" ]; then
       taken+=("$name")
       age_of[$name]="$(format_age "${since_of[$name]}" "$now")"
       places_lines+="taken$HEADER_US$name$HEADER_US$(derive_places "$touches" "$creates")$HEADER_US${age_of[$name]}"$'\n'
@@ -120,8 +125,10 @@ format_same_places() {
 # non-zero where it found anything, so a caller can tell a clean folder from
 # one that needs fixing without reading the words.
 list_briefs() {
-  local plans="$1" root="$2" marks="$3" now="$4" problems
+  local plans="$1" root="$2" marks="$3" now="$4" problems mark_rows marks_unknown=""
   problems="$(list_problems "$plans" "$root" "$marks")"
-  format_list "$problems" "$(list_brief_rows "$plans")" "$(list_mark_rows "$marks")" "$now"
+  # The refusal's reason is already among the problems, so it is not said twice.
+  mark_rows="$(list_mark_rows "$marks" 2>/dev/null)" || marks_unknown=1
+  format_list "$problems" "$(list_brief_rows "$plans")" "$mark_rows" "$now" "$marks_unknown"
   [ -z "$problems" ]
 }

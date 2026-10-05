@@ -52,25 +52,38 @@ read_mark() {
   ' "$1"
 }
 
+# True if the marks folder can be listed, or is not there at all: a missing
+# folder is the normal state of no marks yet.
+is_listable_marks_dir() {
+  [ ! -e "$1" ] && return 0
+  [ -d "$1" ] && [ -r "$1" ] && [ -x "$1" ]
+}
+
+# Nothing where the marks folder can be listed; a refusal on stderr and a
+# non-zero status otherwise. A folder that exists but cannot be listed reads
+# to a glob as one holding no marks, which would offer taken briefs as ready,
+# let a held brief be taken, and make freeing do nothing without a word. What
+# cannot be told is refused, here in one place: reading the marks goes through
+# it, and so does every write, which may never be preceded by a read.
+refuse_unreadable_marks_dir() {
+  is_listable_marks_dir "$1" && return 0
+  refuse_marks_unreadable_note "$1" >&2
+  return 1
+}
+
 # Every mark in the folder as "<brief><US><session><US><since>", in name
-# order; nothing where the folder is missing. A file whose name starts with a
-# dot is never a mark: that is where a mark is written before it is put in
-# place, and a half-written one must not be read.
+# order; nothing where the folder is missing, and refused where it cannot be
+# read. A file whose name starts with a dot is never a mark: that is where a
+# mark is written before it is put in place, and a half-written one must not
+# be read.
 list_mark_rows() {
   local dir="$1" f
+  refuse_unreadable_marks_dir "$dir" || return 1
   [ -d "$dir" ] || return 0
   for f in "$dir"/*; do
     [ -f "$f" ] || continue
     printf '%s%s%s\n' "$(basename "$f")" "$HEADER_US" "$(read_mark "$f")"
   done | LC_ALL=C sort
-}
-
-# True if the marks folder can be listed, or is not there at all. A folder
-# that exists but cannot be listed reads to a glob as one holding no marks, so
-# a read answering who holds what asks this first rather than answer "nobody".
-is_listable_marks_dir() {
-  [ ! -e "$1" ] && return 0
-  [ -d "$1" ] && [ -r "$1" ] && [ -x "$1" ]
 }
 
 # The briefs one session holds, one line each as "<brief><TAB><age>", in name
@@ -85,8 +98,7 @@ is_listable_marks_dir() {
 list_held_briefs() {
   local dir="$1" session="$2" now="$3" rows brief held since age lines=""
   is_session_id "$session" || { refuse_bad_session_note "$session" >&2; return 1; }
-  is_listable_marks_dir "$dir" || { refuse_marks_unreadable_note "$dir" >&2; return 1; }
-  rows="$(list_mark_rows "$dir")"
+  rows="$(list_mark_rows "$dir")" || return 1
   while IFS="$HEADER_US" read -r brief held since; do
     [ -n "$brief" ] || continue
     is_session_id "$held" || { refuse_held_unreadable_note "$brief" >&2; return 1; }
@@ -111,6 +123,7 @@ take_brief() {
   local dir="$1" brief="$2" session="$3" now="$4" mark draft held since
   is_brief_name "$brief" || { refuse_bad_name_note "$brief" >&2; return 1; }
   is_session_id "$session" || { refuse_bad_session_note "$session" >&2; return 1; }
+  refuse_unreadable_marks_dir "$dir" || return 1
   mark="$dir/$brief"
   if [ -e "$mark" ]; then
     IFS="$HEADER_US" read -r held since < <(read_mark "$mark")
@@ -135,12 +148,13 @@ take_brief() {
 # Free every brief a session holds. Holding none is not a failure: a session
 # ending without having taken anything is the common case.
 free_session() {
-  local dir="$1" session="$2" brief held since
+  local dir="$1" session="$2" rows brief held since
   is_session_id "$session" || { refuse_bad_session_note "$session" >&2; return 1; }
+  rows="$(list_mark_rows "$dir")" || return 1
   while IFS="$HEADER_US" read -r brief held since; do
-    [ "$held" = "$session" ] || continue
+    [ -n "$brief" ] && [ "$held" = "$session" ] || continue
     rm -f "$dir/$brief"
-  done < <(list_mark_rows "$dir")
+  done <<<"$rows"
 }
 
 # Free one brief's mark, whoever holds it. The brief need not exist any more:
@@ -148,5 +162,6 @@ free_session() {
 free_brief() {
   local dir="$1" brief="$2"
   is_brief_name "$brief" || { refuse_bad_name_note "$brief" >&2; return 1; }
+  refuse_unreadable_marks_dir "$dir" || return 1
   rm -f "$dir/$brief"
 }

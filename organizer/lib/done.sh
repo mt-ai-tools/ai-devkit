@@ -40,6 +40,9 @@ finish_brief() {
   local plans="$1" marks="$2" brief="$3" file rows name summary after rest items line draft
   local waiters=() drafts=()
   refuse_unknown_brief "$plans" "$brief" || return 1
+  # Asked first, though the mark is freed last: a finish that freed nothing
+  # after deleting the brief would leave a mark naming a brief that is gone.
+  refuse_unreadable_marks_dir "$marks" || return 1
   file="$(brief_file "$plans" "$brief")"
   rows="$(list_brief_rows "$plans")"
 

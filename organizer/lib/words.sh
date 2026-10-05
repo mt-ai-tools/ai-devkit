@@ -54,6 +54,10 @@ problem_mark_unreadable_note() {
   printf 'taken mark %s: not a session and a since line.\n' "$1"
 }
 
+problem_marks_unreadable_note() {
+  printf 'taken marks %s: the folder cannot be read, so no brief is offered as ready until it can.\n' "$1"
+}
+
 # --- Refusals: the operation stops and changes nothing.
 
 refuse_usage_note() {

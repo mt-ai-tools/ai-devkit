@@ -162,9 +162,11 @@ list_place_problems() {
 }
 
 # Every problem in the briefs folder and the marks folder: the briefs' grouped
-# by brief in name order, the marks' after them.
+# by brief in name order, the marks' after them. A marks folder that cannot be
+# read is one problem naming no brief, shown in place of the marks' own: what
+# a mark says cannot be told when the marks cannot be read.
 list_problems() {
-  local plans="$1" root="$2" marks="$3" rows row names
+  local plans="$1" root="$2" marks="$3" rows row names mark_rows
   rows="$(list_brief_rows "$plans")"
   names="$(cut -d "$HEADER_US" -f 1 <<<"$rows" | paste -sd, -)"
   {
@@ -176,7 +178,11 @@ list_problems() {
     derive_cycle_problems "$rows"
     list_place_problems "$rows" "$root"
   } | LC_ALL=C sort -s -t "$HEADER_US" -k1,1
-  derive_mark_problems "$(list_mark_rows "$marks")" "$names"
+  if mark_rows="$(list_mark_rows "$marks" 2>/dev/null)"; then
+    derive_mark_problems "$mark_rows" "$names"
+  else
+    problem_row "" "$(problem_marks_unreadable_note "$marks")"
+  fi
 }
 
 # Every problem's line, as list_problems found them; the status is non-zero
