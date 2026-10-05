@@ -118,3 +118,31 @@ list_marks() {
   [ "$stderr" = "$(refuse_marks_unwritable_note "$marks")"$'\n'"$(end_not_freed_note session-1)" ]
   [ -f "$marks/file-trash" ]
 }
+
+# An `ln` of the suite's own, first on the organizer's path, that closes the
+# marks folder once the draft is written and then fails the link, or makes it
+# first: the draft can then no longer be removed.
+closing_ln() {
+  printf '#!/usr/bin/env bash\n%s\nchmod 555 %s\nexit %s\n' "$1" "$marks" "$2" >"$fakebin/ln"
+  chmod +x "$fakebin/ln"
+}
+
+# regression: a draft left behind when the folder closed mid-take was reported
+# only by rm's own message, or not at all.
+@test "a failed take whose draft cannot be removed says so, naming the draft" {
+  chmod u+rwx "$marks"
+  closing_ln ":" 1
+  run --separate-stderr organizer take frozen-account session-2
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_mark_not_placed_note frozen-account)"$'\n'"$(refuse_draft_left_note "$(ls -d "$marks"/.frozen-account.*)")" ]
+  [ ! -e "$marks/frozen-account" ]
+}
+
+@test "a take whose draft cannot be removed still takes, and says so" {
+  chmod u+rwx "$marks"
+  closing_ln '/bin/ln "$@" || exit 1' 0
+  run --separate-stderr organizer take frozen-account session-2
+  [ "$status" -eq 0 ]
+  [ "$stderr" = "$(refuse_draft_left_note "$(ls -d "$marks"/.frozen-account.*)")" ]
+  [ "$(cat "$marks/frozen-account")" = $'session: session-2\nsince: 2026-10-04T21:30:00Z' ]
+}

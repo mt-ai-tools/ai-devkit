@@ -142,3 +142,15 @@ setup() {
   run organizer take file-trash session-2
   [ "$status" -eq 0 ]
 }
+
+# regression: a link that failed with no mark in its place returned a refusal
+# with no words at all. An `ln` of the suite's own, first on the organizer's
+# path, fails as a link refused for any reason but a mark already there would.
+@test "a mark that cannot be linked into place is refused in words, leaving no draft" {
+  printf '#!/usr/bin/env bash\nexit 1\n' >"$fakebin/ln"
+  chmod +x "$fakebin/ln"
+  run --separate-stderr organizer take file-trash session-1
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_mark_not_placed_note file-trash)" ]
+  [ -z "$(ls -A "$marks")" ]
+}

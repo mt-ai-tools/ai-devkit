@@ -72,6 +72,14 @@ refuse_marks_unwritable_note() {
   printf 'The marks folder %s cannot be written, so no brief can be taken, freed or finished.\n' "$1"
 }
 
+refuse_mark_not_placed_note() {
+  printf 'The taken mark for %s could not be put in place, so the brief was not taken.\n' "$1"
+}
+
+refuse_draft_left_note() {
+  printf 'The hidden draft %s could not be removed; it is never read as a mark, and can be deleted by hand.\n' "$1"
+}
+
 refuse_held_unreadable_note() {
   printf 'The taken mark for %s cannot be read, so which briefs a session holds cannot be told; free it.\n' "$1"
 }

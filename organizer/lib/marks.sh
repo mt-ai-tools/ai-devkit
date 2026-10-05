@@ -52,41 +52,51 @@ read_mark() {
   ' "$1"
 }
 
-# True if the marks folder can be listed, or is not there at all: a missing
-# folder is the normal state of no marks yet.
-is_listable_marks_dir() {
-  [ ! -e "$1" ] && return 0
-  [ -d "$1" ] && [ -r "$1" ] && [ -x "$1" ]
+# The marks folder's state, by name: `missing`, the normal state of no marks
+# yet; `unlistable`, where it exists but its marks cannot be listed, or is not
+# a folder at all; `unwritable`, where they can be listed but none can be
+# added or removed; `usable` otherwise. Unlistable wins over unwritable, since
+# a folder that cannot be listed cannot be written safely either. Always
+# answers, so it is a get, never a find.
+get_marks_dir_state() {
+  if [ ! -e "$1" ]; then
+    printf 'missing\n'
+  elif ! [ -d "$1" ] || ! [ -r "$1" ] || ! [ -x "$1" ]; then
+    printf 'unlistable\n'
+  elif ! [ -w "$1" ]; then
+    printf 'unwritable\n'
+  else
+    printf 'usable\n'
+  fi
 }
 
-# Nothing where the marks folder can be listed; a refusal on stderr and a
-# non-zero status otherwise. A folder that exists but cannot be listed reads
-# to a glob as one holding no marks, which would offer taken briefs as ready,
-# let a held brief be taken, and make freeing do nothing without a word. What
-# cannot be told is refused, here in one place: reading the marks goes through
-# it, and so does every write, by way of the writable check below, since a
-# write may never be preceded by a read.
+# Nothing where the marks folder can be listed or is missing; a refusal on
+# stderr and a non-zero status otherwise. A folder that exists but cannot be
+# listed reads to a glob as one holding no marks, which would offer taken
+# briefs as ready, let a held brief be taken, and make freeing do nothing
+# without a word. What cannot be told is refused, here in one place: reading
+# the marks goes through it, and so does every write, by way of the writable
+# check below, since a write may never be preceded by a read. A state it does
+# not know is refused too, so a state added later fails closed until placed.
 refuse_unreadable_marks_dir() {
-  is_listable_marks_dir "$1" && return 0
+  case "$(get_marks_dir_state "$1")" in
+    missing | usable | unwritable) return 0 ;;
+  esac
   refuse_marks_unreadable_note "$1" >&2
   return 1
 }
 
-# True if marks can be added to and removed from the folder, or it is not
-# there at all: taking makes it, and freeing has nothing to remove.
-is_writable_marks_dir() {
-  [ ! -e "$1" ] && return 0
-  [ -d "$1" ] && [ -w "$1" ] && [ -x "$1" ]
-}
-
-# Nothing where the marks folder can be both listed and written; a refusal on
-# stderr and a non-zero status otherwise. Every write calls it before changing
-# anything, so none can forget it: let through, taking and freeing failed with
-# the shell's own words, and finishing deleted the brief before failing on its
-# mark, leaving a mark that names a brief now gone.
+# Nothing where marks can be added to and removed from the folder, or it is
+# missing, which taking makes and freeing has nothing to remove from; a
+# refusal on stderr and a non-zero status otherwise. Every write calls it
+# before changing anything, so none can forget it: let through, taking and
+# freeing failed with the shell's own words, and finishing deleted the brief
+# before failing on its mark, leaving a mark that names a brief now gone.
 refuse_unwritable_marks_dir() {
   refuse_unreadable_marks_dir "$1" || return 1
-  is_writable_marks_dir "$1" && return 0
+  case "$(get_marks_dir_state "$1")" in
+    missing | usable) return 0 ;;
+  esac
   refuse_marks_unwritable_note "$1" >&2
   return 1
 }
@@ -161,16 +171,33 @@ take_brief() {
     refuse_marks_unwritable_note "$dir" >&2
     return 1
   fi
+  # A draft that cannot be removed is said, never left unmentioned, but it
+  # does not undo a take: the mark stands, and a hidden draft is never read
+  # as one.
   if ln "$draft" "$mark" 2>/dev/null; then
-    rm -f "$draft"
+    remove_draft "$draft" || true
     return 0
   fi
-  rm -f "$draft"
   # Where the link failed and no mark stands, something other than a race
-  # stopped it; that is refused as it is, never taken for success.
-  [ -e "$mark" ] || return 1
+  # stopped it; that is refused as it is, never taken for success, and the
+  # refusal is said before anything about the draft.
+  if [ ! -e "$mark" ]; then
+    refuse_mark_not_placed_note "$brief" >&2
+    remove_draft "$draft" || true
+    return 1
+  fi
+  remove_draft "$draft" || true
   IFS="$HEADER_US" read -r held since < <(read_mark "$mark")
   refuse_held_mark "$brief" "$session" "$held" "$since"
+}
+
+# Remove a mark's hidden draft. One that cannot be removed, the folder closed
+# since it was written, is named on stderr in the organizer's own words with a
+# non-zero status, rather than left behind with only rm's message, or none.
+remove_draft() {
+  rm -f "$1" 2>/dev/null && return 0
+  refuse_draft_left_note "$1" >&2
+  return 1
 }
 
 # Free every brief a session holds. Holding none is not a failure: a session
