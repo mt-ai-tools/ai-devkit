@@ -4,7 +4,7 @@
 	"description": "Rules for a coding agent, the hook that injects them, and the tools that review, advise and build under them.",
 	"private": true,
 	"scripts": {
-		"test": "bats injector/tests lib/tests"
+		"test": "bats injector/tests lib/tests organizer/tests"
 	},
 	"devDependencies": {
 		"bats": "1.13.0"

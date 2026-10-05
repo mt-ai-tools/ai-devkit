@@ -36,7 +36,8 @@ default_paths() {
     "AIDK_PLANS$us$project/aidk-plans" \
     "AIDK_NOTES$us$project/aidk-notes" \
     "AIDK_STAND_IN_HISTORY$us$project/aidk-stand-in" \
-    "AIDK_REVIEW$us$project/aidk-review"
+    "AIDK_REVIEW$us$project/aidk-review" \
+    "AIDK_ORGANIZER$us$project/aidk-organizer"
 }
 
 @test "no file means every key is its default" {
@@ -72,7 +73,7 @@ default_paths() {
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "AIDK_RULES$us$project/docs/agent-rules" ]
   [ "${lines[2]}" = "AIDK_CONVENTIONS$us$project/aidk-conventions" ]
-  [ "${#lines[@]}" -eq 7 ]
+  [ "${#lines[@]}" -eq 8 ]
 }
 
 @test "a path beginning with a slash is taken as written" {

@@ -1,10 +1,11 @@
 # ai-devkit
 
-One tool for agentic development, in five parts: the rules a coding agent
+One tool for agentic development, in six parts: the rules a coding agent
 works under, the injector that puts them in front of it every turn, the
 reviewer that judges the work against them, the advisor that gives a
-single finding a second, independent reading, and the builder that carries
-out one step of a written brief.
+single finding a second, independent reading, the builder that carries
+out one step of a written brief, and the organizer that says which briefs
+are ready, waiting or taken.
 
 The parts ship, version and mount as one. What the kit needs from a
 project is stated here and nowhere else in it.
@@ -31,6 +32,9 @@ learns their names.
 - `aidk-review` holds the reviewer's own working notes, read by
   nothing else: worth ignoring from version control, and safe to
   delete. The config file can move it, as it can the collection.
+- `aidk-organizer` is the organizer's working folder: which briefs
+  sessions are working on, on this machine only. Worth ignoring from
+  version control. The config file can move it.
 
 ## Mounting
 
