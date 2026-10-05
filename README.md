@@ -47,7 +47,11 @@ the advisor cannot say whether a finding matters, and the builder is not
 told where the rules it builds under live. Beside the skill, the project
 registers the organizer's hook script for the after-tool event of the
 Skill tool: the hook is what shows the list, and the skill alone only
-says that it could not.
+says that it could not. For the briefs sessions take, it registers the
+organizer's turn reminder for the turn-start event, beside the injector's
+hook, and its end hook for the session-end event: without the one a
+session holding a brief is not told so each turn, and without the other
+a brief stays taken after its session has ended.
 
 ## Develop
 

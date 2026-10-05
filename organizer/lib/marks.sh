@@ -65,6 +65,38 @@ list_mark_rows() {
   done | LC_ALL=C sort
 }
 
+# True if the marks folder can be listed, or is not there at all. A folder
+# that exists but cannot be listed reads to a glob as one holding no marks, so
+# a read answering who holds what asks this first rather than answer "nobody".
+is_listable_marks_dir() {
+  [ ! -e "$1" ] && return 0
+  [ -d "$1" ] && [ -r "$1" ] && [ -x "$1" ]
+}
+
+# The briefs one session holds, one line each as "<brief><TAB><age>", in name
+# order, the age as of the given stamp; nothing where it holds none. A tab
+# parts the two because the lines leave the organizer for whatever runs it,
+# and an age holds a space.
+#
+# Refused, with nothing printed, where the folder cannot be listed, or where a
+# mark cannot be read and might be this session's: its holder unreadable, or
+# its since unreadable on a mark this session holds. Answering "none" then
+# would tell a session holding a brief that it holds nothing.
+list_held_briefs() {
+  local dir="$1" session="$2" now="$3" rows brief held since age lines=""
+  is_session_id "$session" || { refuse_bad_session_note "$session" >&2; return 1; }
+  is_listable_marks_dir "$dir" || { refuse_marks_unreadable_note "$dir" >&2; return 1; }
+  rows="$(list_mark_rows "$dir")"
+  while IFS="$HEADER_US" read -r brief held since; do
+    [ -n "$brief" ] || continue
+    is_session_id "$held" || { refuse_held_unreadable_note "$brief" >&2; return 1; }
+    [ "$held" = "$session" ] || continue
+    age="$(format_age "$since" "$now")" || { refuse_held_unreadable_note "$brief" >&2; return 1; }
+    lines+="$brief"$'\t'"$age"$'\n'
+  done <<<"$rows"
+  printf '%s' "$lines"
+}
+
 # --- Writes.
 
 # Mark a brief taken by a session, as of the given stamp. Taking a brief the

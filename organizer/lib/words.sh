@@ -57,7 +57,15 @@ problem_mark_unreadable_note() {
 # --- Refusals: the operation stops and changes nothing.
 
 refuse_usage_note() {
-  printf 'Usage: list | check | take <brief> <session> | free <session> | free-brief <brief> | done <brief>\n'
+  printf 'Usage: list | check | take <brief> <session> | free <session> | held <session> | free-brief <brief> | done <brief>\n'
+}
+
+refuse_marks_unreadable_note() {
+  printf 'The marks folder %s cannot be read, so which briefs are taken cannot be told.\n' "$1"
+}
+
+refuse_held_unreadable_note() {
+  printf 'The taken mark for %s cannot be read, so which briefs a session holds cannot be told; free it.\n' "$1"
 }
 
 refuse_bad_name_note() {
@@ -132,6 +140,28 @@ skill_unrunnable_shown_note() {
 
 skill_name_unreadable_note() {
   printf 'The organizer'\''s skill hook cannot read the skill'\''s name from %s.\n' "$1"
+}
+
+# --- The turn reminder. Each line goes into the model's context, every turn
+# of a session holding a brief.
+
+turn_held_note() {
+  printf 'You are working on `%s` (taken %s ago). When it is built, finish it with the organizer'\''s `done` and commit the paths it prints.\n' "$1" "$2"
+}
+
+turn_unknown_note() {
+  printf 'The organizer could not tell which brief this session holds, if any.\n'
+}
+
+# --- The session-end hook. Each goes to stderr; nothing a session end prints
+# reaches the model.
+
+end_no_session_note() {
+  printf 'The organizer'\''s session-end hook found no session id in the event, so no brief was freed.\n'
+}
+
+end_not_freed_note() {
+  printf 'The organizer could not free the briefs session %s holds; free them with the organizer'\''s free.\n' "$1"
 }
 
 # --- Ages, by the unit format_age picked.

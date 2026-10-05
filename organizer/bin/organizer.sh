@@ -7,6 +7,8 @@
 #   check                     the check's problems alone
 #   take <brief> <session>    mark a brief taken by a session
 #   free <session>            free every brief a session holds
+#   held <session>            the briefs a session holds and for how long,
+#                             one "<brief><TAB><age>" line each
 #   free-brief <brief>        free one brief, whoever holds it
 #   done <brief>              finish a brief, printing every path it changed
 #
@@ -71,6 +73,11 @@ case "$command" in
   free)
     [ "$#" -eq 1 ] || usage
     free_session "$marks" "$1"
+    ;;
+  held)
+    [ "$#" -eq 1 ] || usage
+    now="$(get_now)"
+    list_held_briefs "$marks" "$1" "$now"
     ;;
   free-brief)
     [ "$#" -eq 1 ] || usage

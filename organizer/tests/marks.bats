@@ -106,6 +106,34 @@ setup() {
   [ -e "$project/aidk-organizer-keep" ]
 }
 
+@test "held lists a session's briefs with their ages, and nothing for one holding none" {
+  mark file-trash session-1 "2026-10-04T19:30:00Z"
+  mark frozen-account session-2 "2026-10-04T21:00:00Z"
+  run organizer held session-1
+  [ "$status" -eq 0 ]
+  [ "$output" = "file-trash"$'\t'"$(age_hours_words 2)" ]
+  run organizer held session-9
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "held refuses where a mark might be the session's and cannot be read" {
+  mark file-trash session-1 "not a stamp"
+  run --separate-stderr organizer held session-1
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
+  [ "$stderr" = "$(refuse_held_unreadable_note file-trash)" ]
+  run organizer held session-2
+  [ "$status" -eq 0 ]
+  printf 'garbage\n' >"$marks/file-trash"
+  run --separate-stderr organizer held session-2
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_held_unreadable_note file-trash)" ]
+  run --separate-stderr organizer held "session 1"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_bad_session_note "session 1")" ]
+}
+
 @test "a half-written mark beside the others is never read as one" {
   mkdir -p "$marks"
   printf 'session: s1\n' >"$marks/.file-trash.123"
