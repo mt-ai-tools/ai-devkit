@@ -11,6 +11,14 @@
 # own on its answer, and so on without end.
 ASK_MODEL_SETTINGS='{"disableAllHooks":true}'
 
+# Safe mode leaves out everything the project and the operator configured —
+# CLAUDE.md, memory, skills, agents, MCP servers: a reader judges a reply by
+# what it is handed and nothing else, and no project instruction may steer it.
+# Measured 2026-10-05 from the project root: about a sixth of the cost of a
+# call that loads them ($0.004 against $0.025). Not `--bare`, which also
+# skips reading the login and so cannot run on the operator's plan.
+ASK_MODEL_ISOLATION="--safe-mode"
+
 # The statuses `timeout` ends with when the time ran out, as against the
 # command's own: 124 when the call stopped on being asked, 137 when it had to be
 # killed.
@@ -53,7 +61,7 @@ to_model_answer() {
 get_model_answer() {
   local model="$1" seconds="$2" schema="$3" envelope status=0
   envelope="$(timeout -k "$ASK_MODEL_KILL_AFTER" "$seconds" \
-    claude -p --model "$model" --settings "$ASK_MODEL_SETTINGS" --tools "" \
+    claude -p "$ASK_MODEL_ISOLATION" --model "$model" --settings "$ASK_MODEL_SETTINGS" --tools "" \
     --output-format json --json-schema "$schema" 2>/dev/null)" || status=$?
   if [[ "$ASK_MODEL_TIMEOUT_STATUSES" == *" $status "* ]]; then
     refuse_model_timeout_note "$model" "$seconds" >&2

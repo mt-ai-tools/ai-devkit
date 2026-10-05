@@ -27,6 +27,7 @@ setup() {
   [[ "$args" == *"-p "* ]]
   [[ "$args" == *"--model some-model "* ]]
   [[ "$args" == *'--settings {"disableAllHooks":true} '* ]]
+  [[ "$args" == *"--safe-mode "* ]]
   [[ "$args" == *"--tools  "* ]]
   [[ "$args" == *"--output-format json "* ]]
   [[ "$args" == *"--json-schema $schema"* ]]
