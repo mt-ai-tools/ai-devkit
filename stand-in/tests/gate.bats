@@ -1,9 +1,10 @@
 bats_require_minimum_version 1.5.0
 
 # Behavior tests for the gate: silent where the stand-in is off, every route a
-# question can take, the challenge and its answers, the loop guard, and every
-# way the gate itself can fail letting the reply stop with a reason. Claude
-# Code is the suite's own fake, answering each model apart.
+# question can take, the challenge and its answers, the ladder and its cold
+# second reading, the loop guard, and every way the gate itself can fail
+# letting the reply stop with a reason. Claude Code is the suite's own fake,
+# answering each model apart.
 
 load fake-claude
 
@@ -14,6 +15,7 @@ setup() {
   . "$lib/jobs.sh"
   . "$lib/forms.sh"
   . "$lib/record.sh"
+  . "$lib/ladder.sh"
   preset "defaults:Defaults. naming:Names." "security-gap workaround"
   kind defaults ladder
   kind naming ask
@@ -81,6 +83,26 @@ run_gate() {
 # output.
 reason() { jq -r '.reason' <<<"$output"; }
 message() { jq -r '.systemMessage' <<<"$output"; }
+
+# A reader's form of a reply still asking the question, recommending the label
+# given from the options given, as a JSON array, five and ten by default.
+rung_form() {
+  jq -cn --arg recommended "$1" --argjson options "${2:-[\"five\",\"ten\"]}" \
+    '{asks_operator: true, question: "Five retries or ten?", options: $options,
+      recommended: $recommended, claims_done: false, guidance_answer: ""}'
+}
+
+# The ladder climbed from the suite's question: the first stop puts it on the
+# ladder, and each form given is read from the reply to the next rung, in
+# order. The gate's answer to the last stop is left in output.
+climb() {
+  run_gate
+  local form
+  for form in "$@"; do
+    answer_for reader "$form"
+    run_gate true
+  done
+}
 
 # The calls a whole question is read by, in order, each on its job's model.
 all_three() {
@@ -228,10 +250,147 @@ all_three() {
   [ "$(message)" = "$(gate_operator_note "Five retries or ten?" "$(gate_unsure_line defaults)")" ]
 }
 
-@test "a ladder kind with no risk, sorted for certain, is marked for the ladder not yet built" {
+@test "a ladder kind with no risk, sorted for certain, is sent the ladder's first challenge" {
   run_gate
   [ "$status" -eq 0 ]
-  [ "$(message)" = "$(gate_operator_note "Five retries or ten?" "$(gate_ladder_not_built_line defaults)"$'\n')" ]
+  [ "$(reason)" = "$(gate_challenge_note "${ladder_challenges[0]}")" ]
+  [[ "$(reason)" == "From the stand-in: ${ladder_challenges[0]}"* ]]
+  [ "$(jq -c '.ladder.answers' "$record_file")" = '[{"asks_operator":true,"options":["five","ten"],"recommended":"five"}]' ]
+}
+
+@test "the same answer on every rung holds, and during the trial still comes to the operator" {
+  run_gate
+  answer_for reader "$(rung_form five)"
+  rm "$FAKE_CALLS"
+  run_gate true
+  [ "$(reason)" = "$(gate_challenge_note "${ladder_challenges[1]}")" ]
+  [ "$(calls)" = "reader $READER_MODEL" ]
+  run_gate true
+  [ "$status" -eq 0 ]
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(message)" = "$(gate_held_note "Five retries or ten?" five 3 "$(gate_trial_line defaults)")" ]
+  [[ "$(message)" == "Stand-in: a question for you: Five retries or ten?"$'\n'* ]]
+  [ "$(calls)" = "reader $READER_MODEL"$'\n'"reader $READER_MODEL" ]
+  [ "$(jq -c '.ladder' "$record_file")" = null ]
+}
+
+@test "an answer that moves comes to the operator with every answer in order and the cold reading" {
+  answer_for reading '{"reading":"Ten is safer."}'
+  climb "$(rung_form ten)" "$(rung_form five)"
+  [ "$status" -eq 0 ]
+  list="five${LADDER_OPTION_SEPARATOR}ten"
+  expected="$(gate_operator_note "Five retries or ten?" "$(gate_moved_line)"$'\n'
+    gate_answers_heading 3
+    gate_answer_line 1 five "$list"
+    gate_answer_line 2 ten "$list"
+    gate_answer_line 3 five "$list"
+    gate_reading_note "Ten is safer.")"
+  [ "$(message)" = "$expected" ]
+  [ "$(calls | tail -n 2)" = "reader $READER_MODEL"$'\n'"reading $READING_MODEL" ]
+  [ "$(jq -c '.ladder' "$record_file")" = null ]
+}
+
+@test "the cold reading is the advisor's command, handed the question and options alone, reading the project" {
+  answer_for reading '{"reading":"Ten is safer."}'
+  climb "$(rung_form ten)" "$(rung_form five)"
+  prompt="$FAKE_PROMPT.reading"
+  grep -qxF "Answer one claim about the code." "$prompt"
+  grep -qxF "Five retries or ten?" "$prompt"
+  grep -qxF -- "- five" "$prompt"
+  grep -qxF -- "- ten" "$prompt"
+  grep -qF -- "$rules" "$prompt"
+  grep -qF -- "$conventions" "$prompt"
+  # Counted rather than negated: a negated command does not fail a test.
+  [ "$(grep -ci "recommend" "$prompt")" -eq 0 ]
+  grep -qx "Read,Grep,Glob" "$FAKE_ARGS.reading"
+  [ "$(cat "$FAKE_ARGS.reading.pwd")" = "$project" ]
+}
+
+@test "reworded options with the same recommended label count as a change" {
+  answer_for reading '{"reading":"Either."}'
+  climb "$(rung_form five '["five","twenty"]')" "$(rung_form five)"
+  [[ "$(message)" == "$(gate_operator_note "Five retries or ten?" "$(gate_moved_line)")"* ]]
+  [[ "$(message)" == *"$(gate_answer_line 2 five "five${LADDER_OPTION_SEPARATOR}twenty")"* ]]
+}
+
+@test "a rung whose reply no longer asks the question counts as a change, and the last rung is still asked" {
+  answer_for reading '{"reading":"Either."}'
+  run_gate
+  answer_for reader "$(no_question_form)"
+  run_gate true
+  [ "$(reason)" = "$(gate_challenge_note "${ladder_challenges[1]}")" ]
+  answer_for reader "$(rung_form five)"
+  run_gate true
+  [[ "$(message)" == "$(gate_operator_note "Five retries or ten?" "$(gate_moved_line)")"* ]]
+  [[ "$(message)" == *"$(gate_answer_gone_line 2)"* ]]
+}
+
+@test "a reading that fails still brings the operator every answer, saying why there is none" {
+  status_for reading 124
+  climb "$(rung_form ten)" "$(rung_form five)"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [[ "$(message)" == *"$(gate_answer_line 3 five "five${LADDER_OPTION_SEPARATOR}ten")"* ]]
+  [[ "$(message)" == *"$(gate_reading_failed_line "$(refuse_model_timeout_note "$READING_MODEL" "$READING_SECONDS")")" ]]
+  rm "$FAKE_ANSWERS/reading.status"
+  answer_for reading '{"reading":"  "}'
+  climb "$(rung_form ten)" "$(rung_form five)"
+  [[ "$(message)" == *"$(gate_reading_failed_line "$(refuse_reading_empty_note)")" ]]
+}
+
+@test "a question kept through its challenge goes up the ladder, the operator told it was kept" {
+  kind defaults ladder "Do we really need it?"
+  run_gate
+  answer_for reader "$(no_question_form keep-all)"
+  run_gate true
+  [ "$(reason)" = "$(gate_challenge_note "${ladder_challenges[0]}")" ]
+  [ "$(jq -c '.challenge' "$record_file")" = null ]
+  answer_for reader "$(rung_form five)"
+  run_gate true
+  run_gate true
+  [ "$(message)" = "$(gate_held_note "Five retries or ten?" five 3 "$(gate_trial_line defaults)"$'\n'"$(gate_kept_line)")" ]
+}
+
+@test "a preset whose ladder does not hold its two challenges goes to the operator" {
+  ladder_file="$preset_dir/challenges/challenge-ladder.md"
+  printf -- '---\nsummary: Ladder.\n---\n\n2. Then:\n   > Clean?\n3. Then: "Sure?"\n' >"$ladder_file"
+  run_gate
+  [ "$status" -eq 0 ]
+  [ "$(message)" = "$(gate_broken_note "$(refuse_ladder_challenges_note "$ladder_file" 2 1)")" ]
+  rm "$ladder_file"
+  run_gate
+  [ "$(message)" = "$(gate_broken_note "$(refuse_unreadable_file_note "$ladder_file")")" ]
+}
+
+@test "the ladder's challenges count toward the send-back limit" {
+  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":""}'
+  run_gate false
+  run_gate true
+  answer_for reader "$(rung_form five)"
+  run_gate true
+  [ "$(reason)" = "$(gate_challenge_note "${ladder_challenges[0]}")" ]
+  [ "$(jq '.sent_back' "$record_file")" -eq 3 ]
+  run_gate true
+  [ "$status" -eq 0 ]
+  [ "$(message)" = "$(gate_operator_note "Five retries or ten?" "$(gate_loop_line 3 "$(gate_challenge_note "${ladder_challenges[1]}")")")" ]
+  [ "$(jq -c '.ladder' "$record_file")" = null ]
+}
+
+@test "a new turn of the operator's drops a ladder in progress" {
+  run_gate
+  answer_for reader "$(no_question_form)"
+  run_gate false
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  [ "$(jq -c '.ladder' "$record_file")" = null ]
+  answer_for reader "$(rung_form five)"
+  run_gate
+  [ "$(jq '.ladder.answers | length' "$record_file")" -eq 1 ]
+  rm "$FAKE_CALLS"
+  run_gate false
+  [ "$(reason)" = "$(gate_challenge_note "${ladder_challenges[0]}")" ]
+  [ "$(calls)" = "$(all_three)" ]
+  [ "$(jq '.ladder.answers | length' "$record_file")" -eq 1 ]
 }
 
 @test "a broken form goes to the operator with the check's reason" {

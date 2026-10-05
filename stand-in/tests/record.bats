@@ -54,7 +54,27 @@ teardown() {
   record="$(with_challenge "$(with_send_back "$EMPTY_RECORD")" '{"name":"naming"}' 1 "$(whole_form)" '{}')"
   run with_dropped "$record"
   [ "$status" -eq 0 ]
-  [ "$output" = '{"sent_back":0,"challenge":null,"dropped":[{"question":"Five retries or ten?","kind":"naming"}]}' ]
+  [ "$output" = '{"sent_back":0,"challenge":null,"ladder":null,"dropped":[{"question":"Five retries or ten?","kind":"naming"}]}' ]
+}
+
+@test "a ladder holds its question, kind, lines and each rung's answer, and ends any challenge" {
+  record="$(with_challenge "$EMPTY_RECORD" '{"name":"naming"}' 1 "$(whole_form)" '{}')"
+  record="$(with_ladder "$record" "Five retries or ten?" defaults "- kept" '{"recommended":"five"}')"
+  record="$(with_ladder_answer "$record" '{"recommended":"ten"}')"
+  [ "$(jq -c '.challenge' <<<"$record")" = null ]
+  run to_ladder "$record"
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"question":"Five retries or ten?","kind":"defaults","lines":"- kept","answers":[{"recommended":"five"},{"recommended":"ten"}]}' ]
+}
+
+@test "a ladder is let go with the question, and a record holding a broken one is refused" {
+  record="$(with_ladder "$(with_send_back "$EMPTY_RECORD")" "Five retries or ten?" defaults "" '{}')"
+  [ -z "$(to_ladder "$(with_chain_reset "$record")")" ]
+  mkdir -p "$(dirname "$file")"
+  printf '%s\n' '{"sent_back":0,"challenge":null,"ladder":{"answers":"five"},"dropped":[]}' >"$file"
+  run --separate-stderr read_session_record "$file"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_state_unreadable_note "$file")" ]
 }
 
 @test "the send-backs are spent only at the limit" {

@@ -3,13 +3,16 @@
 # of every reply in a session the stand-in is switched on for, the reply is
 # read into a form; a question to the operator is checked against the
 # project's rules and conventions, sorted, challenged where its kind carries
-# a challenge, and routed — back to the agent, or on to the operator. In
-# every other session it does nothing at all.
+# a challenge, and routed — back to the agent, on to the operator, or up the
+# challenge ladder. In every other session it does nothing at all.
 #
 # The order is the point: the rules and conventions check runs before any
 # route, so a question that breaks one never reaches the operator; the
 # challenge runs before the routes, so a proposal the agent drops is never
-# asked about.
+# asked about. A reply on the ladder is read and compared alone, never checked
+# or sorted again: the option a held answer names was checked on the first
+# rung, a moved answer goes to the operator either way, and the last rung's
+# stop needs its time for the cold second reading.
 #
 # Hook contract (Claude Code): the event arrives as JSON on stdin and carries
 # the reply as written, which is handed to the reader unread: the gate never
@@ -70,6 +73,8 @@ tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/sorter.sh"
 . "$tool_root/lib/challenge.sh"
 . "$tool_root/lib/routes.sh"
+. "$tool_root/lib/ladder.sh"
+. "$tool_root/lib/reading.sh"
 
 # Every value below is resolved into a variable before use, never inline as
 # an argument: a failing command substitution inside an argument does not end
@@ -125,6 +130,67 @@ send_back() {
   exit 0
 }
 
+# Put a question on the ladder: its first rung is the form in hand, and the
+# agent is sent the preset's first challenge. The lines given are shown to the
+# operator beside whatever the ladder brings them.
+start_ladder() {
+  local form="$1" kind="$2" lines="$3" challenges first question answer
+  challenges="$(get_ladder_challenges "$preset" "$((LADDER_RUNGS - 1))")"
+  first="$(jq -r '.[0]' <<<"$challenges")"
+  question="$(jq -r '.question' <<<"$form")"
+  answer="$(to_rung_answer "$form")"
+  record="$(with_ladder "$record" "$question" "$kind" "$lines" "$answer")"
+  send_back "$(gate_challenge_note "$first")" "$question"
+}
+
+# An answer that held on every rung. Every kind is on trial until the
+# operator switches it, and nothing switches one yet, so a held answer still
+# comes to them, marked with what the stand-in would have approved: trust is
+# gained on their yes, never assumed. This is the one place a switched kind
+# would instead let the reply stop silently.
+answer_held() {
+  local note
+  note="$(to_held_note "$1")"
+  bring_operator "$note"
+}
+
+# An answer that moved: to the operator with every answer and a cold second
+# reading. The reading never holds the question up: where it fails or runs
+# out of time, the operator gets the answers and why there is no reading.
+answer_changed() {
+  local ladder="$1" question options why reading part note
+  question="$(jq -r '.question' <<<"$ladder")"
+  options="$(jq -c '.answers[0].options' <<<"$ladder")"
+  why="$(mktemp)"
+  if reading="$(get_cold_reading "$question" "$options" "$rules" "$conventions" 2>"$why")"; then
+    part="$(gate_reading_note "$reading")"
+  else
+    part="$(gate_reading_failed_line "$(cat "$why")")"
+  fi
+  rm -f "$why"
+  note="$(to_changed_note "$ladder" "$part")"
+  bring_operator "$note"
+}
+
+# The reply to a rung, read into the form given: its answer kept, then the
+# next rung's challenge sent, or the ladder's outcome brought to the operator.
+climb_ladder() {
+  local form="$1" answer ladder question challenges next
+  answer="$(to_rung_answer "$form")"
+  record="$(with_ladder_answer "$record" "$answer")"
+  ladder="$(to_ladder "$record")"
+  question="$(jq -r '.question' <<<"$ladder")"
+  case "$(derive_ladder_step "$ladder")" in
+    "$LADDER_CLIMB")
+      challenges="$(get_ladder_challenges "$preset" "$((LADDER_RUNGS - 1))")"
+      next="$(to_rung_challenge "$challenges" "$ladder")"
+      send_back "$(gate_challenge_note "$next")" "$question"
+      ;;
+    "$LADDER_HELD") answer_held "$ladder" ;;
+    *) answer_changed "$ladder" ;;
+  esac
+}
+
 # Take the route the question's forms decide.
 route_question() {
   local form="$1" sort="$2" entry="$3" kept="$4" risks route words question
@@ -135,14 +201,16 @@ route_question() {
   case "$(jq -r '.route' <<<"$route")" in
     agent) send_back "$words" "$question" ;;
     operator) bring_operator "$(gate_operator_note "$question" "$words")" ;;
-    # The ladder is not built yet: until it is, every question it would take
-    # comes to the operator, marked so. This line is where the ladder goes.
-    ladder) bring_operator "$(gate_operator_note "$question" \
-      "$(gate_ladder_not_built_line "$(jq -r '.name' <<<"$entry")")"$'\n'"$words")" ;;
+    ladder) start_ladder "$form" "$(jq -r '.name' <<<"$entry")" "$words" ;;
   esac
 }
 
 form="$(get_reader_form "$reply")"
+
+# A question on the ladder takes this reply as its next rung, whatever it
+# says: a reply that no longer asks the question is an answer that moved.
+ladder="$(to_ladder "$record")"
+[ -z "$ladder" ] || climb_ladder "$form"
 
 challenge="$(to_challenge "$record")"
 if [ -n "$challenge" ]; then

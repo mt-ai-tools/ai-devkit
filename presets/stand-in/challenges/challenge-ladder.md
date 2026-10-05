@@ -13,7 +13,11 @@ that keeps moving means the agent is not sure and must dig further.
    > What is the clean way? What is the consistent way? What would big
    > companies do? No workarounds, no dirty stuff. Today's work is always
    > cheaper than tomorrow's.
-3. Then: "Are you sure?"
+3. Then:
+   > Are you sure?
+
+Each challenge the stand-in sends is the quote under its rung, word for
+word.
 
 The same option named from the same list all three times holds. A
 changed answer is not held: it goes to the operator, beside a cold

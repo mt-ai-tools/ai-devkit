@@ -11,6 +11,10 @@
 # risks as one list the operator reads in a single file.
 PRESET_KINDS_FOLDER="questions"
 PRESET_RISKS_FILE="challenges/risks.md"
+# The operator's challenge ladder, whose quotes are the words each rung after
+# the first sends: read from the file the operator reads, never copied into
+# code or a prompt, so the words a project swaps in are the words sent.
+PRESET_LADDER_FILE="challenges/challenge-ladder.md"
 
 # The two routes a kind of question may take, as its header writes them: to
 # the operator always, or up the challenge ladder.
@@ -71,6 +75,25 @@ parse_risks() {
   done <<<"$rows" | jq -cs .
 }
 
+# A ladder file's quotes, in the order written, as a JSON array of strings:
+# each run of lines opening with ">" is one quote, its lines joined by a
+# space. Nothing else in the file is read, so its prose stays the operator's
+# to word as they like.
+derive_ladder_quotes() {
+  awk '
+    function flush() { if (open) print quote; open = 0; quote = "" }
+    /^[[:space:]]*>/ {
+      line = $0
+      sub(/^[[:space:]]*>[[:space:]]*/, "", line)
+      if (line != "") quote = (quote == "" ? line : quote " " line)
+      open = 1
+      next
+    }
+    { flush() }
+    END { flush() }
+  ' <<<"$1" | jq -Rnc '[inputs]'
+}
+
 # The names alone, out of a JSON array of {name, ...}, as a JSON array.
 to_names() {
   jq -c 'map(.name)' <<<"$1"
@@ -127,6 +150,27 @@ get_kind_entry() {
   jq -cn --arg name "$name" --arg summary "$summary" --arg route "$route" \
     --arg challenge "$challenge" --arg second "$second" \
     '{name: $name, summary: $summary, route: $route, challenge: $challenge, second_challenge: $second}'
+}
+
+# The challenges a preset's ladder sends, in rung order, as a JSON array of
+# strings; a refusal on stderr and a non-zero status where the file cannot be
+# read or does not hold exactly the count given, an empty quote counting
+# against it. A ladder short of a challenge would approve after fewer rungs
+# than the operator climbs, and one with a challenge too many would send
+# words the operator never meant as a rung.
+get_ladder_challenges() {
+  local file="$1/$PRESET_LADDER_FILE" count="$2" text quotes found
+  if ! text="$(cat "$file" 2>/dev/null)"; then
+    refuse_unreadable_file_note "$file" >&2
+    return 1
+  fi
+  quotes="$(derive_ladder_quotes "$text")"
+  found="$(jq 'map(select(test("\\S"))) | length' <<<"$quotes")"
+  if [ "$(jq 'length' <<<"$quotes")" -ne "$count" ] || [ "$found" -ne "$count" ]; then
+    refuse_ladder_challenges_note "$file" "$count" "$found" >&2
+    return 1
+  fi
+  printf '%s\n' "$quotes"
 }
 
 # The risks in a preset, as parse_risks hands them back.

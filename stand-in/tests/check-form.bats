@@ -155,3 +155,18 @@ $(refuse_guidance_outside_note maybe)" ]
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_not_json_note "$label")" ]
 }
+
+@test "a cold reading's answer with words passes" {
+  run refuse_bad_reading_answer '{"reading": "Ten is safer."}'
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"reading":"Ten is safer."}' ]
+}
+
+@test "a cold reading's answer with no words, or not its shape, is refused" {
+  run --separate-stderr refuse_bad_reading_answer '{"reading":" "}'
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_reading_empty_note)" ]
+  run --separate-stderr refuse_bad_reading_answer '{"reading":3}'
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_wrong_type_note "$(reading_answer_words)" reading string)" ]
+}

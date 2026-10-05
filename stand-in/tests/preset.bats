@@ -98,3 +98,31 @@ setup() {
     [ "$status" -eq 0 ]
   done
 }
+
+@test "the ladder's challenges are its quotes in order, each joined over its lines" {
+  preset "alpha:First." "one"
+  printf -- '---\nsummary: Ladder.\n---\n\n1. First.\n2. The test:\n   > Is it clean?\n   > Is it consistent?\n\nProse.\n\n3. Then:\n   > Sure?\n' \
+    >"$preset_dir/challenges/challenge-ladder.md"
+  run get_ladder_challenges "$preset_dir" 2
+  [ "$status" -eq 0 ]
+  [ "$output" = '["Is it clean? Is it consistent?","Sure?"]' ]
+}
+
+@test "a ladder with a challenge too few, too many or empty is refused" {
+  preset "alpha:First." "one"
+  file="$preset_dir/challenges/challenge-ladder.md"
+  for body in '> One.' $'> One.\n\n> Two.\n\n> Three.' $'> One.\n\n>'; do
+    printf '%s\n' "$body" >"$file"
+    run --separate-stderr get_ladder_challenges "$preset_dir" 2
+    [ "$status" -eq 1 ]
+    [[ "$stderr" == "$file: the ladder needs 2 challenges"* ]]
+  done
+  [ "$stderr" = "$(refuse_ladder_challenges_note "$file" 2 1)" ]
+}
+
+@test "the kit's own preset ladder sends the standing test, then are you sure" {
+  run get_ladder_challenges "$BATS_TEST_DIRNAME/../../presets/stand-in" 2
+  [ "$status" -eq 0 ]
+  [[ "$(jq -r '.[0]' <<<"$output")" == "What is the clean way? "*"cheaper than tomorrow's." ]]
+  [ "$(jq -r '.[1]' <<<"$output")" = "Are you sure?" ]
+}

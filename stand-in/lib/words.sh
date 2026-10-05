@@ -95,10 +95,15 @@ refuse_bad_miscalled_note() {
   printf 'The checker'\''s answer holds a miscalled item that is not what it was called and what it is.\n'
 }
 
+refuse_reading_empty_note() {
+  printf 'The cold second reading came back with no words.\n'
+}
+
 # The names the refusals above call the three forms by.
 reader_form_words() { printf "reader's form"; }
 sorter_answer_words() { printf "sorter's answer"; }
 checker_answer_words() { printf "checker's answer"; }
+reading_answer_words() { printf "cold second reading's answer"; }
 
 # --- The rules and conventions.
 
@@ -138,6 +143,10 @@ refuse_kind_route_note() {
 
 refuse_second_challenge_alone_note() {
   printf 'The kind of question %s has a second challenge but no first.\n' "$1"
+}
+
+refuse_ladder_challenges_note() {
+  printf '%s: the ladder needs %s challenges, each the quote under its rung; it holds %s.\n' "$1" "$2" "$3"
 }
 
 refuse_unknown_placeholder_note() {
@@ -237,10 +246,6 @@ gate_unsure_line() {
   printf -- '- The stand-in could not tell for certain what kind of question it is; its best reading was %s.\n' "$1"
 }
 
-gate_ladder_not_built_line() {
-  printf -- '- It is a question of the kind %s, which would go to the ladder; the ladder is not built yet, so it comes to you.\n' "$1"
-}
-
 gate_kept_line() {
   printf -- '- The agent kept its proposal through the stand-in'\''s challenge; its reasons are in its reply.\n'
 }
@@ -251,6 +256,51 @@ gate_unanswered_line() {
 
 gate_loop_line() {
   printf -- '- The stand-in has sent it back to the agent %s times in a row, and hands it to you rather than hold the reply again. It would have sent back:\n%s' "$1" "$2"
+}
+
+# --- What the ladder brings the operator. A held answer opens with the
+# decision asked for and what the stand-in would have approved; a changed one
+# with the decision asked for, then every answer in order, then the cold
+# second reading or why there is none.
+
+gate_held_note() {
+  printf 'Stand-in: a question for you: %s\nThe stand-in would have approved: %s (held %s times).\nWhy it came to you:\n%s' "$1" "$2" "$3" "$4"
+}
+
+gate_trial_line() {
+  printf -- '- Its kind, %s, is still on trial: until you switch it, every answer the stand-in would approve still comes to you.\n' "$1"
+}
+
+gate_moved_line() {
+  printf -- '- The agent'\''s answer did not hold under the stand-in'\''s challenges.\n'
+}
+
+gate_answers_heading() {
+  printf 'Its %s answers, in order:\n' "$1"
+}
+
+# One rung's answer, by its number: the label recommended, and the list it
+# was chosen from, its labels already joined into one line.
+gate_answer_line() {
+  printf '%s. %s, from: %s\n' "$1" "$2" "$3"
+}
+
+gate_answer_none_line() {
+  printf '%s. No recommendation, from: %s\n' "$1" "$2"
+}
+
+gate_answer_gone_line() {
+  printf '%s. The reply no longer asks the question.\n' "$1"
+}
+
+# The reading stands as the model wrote it, under a line saying what it is:
+# another model's view, never a decision.
+gate_reading_note() {
+  printf 'A cold second reading by another model, which decides nothing:\n%s\n' "$1"
+}
+
+gate_reading_failed_line() {
+  printf 'The cold second reading failed, so there is none. Why:\n%s\n' "$1"
 }
 
 # A gate that could not judge a reply: the reasons, one per line, as the part

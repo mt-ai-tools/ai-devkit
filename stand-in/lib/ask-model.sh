@@ -57,11 +57,15 @@ to_model_answer() {
 # The model's answer to the prompt on stdin, as one line of JSON shaped by the
 # schema given; a refusal naming why on stderr and a non-zero status where the
 # time ran out, Claude Code stopped with an error, or what it printed cannot
-# be read. No tools: a reading job has nothing to reach.
+# be read. No tools unless a comma-separated list is given: a job that only
+# reads what it is handed has nothing to reach. A read-only tool given reaches
+# no further than the folder the call runs in, which is the caller's to
+# choose: a headless call with nothing allowed is refused a read outside its
+# working directory (measured 2026-10-05).
 get_model_answer() {
-  local model="$1" seconds="$2" schema="$3" envelope status=0
+  local model="$1" seconds="$2" schema="$3" tools="${4:-}" envelope status=0
   envelope="$(timeout -k "$ASK_MODEL_KILL_AFTER" "$seconds" \
-    claude -p "$ASK_MODEL_ISOLATION" --model "$model" --settings "$ASK_MODEL_SETTINGS" --tools "" \
+    claude -p "$ASK_MODEL_ISOLATION" --model "$model" --settings "$ASK_MODEL_SETTINGS" --tools "$tools" \
     --output-format json --json-schema "$schema" 2>/dev/null)" || status=$?
   if [[ "$ASK_MODEL_TIMEOUT_STATUSES" == *" $status "* ]]; then
     refuse_model_timeout_note "$model" "$seconds" >&2

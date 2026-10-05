@@ -83,6 +83,13 @@ CHECK_CHECKER_RULES='
   (.miscalled[] | select(bad_item($miscalled_fields)) | ["bad-miscalled"])
   | join($us)'
 
+# What is wrong with a cold second reading's answer whose shape is right: a
+# reading with no words, which would show the operator a heading over
+# nothing.
+CHECK_READING_RULES='
+  (select(.reading | test("^\\s*$")) | ["reading-empty"])
+  | join($us)'
+
 # The input as one compact JSON value; a non-zero status where it is not
 # exactly one. Two values one after the other are refused like none: which of
 # them is the form would be a guess.
@@ -139,6 +146,17 @@ derive_checker_answer_problems() {
     "$CHECK_CHECKER_RULES" <<<"$1"
 }
 
+# Every problem of a cold second reading's answer, one row each.
+derive_reading_answer_problems() {
+  local shape
+  shape="$(derive_shape_problems "$1" "$READING_ANSWER_FIELDS")"
+  if [ -n "$shape" ]; then
+    printf '%s\n' "$shape"
+    return 0
+  fi
+  jq -r --arg us "$CHECK_US" "$CHECK_READING_RULES" <<<"$1"
+}
+
 # The words for each problem row, the form called by the label given.
 to_problem_notes() {
   local label="$1" code arg type
@@ -159,6 +177,7 @@ to_problem_notes() {
       bad-break) refuse_bad_break_note ;;
       unknown-entry) refuse_unknown_entry_note "$arg" ;;
       bad-miscalled) refuse_bad_miscalled_note ;;
+      reading-empty) refuse_reading_empty_note ;;
     esac
   done
 }
@@ -208,6 +227,23 @@ refuse_bad_checker_answer() {
     return 1
   fi
   problems="$(derive_checker_answer_problems "$answer" "$2")"
+  if [ -n "$problems" ]; then
+    to_problem_notes "$label" <<<"$problems" >&2
+    return 1
+  fi
+  printf '%s\n' "$answer"
+}
+
+# The cold second reading's answer, compact, where it is whole and holds
+# words; every reason it is not on stderr and a non-zero status otherwise.
+refuse_bad_reading_answer() {
+  local answer problems label
+  label="$(reading_answer_words)"
+  if ! answer="$(to_one_json_value "$1")"; then
+    refuse_not_json_note "$label" >&2
+    return 1
+  fi
+  problems="$(derive_reading_answer_problems "$answer")"
   if [ -n "$problems" ]; then
     to_problem_notes "$label" <<<"$problems" >&2
     return 1

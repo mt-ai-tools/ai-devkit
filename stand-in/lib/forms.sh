@@ -47,6 +47,13 @@ CHECKER_ANSWER_FIELDS='{
   "explains_code": "boolean"
 }'
 
+# The cold second reading's answer. reading: what the reading found, as it
+# writes it for the operator. Never decided from: it is shown beside the
+# ladder's answers, and only checked to be there.
+READING_ANSWER_FIELDS='{
+  "reading": "string"
+}'
+
 # The fields of one item of each of the checker's lists, every one a string.
 CHECKER_BREAK_FIELDS='["entry", "why"]'
 CHECKER_MISCALLED_FIELDS='["called", "actually"]'
@@ -105,4 +112,9 @@ checker_answer_schema() {
   miscalled="$(to_item_schema "$CHECKER_MISCALLED_FIELDS" '{}')"
   to_form_schema "$CHECKER_ANSWER_FIELDS" "$(jq -cn --argjson breaks "$breaks" --argjson miscalled "$miscalled" \
     '{breaks: {items: $breaks}, miscalled: {items: $miscalled}}')"
+}
+
+# The schema the cold second reading answers to.
+reading_answer_schema() {
+  to_form_schema "$READING_ANSWER_FIELDS" '{}'
 }

@@ -22,8 +22,8 @@ setup_fake_claude() {
   # one run asks several jobs, each job's answer and status may be given apart,
   # by answer_for and status_for: the job is told by the first field its
   # schema requires, since two jobs may run on one model. Every call is logged
-  # in turn as "<job> <model>", and its arguments and prompt kept under the
-# job's name.
+  # in turn as "<job> <model>", and its arguments, its prompt and the folder
+  # it ran in kept under the job's name.
   cat >"$fakebin/claude" <<'FAKE'
 #!/usr/bin/env bash
 model="" schema="" previous=""
@@ -36,6 +36,7 @@ case "$(jq -r '.required[0] // empty' <<<"$schema" 2>/dev/null)" in
   asks_operator) job=reader ;;
   breaks) job=checker ;;
   kind) job=sorter ;;
+  reading) job=reading ;;
   *) job=other ;;
 esac
 printf '%s %s\n' "$job" "$model" >>"$FAKE_CALLS"
@@ -43,6 +44,7 @@ printf '%s\n' "$@" >"$FAKE_ARGS"
 cp "$FAKE_ARGS" "$FAKE_ARGS.$job"
 cat >"$FAKE_PROMPT"
 cp "$FAKE_PROMPT" "$FAKE_PROMPT.$job"
+pwd >"$FAKE_ARGS.$job.pwd"
 [ -n "${FAKE_SLEEP:-}" ] && sleep "$FAKE_SLEEP"
 [ -f "$FAKE_ANSWERS/$job.status" ] && exit "$(cat "$FAKE_ANSWERS/$job.status")"
 if [ -n "${FAKE_ENVELOPE+set}" ]; then
@@ -59,8 +61,8 @@ FAKE
   export PATH="$fakebin:$PATH"
 }
 
-# The answer the fake gives when the job named is asked: reader, checker or
-# sorter.
+# The answer the fake gives when the job named is asked: reader, checker,
+# sorter or reading.
 answer_for() {
   printf '%s' "$2" >"$FAKE_ANSWERS/$1"
 }
@@ -79,7 +81,8 @@ calls() {
 # A preset of the suite's own, with the kinds and risks given, so no suite
 # leans on the kit's own preset: the stand-in must hand over whatever a
 # project's preset holds. Kinds as "name:summary" words, a summary of one
-# word; risks as names.
+# word; risks as names. Its ladder sends the two challenges in
+# ladder_challenges, in order.
 preset() {
   local kinds="$1" risks="$2" kind name
   preset_dir="$BATS_TEST_TMPDIR/preset"
@@ -92,8 +95,13 @@ preset() {
     printf -- '---\nsummary: Risks.\n---\n\n# Risks\n\n'
     for name in $risks; do printf -- '- `%s` — The %s risk.\n' "$name" "$name"; done
   } >"$preset_dir/challenges/risks.md"
+  printf -- '---\nsummary: Ladder.\n---\n\n# Ladder\n\n1. First.\n2. Then:\n   > %s\n3. Then:\n   > %s\n' \
+    "${ladder_challenges[0]}" "${ladder_challenges[1]}" >"$preset_dir/challenges/challenge-ladder.md"
   printf 'AIDK_STAND_IN=%s\n' "$preset_dir" >"$project/aidk-config.env"
 }
+
+# The challenges the suite's preset ladder sends.
+ladder_challenges=("Is it the clean way?" "Sure?")
 
 # A whole reader's form asking which of two options, recommending the first.
 whole_form() {

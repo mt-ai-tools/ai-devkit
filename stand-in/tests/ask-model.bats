@@ -1,8 +1,8 @@
 bats_require_minimum_version 1.5.0
 
 # Behavior tests for asking a model: the answer comes back as the structured
-# output alone, the call runs with hooks and tools off, and every way the call
-# can fail is a refusal naming why. Claude Code is the suite's own fake.
+# output alone, the call runs with hooks off and no tools unless some are
+# given, and every way the call can fail is a refusal naming why. Claude Code is the suite's own fake.
 
 load fake-claude
 
@@ -31,6 +31,13 @@ setup() {
   [[ "$args" == *"--tools  "* ]]
   [[ "$args" == *"--output-format json "* ]]
   [[ "$args" == *"--json-schema $schema"* ]]
+}
+
+@test "the tools given are the only ones the call may use" {
+  export FAKE_ANSWER='{}'
+  get_model_answer some-model 10 "$schema" "Read,Grep" <<<"Which colour?" >/dev/null
+  args="$(paste -sd ' ' "$FAKE_ARGS")"
+  [[ "$args" == *"--tools Read,Grep "* ]]
 }
 
 @test "a call past its time limit is refused as a timeout" {

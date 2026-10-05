@@ -4,12 +4,15 @@
 # the stand-in's own working folder, beside the switches rather than among
 # them, so a switch folder holds switches alone. Sourced, never executed.
 #
-# The record holds three things. sent_back: how many times in a row the gate
+# The record holds four things. sent_back: how many times in a row the gate
 # has held a reply and sent it back to the agent, since a reply last stopped.
 # challenge: the challenge the agent has yet to answer — the kind's entry, the
 # step it is at, and the question's form and sort as they stood when it was
-# sent — or null. dropped: every proposal the agent dropped under a
-# challenge, {question, kind}, kept for the session's end report.
+# sent — or null. ladder: the question on the ladder — its words, its kind,
+# the lines the operator is to be shown beside it, and each rung's answer so
+# far in order — or null; never held together with a challenge. dropped:
+# every proposal the agent dropped under a challenge, {question, kind}, kept
+# for the session's end report.
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 
 # The records' folder inside the stand-in's working folder.
@@ -23,7 +26,7 @@ RECORD_SUBFOLDER="sessions"
 SEND_BACK_LIMIT=3
 
 # The record of a session the gate has not held anything for.
-EMPTY_RECORD='{"sent_back":0,"challenge":null,"dropped":[]}'
+EMPTY_RECORD='{"sent_back":0,"challenge":null,"ladder":null,"dropped":[]}'
 
 # What a record must be to be read: anything else was not written by the gate,
 # or not whole, and is refused rather than repaired.
@@ -31,6 +34,7 @@ RECORD_SHAPE='
   type == "object"
   and (.sent_back | type == "number" and . >= 0)
   and (.challenge | type == "null" or type == "object")
+  and (.ladder | type == "null" or (type == "object" and (.answers | type == "array")))
   and (.dropped | type == "array")'
 
 # --- Transforms.
@@ -41,9 +45,12 @@ to_record_path() {
 }
 
 # The record with the question it was holding let go: a reply stopped, or a
-# new turn of the operator's began. What was dropped stays.
+# new turn of the operator's began. A ladder in progress goes with it, as a
+# challenge does: a new turn may have changed what the agent is asking, and
+# rungs climbed before it would be compared with answers to something else.
+# What was dropped stays.
 with_chain_reset() {
-  jq -c '.sent_back = 0 | .challenge = null' <<<"$1"
+  jq -c '.sent_back = 0 | .challenge = null | .ladder = null' <<<"$1"
 }
 
 # The record with one more send-back counted.
@@ -72,6 +79,24 @@ with_challenge_step() {
 # there is none.
 to_challenge() {
   jq -c '.challenge // empty' <<<"$1"
+}
+
+# The record holding a question put on the ladder: its words, its kind's
+# name, the lines the operator is to be shown beside it, and its first rung's
+# answer. The question's challenge, if it had one, is over.
+with_ladder() {
+  jq -c --arg question "$2" --arg kind "$3" --arg lines "$4" --argjson answer "$5" \
+    '.challenge = null | .ladder = {question: $question, kind: $kind, lines: $lines, answers: [$answer]}' <<<"$1"
+}
+
+# The record with one more rung's answer on the ladder it holds.
+with_ladder_answer() {
+  jq -c --argjson answer "$2" '.ladder.answers += [$answer]' <<<"$1"
+}
+
+# The ladder the record holds, as JSON; nothing where there is none.
+to_ladder() {
+  jq -c '.ladder // empty' <<<"$1"
 }
 
 # The record with the challenged proposal noted as dropped and the question
