@@ -2,7 +2,8 @@
 
 A work organizer over a folder of briefs: what is ready to start, what waits
 and on what, what a session has taken, and which ready briefs would work
-where a taken one already does.
+where a taken one already does — and the one writer of a new brief, in the
+one shape a brief has, once the operator has said yes to it.
 
 The order of the work is derived, never kept: each brief's header says what
 must land before it and where it works, and nothing else holds a copy of
@@ -13,7 +14,8 @@ problem and never offered as work; a name it cannot find is an error, never
 read as finished.
 
 It changes only its own marks, and, when a brief is finished, that brief and
-the after lists naming it. It never runs version control: finishing prints
+the after lists naming it; its writer adds only the one new brief, and the
+after lists the operator's yes named. Neither runs version control: finishing prints
 every path it changed, and committing them is left to whoever called it.
 
 Needs a folder of briefs, each opening with a header of four fields — a

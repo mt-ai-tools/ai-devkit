@@ -5,7 +5,7 @@ works under, the injector that puts them in front of it every turn, the
 reviewer that judges the work against them, the advisor that gives a
 single finding a second, independent reading, the builder that carries
 out one step of a written brief, and the organizer that says which briefs
-are ready, waiting or taken.
+are ready, waiting or taken, and writes a new one on the operator's yes.
 
 The parts ship, version and mount as one. What the kit needs from a
 project is stated here and nowhere else in it.
@@ -40,7 +40,7 @@ learns their names.
 
 A project mounts the kit whole. It registers the injector's hook script
 for the turn-start event, and exposes the agent and command files the
-reviewer, the advisor and the builder ship, where Claude Code looks for a
+reviewer, the advisor, the builder and the organizer ship, where Claude Code looks for a
 project's agents and commands, and the skill the organizer ships, where it
 looks for a project's skills. Without the hook the reviewer cannot run,
 the advisor cannot say whether a finding matters, and the builder is not
