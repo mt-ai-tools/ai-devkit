@@ -8,6 +8,12 @@
 # agent's: not the recommendation, not the answers on the ladder, not the
 # reply. A reading that saw what the agent chose would be anchored to it, and
 # an agreement it then reached would be worth less than one it reached alone.
+#
+# The prompt tells it so in words. The advisor's command warns of an anchored
+# reading whenever a proposal is in front of it, and handed bare options it
+# took them for one: measured 2026-10-06, every reading opened "Anchored"
+# though no pick had reached it. The command stays as it is, since sessions
+# hand it their own proposals and the warning is right there.
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/config.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/jobs.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/forms.sh"
