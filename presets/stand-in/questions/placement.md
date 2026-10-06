@@ -1,5 +1,5 @@
 ---
-summary: Where a new file, module or piece of code is placed, and what it is called.
+summary: Where a new file, module or piece of code is placed.
 route: ask
 ---
 

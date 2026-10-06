@@ -11,3 +11,10 @@ name: whatever these collections hold is what it sorts and sends.
 
 Every message here is written in clean, plain, correctly spelled
 English. It carries how the operator thinks, never how they type.
+
+A kind goes to the operator unasked where the rules leave its answer to
+them: which library to adopt and where new work is placed are theirs by
+those rules, and no list of kinds overrides a rule. Organising the work
+(which session does a piece, whether to push, whether to stop) goes to
+them with no challenge: the operator's own challenges, searched over
+their 971 typed answers, were never about how the work is organised.

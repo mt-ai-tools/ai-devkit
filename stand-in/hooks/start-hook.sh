@@ -94,7 +94,9 @@ show_list() {
   to_prompt_answer "$shown" "$(start_list_agent_note "$(printf '%s' "$shown" | awk 'END { print NR }')")"
 }
 
-# With the session flag: the switch, and nothing taken.
+# With the session flag: the switch, and nothing taken. No opener is handed
+# over: the preset's opener is about a brief, and in a session without one the
+# operator says how to work (settled with them 2026-10-06).
 start_session() {
   local answer
   answer="$(to_prompt_answer "$(start_session_shown_note)" "$(start_session_agent_note)")"
