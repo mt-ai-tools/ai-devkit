@@ -95,6 +95,10 @@ refuse_bad_miscalled_note() {
   printf 'The checker'\''s answer holds a miscalled item that is not what it was called and what it is.\n'
 }
 
+refuse_folder_not_absolute_note() {
+  printf 'The stand-in'\''s working folder, %s, is not an absolute path, so the cold second reading cannot be kept out of it.\n' "$1"
+}
+
 refuse_reading_empty_note() {
   printf 'The cold second reading came back with no words.\n'
 }

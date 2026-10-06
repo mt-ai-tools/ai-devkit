@@ -409,6 +409,11 @@ all_three() {
   [ "$(grep -ci "recommend" "$prompt")" -eq 0 ]
   grep -qx "Read,Grep,Glob" "$FAKE_ARGS.reading"
   [ "$(cat "$FAKE_ARGS.reading.pwd")" = "$project" ]
+  # Cold means it cannot read the stand-in's own folder either: each of its
+  # tools is denied the folder the configuration names.
+  settings="$(grep -A1 -x -- --settings "$FAKE_ARGS.reading" | tail -n 1)"
+  jq -e --arg read "Read(/$history/**)" --arg grep "Grep(/$history/**)" --arg glob "Glob(/$history/**)" \
+    '. == {disableAllHooks: true, permissions: {deny: [$read, $grep, $glob]}}' <<<"$settings"
 }
 
 @test "the matcher is handed the first options and the reply, never the recommendation" {

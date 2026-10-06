@@ -30,6 +30,13 @@ ASK_MODEL_KILL_AFTER=5
 
 # --- Transforms.
 
+# The settings a call runs with: those every call runs with, over any the
+# caller adds, so a caller's settings can add a rule but never switch the
+# hooks back on.
+to_call_settings() {
+  jq -cn --argjson base "$ASK_MODEL_SETTINGS" --argjson extra "${1:-{\}}" '$extra * $base'
+}
+
 # The answer the model gave to the schema, as one line of JSON, out of the
 # envelope Claude Code prints; a refusal naming why on stderr and a non-zero
 # status where there is none. The answer is read only from the structured
@@ -61,11 +68,13 @@ to_model_answer() {
 # reads what it is handed has nothing to reach. A read-only tool given reaches
 # no further than the folder the call runs in, which is the caller's to
 # choose: a headless call with nothing allowed is refused a read outside its
-# working directory (measured 2026-10-05).
+# working directory (measured 2026-10-05). Settings given, as a JSON object,
+# are added to those every call runs with, as to_call_settings merges them.
 get_model_answer() {
-  local model="$1" seconds="$2" schema="$3" tools="${4:-}" envelope status=0
+  local model="$1" seconds="$2" schema="$3" tools="${4:-}" settings envelope status=0
+  settings="$(to_call_settings "${5:-}")" || return 1
   envelope="$(timeout -k "$ASK_MODEL_KILL_AFTER" "$seconds" \
-    claude -p "$ASK_MODEL_ISOLATION" --model "$model" --settings "$ASK_MODEL_SETTINGS" --tools "$tools" \
+    claude -p "$ASK_MODEL_ISOLATION" --model "$model" --settings "$settings" --tools "$tools" \
     --output-format json --json-schema "$schema" 2>/dev/null)" || status=$?
   if [[ "$ASK_MODEL_TIMEOUT_STATUSES" == *" $status "* ]]; then
     refuse_model_timeout_note "$model" "$seconds" >&2

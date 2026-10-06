@@ -40,6 +40,14 @@ setup() {
   [[ "$args" == *"--tools Read,Grep "* ]]
 }
 
+@test "settings given are added to the call's, and can never switch the hooks back on" {
+  export FAKE_ANSWER='{}'
+  get_model_answer some-model 10 "$schema" "Read" '{"disableAllHooks":false,"permissions":{"deny":["Read(//x/**)"]}}' \
+    <<<"Which colour?" >/dev/null
+  args="$(paste -sd ' ' "$FAKE_ARGS")"
+  [[ "$args" == *'--settings {"disableAllHooks":true,"permissions":{"deny":["Read(//x/**)"]}} '* ]]
+}
+
 @test "a call past its time limit is refused as a timeout" {
   export FAKE_ANSWER='{}' FAKE_SLEEP=5
   run --separate-stderr get_model_answer some-model 1 "$schema" <<<"Which colour?"

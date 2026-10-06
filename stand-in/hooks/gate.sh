@@ -268,7 +268,7 @@ answer_changed() {
   question="$(jq -r '.question' <<<"$ladder")"
   options="$(jq -c '.first.options' <<<"$ladder")"
   why="$(mktemp)"
-  if reading="$(get_cold_reading "$question" "$options" "$rules" "$conventions" 2>"$why")"; then
+  if reading="$(get_cold_reading "$question" "$options" "$rules" "$conventions" "$history" 2>"$why")"; then
     part="$(gate_reading_note "$reading")"
   else
     part="$(gate_reading_failed_line "$(cat "$why")")"
