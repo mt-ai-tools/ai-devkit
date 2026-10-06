@@ -19,7 +19,8 @@ Answer four things:
 - risks: every risk, from the list below, that the recommended option carries,
   by name exactly as listed. Weigh the option as the reply describes it and
   as you see it; a risk the reply waves away is still carried. None when the
-  option carries none, or when no option is recommended.
+  option carries none, or when no option is recommended. When in doubt
+  whether it carries one, name it.
 - defers: true if the recommended option puts work off rather than doing it
   now: to later, to a pending line or note, or to another session. False
   when it does the work now, or when no option is recommended. When in

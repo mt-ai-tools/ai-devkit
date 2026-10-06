@@ -21,7 +21,7 @@ STAND_IN_LOADED_JOBS=1
 READER_MODEL="claude-sonnet-5-5"
 
 # The sorter names a question's kind and its option's risks: a judgement
-# against the preset's own words, a step up from reading.
+# against the preset's own words.
 SORTER_MODEL="claude-sonnet-5-5"
 
 # The checker reads a question against every rule and convention entry, whole:
@@ -31,9 +31,9 @@ CHECKER_MODEL="claude-sonnet-5-5"
 # The matcher tells, on each ladder rung after the first, which of the first
 # rung's options a reply now recommends, or that it chose something new or
 # stopped asking. Rare, since only a ladder reaches it, and it is the read
-# that will one day let a question pass without the operator: a step up from
-# the every-reply reader, whose relabelled options and missed restatements
-# kept live ladders from ever holding (measured 2026-10-05).
+# that will one day let a question pass without the operator: its own job,
+# since the every-reply reader's relabelled options and missed restatements
+# kept live ladders from ever holding (measured 2026-10-05, on Haiku 4.5).
 MATCHER_MODEL="claude-sonnet-5-5"
 
 # The summary reader tells the operator, in everyday words, how a question

@@ -40,8 +40,9 @@ learns their names.
 - `aidk-stand-in` is the stand-in's working folder. Its `answers` holds
   real past cases, worth keeping in version control. Its `on` (which
   sessions the stand-in is switched on for), `sessions` (where the gate
-  stands with each) and `log` (every question it let go, with the
-  operator's answer) are this machine's alone and worth ignoring; the last
+  stands with each) and `log` (every question, step report and request to
+  build it let go, with the operator's answer) are this machine's alone
+  and worth ignoring; the last
   two may hold raw agent text. The config file can move
   it.
 

@@ -103,6 +103,20 @@ tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/words.sh"
 . "$tool_root/lib/stop-event.sh"
 . "$tool_root/lib/switch.sh"
+
+# Every value below is resolved into a variable before use, never inline as
+# an argument: a failing command substitution inside an argument does not end
+# the script, and the refusal would go unseen.
+event="$(cat)"
+event="$(refuse_unreadable_event "$event")"
+session="$(to_event_session "$event")"
+history="$(get_config_path AIDK_STAND_IN_HISTORY)"
+switch="$(find_switch "$history" "$session")"
+[ -n "$switch" ] || exit 0
+
+# The rest of the gate is loaded only where the stand-in is on: this hook runs
+# at the end of every reply in every session, and loading it all took most of
+# its time where it then did nothing.
 . "$tool_root/lib/record.sh"
 . "$tool_root/lib/reader.sh"
 . "$tool_root/lib/checker.sh"
@@ -119,16 +133,6 @@ tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/operator-message.sh"
 . "$tool_root/lib/question-log.sh"
 . "$tool_root/lib/briefs.sh"
-
-# Every value below is resolved into a variable before use, never inline as
-# an argument: a failing command substitution inside an argument does not end
-# the script, and the refusal would go unseen.
-event="$(cat)"
-event="$(refuse_unreadable_event "$event")"
-session="$(to_event_session "$event")"
-history="$(get_config_path AIDK_STAND_IN_HISTORY)"
-switch="$(find_switch "$history" "$session")"
-[ -n "$switch" ] || exit 0
 
 preset="$(get_config_path AIDK_STAND_IN)"
 rules="$(get_config_path AIDK_RULES)"

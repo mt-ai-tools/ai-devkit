@@ -189,7 +189,7 @@ all_three() {
   [ "$status" -eq 0 ]
   [ "$(jq -r '.decision' <<<"$output")" = block ]
   [ "$(reason)" = "$(gate_no_recommendation_note)" ]
-  # Decision 7 of the stand-in: every message to an agent opens so.
+  # Every message the stand-in sends an agent opens so.
   [[ "$(reason)" == "From the stand-in: "* ]]
   [ "$(calls)" = "$(all_three)" ]
 }
@@ -1107,6 +1107,17 @@ step_operator_message() {
   [ "$(message)" = "$(operator_message "$(gate_go_kind_line step-go)")" ]
 }
 
+# A copy of the kit with every kind through the trial, its gate left in gate.
+# Nothing switches a kind yet, so the suite switches one in the copy, at the
+# one place that tells a switched kind apart.
+switch_kinds() {
+  kit="$BATS_TEST_TMPDIR/kit"
+  mkdir -p "$kit"
+  cp -r "$BATS_TEST_DIRNAME/../../lib" "$BATS_TEST_DIRNAME/../../stand-in" "$BATS_TEST_DIRNAME/../../organizer" "$kit/"
+  sed -i '/^is_on_trial() {$/,/^}$/s/return 0/return 1/' "$kit/stand-in/lib/trial.sh"
+  gate="$kit/stand-in/hooks/gate.sh"
+}
+
 # The skill hook of the kit given, run on the skill and words given.
 run_skill() {
   jq -cn --arg skill "$2" --arg args "$3" '{tool_name: "Skill", tool_input: {skill: $skill, args: $args}}' \
@@ -1116,13 +1127,7 @@ run_skill() {
 @test "once its kind is switched, a clean step's report is told go, logged as settled, listed and reopened" {
   . "$lib/step-go.sh"
   . "$lib/reopen.sh"
-  # Nothing switches a kind yet, so the suite switches one in a copy of the
-  # kit, at the one place that tells a switched kind apart.
-  kit="$BATS_TEST_TMPDIR/kit"
-  mkdir -p "$kit"
-  cp -r "$BATS_TEST_DIRNAME/../../lib" "$BATS_TEST_DIRNAME/../../stand-in" "$BATS_TEST_DIRNAME/../../organizer" "$kit/"
-  sed -i '/^is_on_trial() {$/,/^}$/s/return 0/return 1/' "$kit/stand-in/lib/trial.sh"
-  gate="$kit/stand-in/hooks/gate.sh"
+  switch_kinds
   step_report "$(step_form '.problems = [{problem: "a typo in a refusal", state: "fixed"}]')"
   run_gate false "$step_reply"
   [ "$status" -eq 0 ]
@@ -1144,11 +1149,7 @@ run_skill() {
 
 @test "once switched, a go that cannot be logged is never given: it goes to the operator, saying why" {
   . "$lib/step-go.sh"
-  kit="$BATS_TEST_TMPDIR/kit"
-  mkdir -p "$kit"
-  cp -r "$BATS_TEST_DIRNAME/../../lib" "$BATS_TEST_DIRNAME/../../stand-in" "$BATS_TEST_DIRNAME/../../organizer" "$kit/"
-  sed -i '/^is_on_trial() {$/,/^}$/s/return 0/return 1/' "$kit/stand-in/lib/trial.sh"
-  gate="$kit/stand-in/hooks/gate.sh"
+  switch_kinds
   step_report
   mkdir -p "$history/log"
   chmod a-w "$history/log"
@@ -1158,17 +1159,6 @@ run_skill() {
 }
 
 # --- The round's decisions, laid out before building.
-
-# A copy of the kit with every kind through the trial, its gate left in gate.
-# Nothing switches a kind yet, so the suite switches one in the copy, at the
-# one place that tells a switched kind apart.
-switch_kinds() {
-  kit="$BATS_TEST_TMPDIR/kit"
-  mkdir -p "$kit"
-  cp -r "$BATS_TEST_DIRNAME/../../lib" "$BATS_TEST_DIRNAME/../../stand-in" "$BATS_TEST_DIRNAME/../../organizer" "$kit/"
-  sed -i '/^is_on_trial() {$/,/^}$/s/return 0/return 1/' "$kit/stand-in/lib/trial.sh"
-  gate="$kit/stand-in/hooks/gate.sh"
-}
 
 # The reader's form of a reply that closes the round and asks to build.
 round_form() {
