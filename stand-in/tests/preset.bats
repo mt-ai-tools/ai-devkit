@@ -85,7 +85,7 @@ setup() {
   printf -- '---\nsummary: First.\n---\n' >"$preset_dir/questions/alpha.md"
   run --separate-stderr get_kind_entry "$preset_dir" alpha
   [ "$status" -eq 1 ]
-  [ "$stderr" = "$(refuse_kind_route_note alpha "" ask ladder)" ]
+  [ "$stderr" = "$(refuse_kind_route_note alpha "" "ask, ladder, go")" ]
   printf -- '---\nsummary: First.\nroute: ask\nsecond-challenge: Read them?\n---\n' >"$preset_dir/questions/alpha.md"
   run --separate-stderr get_kind_entry "$preset_dir" alpha
   [ "$status" -eq 1 ]

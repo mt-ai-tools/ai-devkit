@@ -8,8 +8,10 @@
 # operator is handed a decision, never a blank question. Then any of an
 # always-yours kind, a risk named on the recommended option, or a sort the
 # sorter was unsure of brings it to the operator, with every reason that
-# applies. What is left, a ladder kind with no risk sorted for certain, goes
-# to the ladder.
+# applies; so does a question sorted as a step's report waiting for the go,
+# since a reply that asks something is never one the stand-in says go to.
+# What is left, a ladder kind with no risk sorted for certain, goes to the
+# ladder.
 . "$(dirname "${BASH_SOURCE[0]}")/preset.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 
@@ -29,9 +31,10 @@ derive_route() {
     return 0
   fi
   name="$(jq -r '.name' <<<"$entry")"
-  if [ "$(jq -r '.route' <<<"$entry")" = "$ROUTE_ASK" ]; then
-    lines+="$(gate_kind_line "$name" "$(jq -r '.summary' <<<"$entry")")"$'\n'
-  fi
+  case "$(jq -r '.route' <<<"$entry")" in
+    "$ROUTE_ASK") lines+="$(gate_kind_line "$name" "$(jq -r '.summary' <<<"$entry")")"$'\n' ;;
+    "$ROUTE_GO") lines+="$(gate_go_kind_line "$name")"$'\n' ;;
+  esac
   while IFS= read -r risk; do
     [ -n "$risk" ] || continue
     words="$(jq -r --arg risk "$risk" '.[] | select(.name == $risk) | .words' <<<"$risks")"

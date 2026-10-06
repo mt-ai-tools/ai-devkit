@@ -67,7 +67,7 @@ clean_check() {
 
 # A reader's form for a reply asking nothing, answering a challenge as given.
 no_question_form() {
-  printf '{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":false,"guidance_answer":"%s"}' "${1:-}"
+  printf '{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":false,"guidance_answer":"%s","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}' "${1:-}"
 }
 
 # The end-of-reply event, as Claude Code hands it to a Stop hook.
@@ -92,7 +92,8 @@ message() { jq -r '.systemMessage' <<<"$output"; }
 rung_form() {
   jq -cn --arg recommended "$1" --argjson options "${2:-[\"five\",\"ten\"]}" \
     '{asks_operator: true, question: "Five retries or ten?", options: $options,
-      recommended: $recommended, claims_done: false, guidance_answer: ""}'
+      recommended: $recommended, claims_done: false, guidance_answer: "", ends_step: false, problems: [],
+      proof: "", next_step: "", next_step_number: 0, next_step_from: "", next_step_marks: []}'
 }
 
 # The matcher's pick of a reply: an item of the first options, a new choice,
@@ -180,7 +181,7 @@ all_three() {
 }
 
 @test "a question with no recommendation goes back to the agent to state one" {
-  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":""}'
+  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run_gate
   [ "$status" -eq 0 ]
   [ "$(jq -r '.decision' <<<"$output")" = block ]
@@ -580,7 +581,7 @@ all_three() {
 }
 
 @test "the ladder's challenges count toward the send-back limit, and the loop guard still sends the retelling" {
-  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":""}'
+  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run_gate false
   run_gate true
   answer_for reader "$(rung_form five)"
@@ -597,7 +598,7 @@ all_three() {
 }
 
 @test "the fixed rounds are never counted: a ladder at the limit is still sent the bigger look and the retelling" {
-  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":""}'
+  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   answer_for reading '{"reading":"Ten is safer."}'
   run_gate false
   answer_for reader "$(rung_form five)"
@@ -665,7 +666,7 @@ edit_record() {
 }
 
 @test "a broken form goes to the operator with the check's reason" {
-  answer_for reader '{"asks_operator":true,"question":"Five or ten?","options":["five","ten"],"recommended":"seven","claims_done":false,"guidance_answer":""}'
+  answer_for reader '{"asks_operator":true,"question":"Five or ten?","options":["five","ten"],"recommended":"seven","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run_gate
   [ "$status" -eq 0 ]
   [ "$(message)" = "$(gate_broken_note "$(refuse_recommended_outside_note seven)")" ]
@@ -701,11 +702,11 @@ edit_record() {
   kind defaults maybe
   run_gate
   [ "$status" -eq 0 ]
-  [ "$(message)" = "$(gate_broken_note "$(refuse_kind_route_note defaults maybe ask ladder)")" ]
+  [ "$(message)" = "$(gate_broken_note "$(refuse_kind_route_note defaults maybe "ask, ladder, go")")" ]
 }
 
 @test "a question sent back three times in a row goes to the operator on the fourth" {
-  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":""}'
+  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run_gate false
   run_gate true
   run_gate true
@@ -735,7 +736,7 @@ edit_record() {
 }
 
 @test "a new turn of the operator's starts the count again" {
-  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":""}'
+  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run_gate false
   run_gate true
   run_gate true
@@ -771,7 +772,7 @@ edit_record() {
 }
 
 @test "a record that cannot be written lets the reply stop, saying so" {
-  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":""}'
+  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   mkdir -p "$history/sessions"
   chmod a-w "$history/sessions"
   run_gate
@@ -854,4 +855,301 @@ log_file() { printf '%s/log/questions.jsonl' "$history"; }
   run_gate
   [ "$(message)" = "$(gate_broken_note "$(refuse_model_timeout_note "$READER_MODEL" "$READER_SECONDS")")" ]
   [ ! -e "$(log_file)" ]
+}
+
+# --- The step go.
+
+# The suite's session holding a brief through the work organizer, as its take
+# leaves it.
+hold_brief() {
+  mkdir -p "$project/aidk-plans" "$project/aidk-organizer/taken"
+  printf -- '---\nsummary: Trash.\nafter: []\ntouches: [aidk-plans]\ncreates: []\n---\n\n# file-trash\n' >"$project/aidk-plans/file-trash.md"
+  printf 'session: %s\nsince: 2026-10-06T09:00:00Z\n' "$session" >"$project/aidk-organizer/taken/file-trash"
+}
+
+# A step's report, read as the step form given, labelled by the sorter as
+# given, in a session holding a brief, with a kind for the step go; the
+# decision it puts is left in step_question.
+step_report() {
+  step_question="$(gate_step_question "step 9, the round list")"
+  kind step-go go
+  hold_brief
+  answer_for reader "${1:-$(step_form)}"
+  answer_for step-sorter "${2:-$clean_step_sort}"
+}
+
+clean_step_sort='{"majors":[],"unsure":false}'
+step_reply="Step 8 is built and its proof passed. Next is step 9, the round list."
+
+# The note the operator is shown for a go the stand-in would give, given why
+# it came to them, then the problems fixed in passing.
+go_message() {
+  gate_step_trial_note "$step_question" "$1"
+  shift
+  [ "$#" -gt 0 ] || return 0
+  printf '\n'
+  gate_fixed_heading
+  for problem in "$@"; do gate_problem_line "$problem"; done
+}
+
+# The same note during the trial, the problems fixed in passing given.
+trial_message() {
+  go_message "$(gate_trial_line step-go)" "$@"
+}
+
+# The note the operator is shown for a report whose go is theirs, given why.
+step_operator_message() {
+  gate_step_operator_note "$step_question" "$1"
+}
+
+@test "a clean step's report: during the trial the reply stops, the operator told the stand-in would have said go, and it is logged so" {
+  . "$lib/step-go.sh"
+  step_report
+  run_gate false "$step_reply"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(message)" = "$(trial_message)" ]
+  [ "$(calls)" = "reader $READER_MODEL"$'\n'"step-sorter $SORTER_MODEL" ]
+  grep -qF -- "$step_reply" "$FAKE_PROMPT.step-sorter"
+  grep -qF -- "lost-data: $(step_lost_data_words)" "$FAKE_PROMPT.step-sorter"
+  grep -qF -- "workaround: The workaround risk." "$FAKE_PROMPT.step-sorter"
+  line="$(cat "$(log_file)")"
+  [ "$(jq -c '{question, kind, outcome, approved, reasons, briefs}' <<<"$line")" = \
+    "$(jq -cn --arg q "$step_question" --arg why "$(gate_trial_line step-go)" \
+      '{question: $q, kind: "step-go", outcome: "would-have-approved", approved: "go", reasons: [$why], briefs: ["file-trash"]}')" ]
+  [ "$(jq -c '.step' <<<"$line")" = "$(jq -c '{problems, proof, next_step, next_step_number, next_step_from, next_step_marks} + {majors: [], unsure: false}' <<<"$(step_form)")" ]
+  [ "$(jq -c '[.exchange[] | .text]' <<<"$line")" = "$(jq -cn --arg a "$step_reply" '[$a]')" ]
+  [ ! -s "$record_file" ] || [ "$(jq -c . "$record_file")" = "$EMPTY_RECORD" ]
+}
+
+@test "a step whose problems were all fixed: the go it would give lists them as fixed in passing" {
+  . "$lib/step-go.sh"
+  step_report "$(step_form '.problems = [{problem: "a typo in a refusal", state: "fixed"}, {problem: "a stale comment", state: "fixed"}]')"
+  run_gate false "$step_reply"
+  [ "$(message)" = "$(trial_message "a typo in a refusal" "a stale comment")" ]
+  [ "$(jq -c '[.step.problems[] | .state]' "$(log_file)")" = '["fixed","fixed"]' ]
+}
+
+@test "an unfixed problem needing no decision is sent back to be fixed, and the report is read again" {
+  . "$lib/step-go.sh"
+  step_report "$(step_form '.problems = [{problem: "the budget test is red", state: "unfixed"}, {problem: "a typo", state: "fixed"}]')"
+  run_gate false "$step_reply"
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  [ "$(reason)" = "$(gate_fix_first_note; gate_problem_line "the budget test is red")" ]
+  [[ "$(reason)" == "From the stand-in: fix this before the next step."* ]]
+  [ "$(jq '.sent_back' "$record_file")" -eq 1 ]
+  [ ! -e "$(log_file)" ]
+  answer_for reader "$(step_form '.problems = [{problem: "the budget test is red", state: "fixed"}, {problem: "a typo", state: "fixed"}]')"
+  rm "$FAKE_CALLS"
+  run_gate true "Fixed: the budget test is green. Step 8 is done; next is step 9, the round list."
+  [ "$(calls)" = "reader $READER_MODEL"$'\n'"step-sorter $SORTER_MODEL" ]
+  [ "$(message)" = "$(trial_message "the budget test is red" "a typo")" ]
+  [ "$(jq -c '[.exchange[] | .from]' "$(log_file)")" = '["agent","stand-in","agent"]' ]
+}
+
+@test "an unfixed problem needing a decision is sent back to be asked, and the question goes through the gate" {
+  . "$lib/step-go.sh"
+  step_report "$(step_form '.problems = [{problem: "which name the new file takes", state: "needs-decision"}]')"
+  run_gate false "$step_reply"
+  [ "$(reason)" = "$(gate_ask_first_note; gate_problem_line "which name the new file takes")" ]
+  answer_for reader "$(whole_form)"
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
+  rm "$FAKE_CALLS"
+  run_gate true
+  [ "$(calls)" = "$(all_three)" ]
+  [ "$(reason)" = "$(retelling)" ]
+}
+
+@test "unfixed problems of both sorts are sent back together, the fixing first" {
+  . "$lib/step-go.sh"
+  step_report "$(step_form '.problems = [{problem: "which name", state: "needs-decision"}, {problem: "red test", state: "unfixed"}]')"
+  run_gate false "$step_reply"
+  [ "$(reason)" = "$(gate_fix_first_note; gate_problem_line "red test"; gate_ask_first_heading; gate_problem_line "which name")" ]
+}
+
+@test "a major problem already fixed goes to the operator, never sent back and never a go" {
+  . "$lib/step-go.sh"
+  step_report "$(step_form '.problems = [{problem: "the old rows were dropped", state: "fixed"}]')" \
+    '{"majors":[{"problem":"the old rows were dropped","label":"lost-data"}],"unsure":false}'
+  run_gate false "$step_reply"
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(message)" = "$(step_operator_message "$(gate_major_line "the old rows were dropped" lost-data "$(step_lost_data_words)")")" ]
+  [ "$(jq -c '{outcome, approved}' "$(log_file)")" = '{"outcome":"to-operator","approved":""}' ]
+}
+
+@test "a major problem left unfixed, or one carrying a preset risk, goes to the operator before any send-back" {
+  . "$lib/step-go.sh"
+  step_report "$(step_form '.problems = [{problem: "a test now fails", state: "unfixed"}]')" \
+    '{"majors":[{"problem":"a test now fails","label":"broken-check"},{"problem":"a guard skipped","label":"workaround"}],"unsure":false}'
+  run_gate false "$step_reply"
+  why="$(gate_major_line "a test now fails" broken-check "$(step_broken_check_words)")"$'\n'
+  why+="$(gate_major_line "a guard skipped" workaround "The workaround risk.")"
+  [ "$(message)" = "$(step_operator_message "$why")" ]
+}
+
+@test "a sorter unsure whether a problem is major counts it as major" {
+  . "$lib/step-go.sh"
+  step_report "$(step_form)" '{"majors":[],"unsure":true}'
+  run_gate false "$step_reply"
+  [ "$(message)" = "$(step_operator_message "$(gate_major_unsure_line)")" ]
+}
+
+@test "a failed proof, or one the report does not mention, goes to the operator" {
+  . "$lib/step-go.sh"
+  step_report "$(step_form '.proof = "failed"')"
+  run_gate false "$step_reply"
+  [ "$(message)" = "$(step_operator_message "$(gate_proof_failed_line)")" ]
+  answer_for reader "$(step_form '.proof = ""')"
+  run_gate false "$step_reply"
+  [ "$(message)" = "$(step_operator_message "$(gate_proof_unsaid_line)")" ]
+}
+
+@test "the brief's first step is the operator's, as is a next step not numbered" {
+  . "$lib/step-go.sh"
+  step_report "$(step_form '.next_step_number = 1')"
+  run_gate false "$step_reply"
+  [ "$(message)" = "$(step_operator_message "$(gate_first_step_line)")" ]
+  answer_for reader "$(step_form '.next_step_number = 0')"
+  run_gate false "$step_reply"
+  [ "$(message)" = "$(step_operator_message "$(gate_step_number_unsaid_line)")" ]
+}
+
+@test "a next step the brief runs alone at a quiet moment is the operator's" {
+  . "$lib/step-go.sh"
+  step_report "$(step_form '.next_step_marks = ["runs-alone"]')"
+  run_gate false "$step_reply"
+  [ "$(message)" = "$(step_operator_message "$(gate_step_mark_line "$(step_mark_words runs-alone)")")" ]
+}
+
+@test "a next step that pushes, syncs, deletes or touches another session's work is the operator's, each said" {
+  . "$lib/step-go.sh"
+  step_report "$(step_form '.next_step_marks = ["pushes", "deletes", "pushes"]')"
+  run_gate false "$step_reply"
+  why="$(gate_step_mark_line "$(step_mark_words deletes)")"$'\n'"$(gate_step_mark_line "$(step_mark_words pushes)")"
+  [ "$(message)" = "$(step_operator_message "$why")" ]
+  answer_for reader "$(step_form '.next_step_marks = ["syncs", "other-session"]')"
+  run_gate false "$step_reply"
+  why="$(gate_step_mark_line "$(step_mark_words other-session)")"$'\n'"$(gate_step_mark_line "$(step_mark_words syncs)")"
+  [ "$(message)" = "$(step_operator_message "$why")" ]
+}
+
+# regression: a session holding no brief was read as holding one named null,
+# so its step was weighed as the brief's own and a go was given.
+@test "new work next, or a session holding no brief, is the operator's" {
+  . "$lib/step-go.sh"
+  step_report "$(step_form '.next_step_from = "new-work"')"
+  run_gate false "$step_reply"
+  [ "$(message)" = "$(step_operator_message "$(gate_new_work_line)")" ]
+  rm "$project/aidk-organizer/taken/file-trash"
+  answer_for reader "$(step_form)"
+  run_gate false "$step_reply"
+  [ "$(message)" = "$(step_operator_message "$(gate_no_brief_line)")" ]
+  [ "$(tail -n 1 "$(log_file)" | jq -c '.briefs')" = '[]' ]
+  rm -r "$project/aidk-plans"
+  run_gate false "$step_reply"
+  [ "$(message)" = "$(step_operator_message "$(gate_briefs_unknown_line)")" ]
+}
+
+@test "a broken or unsure reading of a step's report goes to the operator, and nothing is said go" {
+  . "$lib/step-go.sh"
+  step_report
+  status_for step-sorter 124
+  run_gate false "$step_reply"
+  [ "$(message)" = "$(gate_broken_note "$(refuse_model_timeout_note "$SORTER_MODEL" "$SORTER_SECONDS")")" ]
+  rm "$FAKE_ANSWERS/step-sorter.status"
+  answer_for step-sorter '{"majors":[{"problem":"rows gone","label":"data-loss"}],"unsure":false}'
+  run_gate false "$step_reply"
+  [ "$(message)" = "$(gate_broken_note "$(refuse_unknown_label_note data-loss)")" ]
+  answer_for reader "$(step_form '.ends_step = false')"
+  run_gate false "$step_reply"
+  [ "$(message)" = "$(gate_broken_note "$(refuse_no_step_but_note)")" ]
+  [ ! -e "$(log_file)" ]
+}
+
+@test "a step sent back as often as it may be goes to the operator, with what would have been sent" {
+  . "$lib/step-go.sh"
+  step_report "$(step_form '.problems = [{problem: "red test", state: "unfixed"}]')"
+  run_gate false "$step_reply"
+  run_gate true "$step_reply"
+  run_gate true "$step_reply"
+  [ "$(jq '.sent_back' "$record_file")" -eq 3 ]
+  run_gate true "$step_reply"
+  words="$(gate_fix_first_note; gate_problem_line "red test")"
+  [ "$(message)" = "$(step_operator_message "$(gate_loop_line "$SEND_BACK_LIMIT" "$words")")" ]
+  [ "$(jq '.exchange | length' "$(log_file)")" -eq 7 ]
+}
+
+@test "a preset with no kind for the step go lets the report stop as it is" {
+  hold_brief
+  answer_for reader "$(step_form)"
+  run_gate false "$step_reply"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  [ "$(calls)" = "reader $READER_MODEL" ]
+}
+
+@test "a preset with two kinds for the step go goes to the operator" {
+  step_report
+  kind step-done go
+  run_gate false "$step_reply"
+  [ "$(message)" = "$(gate_broken_note "$(refuse_go_kind_twice_note go "$preset_dir/questions")")" ]
+}
+
+@test "a question sorted as a step's report goes to the operator: a reply that asks is never said go to" {
+  kind step-go go
+  answer_for sorter '{"kind":"step-go","unsure":false,"risks":[]}'
+  run_gate
+  [ "$(reason)" = "$(retelling)" ]
+  retell
+  [ "$(message)" = "$(operator_message "$(gate_go_kind_line step-go)")" ]
+}
+
+# The skill hook of the kit given, run on the skill and words given.
+run_skill() {
+  jq -cn --arg skill "$2" --arg args "$3" '{tool_name: "Skill", tool_input: {skill: $skill, args: $args}}' \
+    | "$1/stand-in/hooks/skill-hook.sh"
+}
+
+@test "once its kind is switched, a clean step's report is told go, logged as settled, listed and reopened" {
+  . "$lib/step-go.sh"
+  . "$lib/reopen.sh"
+  # Nothing switches a kind yet, so the suite switches one in a copy of the
+  # kit, at the one place that tells a switched kind apart.
+  kit="$BATS_TEST_TMPDIR/kit"
+  mkdir -p "$kit"
+  cp -r "$BATS_TEST_DIRNAME/../../lib" "$BATS_TEST_DIRNAME/../../stand-in" "$BATS_TEST_DIRNAME/../../organizer" "$kit/"
+  sed -i '/^is_on_trial() {$/,/^}$/s/return 0/return 1/' "$kit/stand-in/lib/step-go.sh"
+  gate="$kit/stand-in/hooks/gate.sh"
+  step_report "$(step_form '.problems = [{problem: "a typo in a refusal", state: "fixed"}]')"
+  run_gate false "$step_reply"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  [ "$(reason)" = "From the stand-in: go." ]
+  line="$(cat "$(log_file)")"
+  [ "$(jq -c '{number, question, kind, outcome, approved, reasons}' <<<"$line")" = \
+    "$(jq -cn --arg q "$step_question" '{number: 1, question: $q, kind: "step-go", outcome: "settled", approved: "go", reasons: []}')" ]
+  shown="$(run_skill "$kit" devkit-stand-in-settled all | jq -r '.systemMessage')"
+  grep -qxF -- "$(settled_item_line 1 "$step_question")" <<<"$shown"
+  grep -qF -- "Settled on: go," <<<"$shown"
+  answer="$(run_skill "$kit" devkit-stand-in-reopen 1)"
+  shown="$(jq -r '.systemMessage' <<<"$answer")"
+  grep -qxF -- "$(reopen_question_line "$step_question")" <<<"$shown"
+  grep -qxF -- "$(reopen_fixed_heading)" <<<"$shown"
+  grep -qxF -- "$(gate_problem_line "a typo in a refusal")" <<<"$shown"
+  [ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$answer")" = "$(reopen_go_agent_note 1 "$step_question")" ]
+}
+
+@test "once switched, a go that cannot be logged is never given: it goes to the operator, saying why" {
+  . "$lib/step-go.sh"
+  kit="$BATS_TEST_TMPDIR/kit"
+  mkdir -p "$kit"
+  cp -r "$BATS_TEST_DIRNAME/../../lib" "$BATS_TEST_DIRNAME/../../stand-in" "$BATS_TEST_DIRNAME/../../organizer" "$kit/"
+  sed -i '/^is_on_trial() {$/,/^}$/s/return 0/return 1/' "$kit/stand-in/lib/step-go.sh"
+  gate="$kit/stand-in/hooks/gate.sh"
+  step_report
+  mkdir -p "$history/log"
+  chmod a-w "$history/log"
+  run_gate false "$step_reply"
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(message)" = "$(go_message "$(gate_log_failed_line "$(refuse_log_unwritable_note "$history/log")")")" ]
 }

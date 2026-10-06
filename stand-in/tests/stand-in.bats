@@ -26,7 +26,7 @@ setup() {
 }
 
 @test "read-reply refuses a form the check refuses, and prints none" {
-  export FAKE_ANSWER='{"asks_operator":true,"question":"Five or ten?","options":["five","ten"],"recommended":"seven","claims_done":false,"guidance_answer":""}'
+  export FAKE_ANSWER='{"asks_operator":true,"question":"Five or ten?","options":["five","ten"],"recommended":"seven","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run --separate-stderr "$script" read-reply <<<"$reply"
   [ "$status" -eq 1 ]
   [ -z "$output" ]
@@ -61,7 +61,7 @@ setup() {
   run --separate-stderr "$script" sort '{"asks_operator":true}' <<<"$reply"
   [ "$status" -eq 1 ]
   [ ! -e "$FAKE_ARGS" ]
-  form='{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":true,"guidance_answer":""}'
+  form='{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":true,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run --separate-stderr "$script" sort "$form" <<<"Done."
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_no_question_note)" ]

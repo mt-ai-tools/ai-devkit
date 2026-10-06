@@ -4,7 +4,10 @@
 # read into a form; a question to the operator is checked against the
 # project's rules and conventions, sorted, challenged where its kind carries
 # a challenge, and routed — back to the agent, on to the operator, or up the
-# challenge ladder. In every other session it does nothing at all.
+# challenge ladder. A reply that reports a step finished and asks nothing is
+# weighed for the operator's go to the next step: the go said, the agent sent
+# back to fix what is left, or the report brought to the operator with why.
+# In every other session it does nothing at all.
 #
 # The order is the point: the rules and conventions check runs before any
 # route, so a question that breaks one never reaches the operator; the
@@ -101,6 +104,7 @@ tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/reader.sh"
 . "$tool_root/lib/checker.sh"
 . "$tool_root/lib/sorter.sh"
+. "$tool_root/lib/step-go.sh"
 . "$tool_root/lib/challenge.sh"
 . "$tool_root/lib/routes.sh"
 . "$tool_root/lib/ladder.sh"
@@ -220,22 +224,24 @@ bring_operator() {
 
 # Write the question the record holds to the log as it is let go, given the
 # message's parts, the question as retold (empty where it could not be read),
-# why it came to the operator, one reason a line, and the summary's parts as
-# JSON (empty where it failed), kept as the operator was shown them. Prints
-# nothing where the line was written, and otherwise the line telling the
-# operator it was not, with why. The briefs the session holds
+# why it came to the operator, one reason a line, the summary's parts as JSON
+# (empty where it failed), kept as the operator was shown them, and for a
+# step's report its kind, outcome and step as JSON (empty for a question).
+# Prints nothing where the line was written, and otherwise the line telling
+# the operator it was not, with why. The briefs the session holds
 # are logged as unknown where the organizer cannot say, rather than the line
 # lost: a project may run the stand-in with no briefs folder at all.
 log_let_go() {
-  local parts="$1" retold="$2" why_lines="$3" summary="$4" briefs id when details line why
+  local parts="$1" retold="$2" why_lines="$3" summary="$4" step="${5:-}" briefs id when details line why
   why="$(mktemp)"
   briefs="$(get_held_briefs "$session" 2>/dev/null)" || briefs=null
   id="$(mint_log_id)"
   when="$(get_log_now)"
   details="$(jq -cn --arg id "$id" --arg when "$when" --arg session "$session" --argjson briefs "$briefs" \
     --arg retold "$retold" --arg reasons "$why_lines" --argjson summary "${summary:-null}" \
+    --argjson step "${step:-null}" \
     '{id: $id, when: $when, session: $session, briefs: $briefs, retold: $retold, reasons: $reasons,
-      summary: $summary}')"
+      summary: $summary} + ($step // {})')"
   if ! line="$(to_log_line "$record" "$parts" "$details" 2>"$why")" \
     || ! append_log_line "$(to_log_dir "$history")" "$line" 2>"$why"; then
     gate_log_failed_line "$(cat "$why")"
@@ -415,6 +421,103 @@ answer_sure_again() {
   fi
 }
 
+# Write a step's report to the log as it is let go, given the reader's form,
+# the sorter's labelling, the go kind's entry, the decision put to the
+# operator, the go the stand-in would give or gave (empty for none), why it
+# came to them, one reason a line, and how it ended. The report joins the
+# exchange first, as the last reply. Prints what log_let_go prints.
+log_step() {
+  local form="$1" sort="$2" entry="$3" question="$4" approved="$5" why="$6" outcome="$7" parts step
+  parts="$(to_operator_message_parts "$question" "$approved" "$why" "" "")"
+  step="$(jq -cn --arg kind "$(jq -r '.name' <<<"$entry")" --arg outcome "$outcome" \
+    --argjson step "$(to_step_details "$form" "$sort")" '{kind: $kind, outcome: $outcome, step: $step}')"
+  record="$(with_turn "$record" "$EXCHANGE_AGENT" "$reply")"
+  log_let_go "$parts" "" "$why" "" "$step"
+}
+
+# Let a step's report stop, showing the operator the message given and,
+# under it, any line the log gave back.
+let_step_stop() {
+  local message="$1" logged="$2"
+  [ -z "$logged" ] || message+=$'\n'"$logged"
+  record="$(with_chain_reset "$record")"
+  keep_record
+  to_operator_answer "$message"
+  exit 0
+}
+
+# A step's report the go is the operator's for, given the reader's form, the
+# sorter's labelling, the go kind's entry, and why, one reason a line. The
+# report itself is already in front of them as the agent wrote it, so it is
+# sent no plain retelling and given no summary: a step's report is not a
+# question, and the note beside it says only why the go is theirs.
+step_to_operator() {
+  local form="$1" sort="$2" entry="$3" why="$4" question logged
+  question="$(to_step_question "$form")"
+  logged="$(log_step "$form" "$sort" "$entry" "$question" "" "$why" "$OUTCOME_TO_OPERATOR")"
+  let_step_stop "$(gate_step_operator_note "$question" "$why")" "$logged"
+}
+
+# Send a step's report back to the agent with the words given, to fix what is
+# left before the next step, unless it has been sent back as often as it may
+# be: then it goes to the operator, with what would have been sent. The
+# agent's next reply is read again like any other, a new report included.
+send_step_back() {
+  local words="$1" form="$2" sort="$3" entry="$4"
+  if is_send_back_spent "$record"; then
+    step_to_operator "$form" "$sort" "$entry" "$(gate_loop_line "$SEND_BACK_LIMIT" "$words")"
+  fi
+  record="$(with_send_back "$record")"
+  hold_reply "$words"
+}
+
+# A step's report the stand-in would say go to. While its kind is on trial,
+# which every kind is, the reply stops with the note that it would have said
+# go and what was fixed in passing, and the go is logged as it would have
+# been approved, so it is counted toward the trial. Once the kind is
+# switched, the agent is told to go on and the go is logged as settled, so it
+# is listed and can be reopened; a go that cannot be logged is never given,
+# since nobody could list or reopen it, and goes to the operator instead.
+answer_go() {
+  local form="$1" sort="$2" entry="$3" question fixed why logged
+  question="$(to_step_question "$form")"
+  fixed="$(derive_fixed_lines "$form")"
+  if is_on_trial "$entry"; then
+    why="$(gate_trial_line "$(jq -r '.name' <<<"$entry")")"
+    logged="$(log_step "$form" "$sort" "$entry" "$question" "$(step_go_words)" "$why" "$OUTCOME_WOULD_HAVE_APPROVED")"
+    let_step_stop "$(to_go_message "$question" "$why" "$fixed")" "$logged"
+  fi
+  logged="$(log_step "$form" "$sort" "$entry" "$question" "$(step_go_words)" "" "$OUTCOME_SETTLED")"
+  if [ -n "$logged" ]; then
+    let_step_stop "$(to_go_message "$question" "$logged" "$fixed")" ""
+  fi
+  record="$(with_chain_reset "$record")"
+  keep_record
+  to_block_answer "$(gate_go_note)"
+  exit 0
+}
+
+# A finished step's report that asks the operator nothing: its problems
+# labelled by the sorter, then the go said, the agent sent back, or the report
+# brought to the operator, as the forms decide. A preset with no kind for the
+# step go lets the report stop as it is.
+answer_step() {
+  local form="$1" entry sort briefs labels step words
+  entry="$(find_go_kind "$preset")"
+  [ -n "$entry" ] || let_stop
+  sort="$(get_step_sort "$form" "$reply" "$preset")"
+  briefs="$(get_held_briefs "$session" 2>/dev/null)" || briefs=null
+  labels="$(list_risks "$preset")"
+  labels="$(list_major_labels "$labels")"
+  step="$(derive_step_go "$form" "$sort" "$briefs" "$labels")"
+  words="$(jq -r '.words' <<<"$step")"
+  case "$(jq -r '.next' <<<"$step")" in
+    "$STEP_NEXT_AGENT") send_step_back "$words" "$form" "$sort" "$entry" ;;
+    "$STEP_NEXT_OPERATOR") step_to_operator "$form" "$sort" "$entry" "$words" ;;
+    "$STEP_NEXT_GO") answer_go "$form" "$sort" "$entry" ;;
+  esac
+}
+
 # Take the route the question's forms decide.
 route_question() {
   local form="$1" sort="$2" entry="$3" kept="$4" risks route words question
@@ -478,7 +581,12 @@ if [ -n "$challenge" ]; then
   esac
 fi
 
-jq -e '.asks_operator' >/dev/null <<<"$form" || let_stop
+# A reply asking nothing stops as it is, unless it reports a step finished:
+# that one waits for a go, which the step go weighs.
+if ! jq -e '.asks_operator' >/dev/null <<<"$form"; then
+  if jq -e '.ends_step' >/dev/null <<<"$form"; then answer_step "$form"; fi
+  let_stop
+fi
 question="$(jq -r '.question' <<<"$form")"
 record="$(with_asked "$record" "$form")"
 

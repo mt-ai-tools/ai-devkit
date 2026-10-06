@@ -87,6 +87,10 @@ refuse_no_question_note() {
   printf 'The reader'\''s form holds no question to the operator, so there is nothing to sort or check.\n'
 }
 
+refuse_no_step_note() {
+  printf 'The reader'\''s form reports no step ended, so there is nothing to label.\n'
+}
+
 refuse_bad_break_note() {
   printf 'The checker'\''s answer holds a broken entry that is not an entry'\''s file name and why it is broken.\n'
 }
@@ -123,6 +127,42 @@ refuse_summary_part_empty_note() {
   printf 'The summary'\''s %s came back with no words.\n' "$1"
 }
 
+refuse_bad_problem_note() {
+  printf 'The reader'\''s form holds a problem of the step that is not what was found and its state.\n'
+}
+
+refuse_state_outside_note() {
+  printf 'The reader'\''s form gives a problem of the step the state "%s", which is not one of its words.\n' "$1"
+}
+
+refuse_proof_outside_note() {
+  printf 'The reader'\''s form says the step'\''s proof "%s", which is not one of its words.\n' "$1"
+}
+
+refuse_from_outside_note() {
+  printf 'The reader'\''s form says the next step comes from "%s", which is not one of its words.\n' "$1"
+}
+
+refuse_mark_outside_note() {
+  printf 'The reader'\''s form marks the next step "%s", which is not one of its words.\n' "$1"
+}
+
+refuse_bad_step_number_note() {
+  printf 'The reader'\''s form numbers the next step %s, which is no step'\''s number.\n' "$1"
+}
+
+refuse_no_step_but_note() {
+  printf 'The reader'\''s form says the reply ends no step, yet says what a step found, proved or comes next.\n'
+}
+
+refuse_bad_major_note() {
+  printf 'The sorter'\''s labelling of the step holds a major problem that is not the problem and its label.\n'
+}
+
+refuse_unknown_label_note() {
+  printf 'The sorter labelled a problem "%s", which is no label it was handed.\n' "$1"
+}
+
 # The names the refusals above call the forms by.
 reader_form_words() { printf "reader's form"; }
 sorter_answer_words() { printf "sorter's answer"; }
@@ -130,6 +170,7 @@ checker_answer_words() { printf "checker's answer"; }
 reading_answer_words() { printf "cold second reading's answer"; }
 matcher_answer_words() { printf "matcher's answer"; }
 summary_answer_words() { printf "summary's answer"; }
+step_sort_words() { printf "sorter's labelling of the step"; }
 
 # --- The rules and conventions.
 
@@ -163,8 +204,13 @@ refuse_unreadable_file_note() {
   printf '%s cannot be read.\n' "$1"
 }
 
+# The routes the gate knows, already joined into one line.
 refuse_kind_route_note() {
-  printf 'The kind of question %s has the route "%s", which is neither %s nor %s.\n' "$1" "$2" "$3" "$4"
+  printf 'The kind of question %s has the route "%s", which is none of the routes the stand-in knows: %s.\n' "$1" "$2" "$3"
+}
+
+refuse_go_kind_twice_note() {
+  printf 'The stand-in preset holds more than one kind with the route %s in %s, so which of them a finished step is cannot be told.\n' "$1" "$2"
 }
 
 refuse_second_challenge_alone_note() {
@@ -294,6 +340,12 @@ gate_unanswered_line() {
   printf -- '- The stand-in challenged the proposal ("%s"), and the reply neither drops it nor keeps it.\n' "$1"
 }
 
+# Why a question the sorter took for a step's report came to the operator: a
+# reply that asks something is never one the stand-in says go to.
+gate_go_kind_line() {
+  printf -- '- The stand-in took it for a step'\''s report waiting for the go (%s), but it asks you something, so it is yours.\n' "$1"
+}
+
 gate_loop_line() {
   printf -- '- The stand-in has sent it back to the agent %s times in a row, and hands it to you rather than hold the reply again. It would have sent back:\n%s' "$1" "$2"
 }
@@ -407,6 +459,129 @@ gate_broken_note() {
   printf 'Stand-in: this reply was not judged, so it is yours to read.\nWhy:\n%s\n' "$why"
 }
 
+# --- What the gate says of a step's report: the agent is sent back to fix
+# what is left, or told to go on; the operator is told why the go is theirs,
+# or, while the kind is on trial, that the stand-in would have said go.
+
+# The go, as the log keeps what the stand-in approved and the settled list
+# shows it.
+step_go_words() {
+  printf 'go'
+}
+
+gate_go_note() {
+  gate_from_note 'go.'
+}
+
+gate_fix_first_note() {
+  gate_from_note 'fix this before the next step.'
+}
+
+gate_ask_first_note() {
+  gate_from_note 'ask the operator about this before the next step, as a question with its options and your recommendation:'
+}
+
+# Under the problems to fix, where some also need a decision.
+gate_ask_first_heading() {
+  printf 'Ask the operator about this before the next step, as a question with its options and your recommendation:\n'
+}
+
+gate_problem_line() {
+  printf -- '- %s\n' "$1"
+}
+
+# The decision a step's report puts to the operator, given the next step as
+# the reply names it, empty where it names none.
+gate_step_question() {
+  if [ -n "$1" ]; then
+    printf 'Go on to the next step: %s?' "$1"
+  else
+    printf 'Go on to the next step?'
+  fi
+}
+
+gate_step_operator_note() {
+  printf 'Stand-in: the go is yours to give: %s\nWhy it came to you:\n%s' "$1" "$2"
+}
+
+gate_step_trial_note() {
+  printf 'Stand-in: the stand-in would have said go: %s\nWhy it came to you:\n%s' "$1" "$2"
+}
+
+gate_fixed_heading() {
+  printf 'Fixed in passing:\n'
+}
+
+# One major problem: the problem as the sorter named it, its label's name and
+# words.
+gate_major_line() {
+  printf -- '- A major problem, which comes to you fixed or not: %s (%s: %s)\n' "$1" "$2" "$3"
+}
+
+gate_major_unsure_line() {
+  printf -- '- The stand-in could not tell for certain whether a problem in the report is major, so it counts as major.\n'
+}
+
+gate_proof_failed_line() {
+  printf -- '- The step'\''s proof did not pass.\n'
+}
+
+gate_proof_unsaid_line() {
+  printf -- '- The report does not say the step'\''s proof passed.\n'
+}
+
+gate_new_work_line() {
+  printf -- '- The next step it proposes is new work, not the brief'\''s own next step.\n'
+}
+
+gate_next_unsaid_line() {
+  printf -- '- The report does not say the next step is the brief'\''s own next one.\n'
+}
+
+gate_no_brief_line() {
+  printf -- '- The session holds no brief, so no next step is a brief'\''s own.\n'
+}
+
+gate_briefs_unknown_line() {
+  printf -- '- Which brief the session holds could not be told, so whether the next step is the brief'\''s own cannot be either.\n'
+}
+
+gate_first_step_line() {
+  printf -- '- The next step is the brief'\''s first, whose go is always yours.\n'
+}
+
+gate_step_number_unsaid_line() {
+  printf -- '- The report does not say which of the brief'\''s steps comes next, so whether it is the first cannot be told.\n'
+}
+
+# What the next step does that makes its go always the operator's, given the
+# mark's words.
+gate_step_mark_line() {
+  printf -- '- The next step %s, so its go is always yours.\n' "$1"
+}
+
+# The words of each mark the reader may put on the next step.
+step_mark_words() {
+  case "$1" in
+    pushes) printf 'pushes' ;;
+    syncs) printf 'syncs repositories' ;;
+    deletes) printf 'deletes something' ;;
+    other-session) printf 'touches another session'\''s work' ;;
+    runs-alone) printf 'is one the brief runs alone at a quiet moment' ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+# What each of the two labels the code adds to the preset's risks means, as
+# the sorter is handed it and the operator reads it.
+step_lost_data_words() {
+  printf 'Lost data: something that was stored is gone or damaged.'
+}
+
+step_broken_check_words() {
+  printf 'A check that passed before now fails.'
+}
+
 # --- The question log.
 
 refuse_log_unwritable_note() {
@@ -509,6 +684,15 @@ reopen_agent_turn_heading() {
 
 reopen_stand_in_turn_heading() {
   printf -- '--- The stand-in wrote:\n'
+}
+
+# The note for a reopened go: number, and the decision as the log keeps it.
+reopen_go_agent_note() {
+  printf 'The stand-in'\''s question %s, a go to the next step it gave without the user, has been shown to the user above, in full. It is open again: do not start that step; ask the user now, in plain conversation, whether to go on with it, and wait for their answer. The decision: %s\n' "$1" "$2"
+}
+
+reopen_fixed_heading() {
+  printf 'Fixed in passing before the go:\n'
 }
 
 reopen_usage_note() {

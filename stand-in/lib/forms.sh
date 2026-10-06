@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# The fixed forms the stand-in's agents fill — the reader's, the sorter's, the
-# checker's, the matcher's, the reading's and the summary's — in one place:
+# The fixed forms the stand-in's agents fill — the reader's, the sorter's and
+# its labelling of a step's report, the checker's, the matcher's, the
+# reading's and the summary's — in one place:
 # every field and its JSON type, from which both the schema a model answers
 # to and the check in code are drawn, so the two can never disagree on what a
 # form holds. What each field means is the prompts' to say. Sourced, never
@@ -11,14 +12,81 @@
 # options: the option labels the reply names, in its order. recommended: the
 # label it recommends. claims_done: it says the work is finished.
 # guidance_answer: its answer to a challenge about proposed guidance.
+#
+# And, for a reply that reports a step of the work finished (settled
+# 2026-10-06, the step go): ends_step: it ends a step and waits for the
+# operator's go to the next. problems: each problem it says it found, {problem,
+# state}, the state fixed, unfixed, or needing a decision. proof: whether the
+# step's proof passed, failed, or neither is said. next_step: the step it
+# proposes next, as it names it. next_step_number: that step's number in the
+# brief, 0 where it gives none. next_step_from: whether that step is the
+# brief's own next one or new work, empty where it says neither.
+# next_step_marks: what it says that step does that is always the operator's.
 READER_FORM_FIELDS='{
   "asks_operator": "boolean",
   "question": "string",
   "options": "array",
   "recommended": "string",
   "claims_done": "boolean",
-  "guidance_answer": "string"
+  "guidance_answer": "string",
+  "ends_step": "boolean",
+  "problems": "array",
+  "proof": "string",
+  "next_step": "string",
+  "next_step_number": "number",
+  "next_step_from": "string",
+  "next_step_marks": "array"
 }'
+
+# The fields of one problem of a step's report, each a string.
+PROBLEM_FIELDS='["problem", "state"]'
+
+# The words a problem's state may be. Unfixed is told apart from needing a
+# decision because the two go different ways: one is fixed by the agent, the
+# other asked of the operator.
+PROBLEM_FIXED="fixed"
+PROBLEM_UNFIXED="unfixed"
+PROBLEM_NEEDS_DECISION="needs-decision"
+PROBLEM_STATES="[\"$PROBLEM_FIXED\", \"$PROBLEM_UNFIXED\", \"$PROBLEM_NEEDS_DECISION\"]"
+
+# The words proof may be, the empty one where the reply says neither: a proof
+# never mentioned is not one that passed.
+STEP_PROOF_PASSED="passed"
+STEP_PROOF_FAILED="failed"
+STEP_PROOFS="[\"$STEP_PROOF_PASSED\", \"$STEP_PROOF_FAILED\", \"\"]"
+
+# The words next_step_from may be, the empty one where the reply says neither.
+STEP_FROM_BRIEF="brief"
+STEP_FROM_NEW_WORK="new-work"
+STEP_FROMS="[\"$STEP_FROM_BRIEF\", \"$STEP_FROM_NEW_WORK\", \"\"]"
+
+# The words a mark on the next step may be: what makes its go always the
+# operator's (settled 2026-10-06): it pushes, syncs or deletes, touches
+# another session's work, or is one the brief runs alone at a quiet moment.
+# Read off the reply, since no brief marks a step so in a form code could
+# read.
+STEP_MARKS='["pushes", "syncs", "deletes", "other-session", "runs-alone"]'
+
+# The sorter's labelling of a step's report. majors: every major problem in
+# it, fixed or not, each {problem, label}, the label one of the preset's risks
+# or one of the two below. unsure: the sorter could not tell whether some
+# problem is major, which counts as major.
+STEP_SORT_FIELDS='{
+  "majors": "array",
+  "unsure": "boolean"
+}'
+
+# The fields of one major problem, each a string.
+MAJOR_FIELDS='["problem", "label"]'
+
+# The two labels a major problem may carry beside the preset's risks: lost
+# data, and a check that passed before now failing.
+STEP_LOST_DATA="lost-data"
+STEP_BROKEN_CHECK="broken-check"
+
+# The separator between a row's parts: the ASCII unit separator, which no
+# problem a model writes is expected to hold and bash never collapses.
+STEP_US=$'\037'
 
 # The words an answer to a guidance challenge may be, the empty one for a
 # reply that answers none. Keeping part of a proposal is told apart from
@@ -117,10 +185,25 @@ to_form_schema() {
   }'
 }
 
-# The schema the reader answers to.
+# The schema the reader answers to. A problem's item schema replaces the
+# string items every form array has by default.
 reader_form_schema() {
+  local problem
+  problem="$(to_item_schema "$PROBLEM_FIELDS" "$(jq -cn --argjson states "$PROBLEM_STATES" '{state: {enum: $states}}')")"
   to_form_schema "$READER_FORM_FIELDS" "$(jq -cn --argjson words "$GUIDANCE_ANSWERS" \
-    '{guidance_answer: {enum: $words}}')"
+    --argjson problem "$problem" --argjson proofs "$STEP_PROOFS" --argjson froms "$STEP_FROMS" \
+    --argjson marks "$STEP_MARKS" \
+    '{guidance_answer: {enum: $words}, problems: {items: $problem}, proof: {enum: $proofs},
+      next_step_number: {type: "integer", minimum: 0}, next_step_from: {enum: $froms},
+      next_step_marks: {items: {type: "string", enum: $marks}}}')"
+}
+
+# The schema the sorter answers to for a step's report, given the label names
+# as a JSON array.
+step_sort_schema() {
+  local major
+  major="$(to_item_schema "$MAJOR_FIELDS" "$(jq -cn --argjson labels "$1" '{label: {enum: $labels}}')")"
+  to_form_schema "$STEP_SORT_FIELDS" "$(jq -cn --argjson major "$major" '{majors: {items: $major}}')"
 }
 
 # The schema the sorter answers to, given the kind names and the risk names

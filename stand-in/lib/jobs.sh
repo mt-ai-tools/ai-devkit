@@ -99,13 +99,23 @@ derive_stop_seconds() {
 # only case a reading is run for (settled 2026-10-06); the bigger look's stop
 # is left the matcher alone, with room it does not need. Moving any of them
 # onto another job's stop is a change to this budget first.
+#
+# A finished step's report makes one stop of its own (settled 2026-10-06, the
+# step go): the reader, then the sorter labelling its problems, then the log's
+# line, all in the stop that read the report, since the go, or why it is the
+# operator's, is decided there and nowhere later. It runs no checker, which
+# reads questions alone, and no summary or retelling: the report reaches the
+# operator as the agent wrote it, in front of them already, so nothing is
+# asked of a model to tell it again. Its stop stays below the question's
+# first, which runs the checker beside the same reader and sorter.
 derive_jobs_seconds() {
   local stop longest=0
   for stop in \
     "$(derive_stop_seconds "$READER_SECONDS" "$CHECKER_SECONDS" "$SORTER_SECONDS")" \
     "$(derive_stop_seconds "$MATCHER_SECONDS")" \
     "$(derive_stop_seconds "$MATCHER_SECONDS" "$READING_SECONDS")" \
-    "$(($(derive_stop_seconds "$READER_SECONDS" "$SUMMARY_SECONDS") + LOG_LOCK_SECONDS))"; do
+    "$(($(derive_stop_seconds "$READER_SECONDS" "$SUMMARY_SECONDS") + LOG_LOCK_SECONDS))" \
+    "$(($(derive_stop_seconds "$READER_SECONDS" "$SORTER_SECONDS") + LOG_LOCK_SECONDS))"; do
     [ "$stop" -le "$longest" ] || longest="$stop"
   done
   printf '%s\n' "$longest"

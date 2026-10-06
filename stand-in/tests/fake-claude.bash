@@ -39,6 +39,7 @@ case "$(jq -r '.required[0] // empty' <<<"$schema" 2>/dev/null)" in
   reading) job=reading ;;
   pick) job=matcher ;;
   problem) job=summary ;;
+  majors) job=step-sorter ;;
   *) job=other ;;
 esac
 printf '%s %s\n' "$job" "$model" >>"$FAKE_CALLS"
@@ -64,7 +65,7 @@ FAKE
 }
 
 # The answer the fake gives when the job named is asked: reader, checker,
-# sorter, reading, matcher or summary.
+# sorter, reading, matcher, summary or step-sorter.
 answer_for() {
   printf '%s' "$2" >"$FAKE_ANSWERS/$1"
 }
@@ -125,5 +126,12 @@ summary_form() {
 
 # A whole reader's form asking which of two options, recommending the first.
 whole_form() {
-  printf '%s' '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"five","claims_done":false,"guidance_answer":""}'
+  printf '%s' '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"five","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
+}
+
+# A whole reader's form of a reply that ends a step and asks nothing: no
+# problem, the proof passed, the brief's own step 9 next. A jq filter given is
+# applied to it.
+step_form() {
+  jq -c "${1:-.}" <<<'{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":false,"guidance_answer":"","ends_step":true,"problems":[],"proof":"passed","next_step":"step 9, the round list","next_step_number":9,"next_step_from":"brief","next_step_marks":[]}'
 }

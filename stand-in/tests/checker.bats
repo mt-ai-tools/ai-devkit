@@ -68,7 +68,7 @@ setup() {
   [ "$status" -eq 0 ]
   grep -qx -- "$CHECKER_MODEL" "$FAKE_ARGS"
   rm "$FAKE_ARGS"
-  run --separate-stderr get_checker_answer '{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":true,"guidance_answer":""}' "Done." "$entries"
+  run --separate-stderr get_checker_answer '{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":true,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}' "Done." "$entries"
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_no_question_note)" ]
   [ ! -e "$FAKE_ARGS" ]

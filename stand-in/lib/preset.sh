@@ -19,10 +19,15 @@ PRESET_LADDER_FILE="challenges/challenge-ladder.md"
 # from the file the operator reads and swaps, never copied into code.
 PRESET_OPENER_FILE="challenges/opener.md"
 
-# The two routes a kind of question may take, as its header writes them: to
-# the operator always, or up the challenge ladder.
+# The routes a kind may take, as its header writes them: to the operator
+# always, or up the challenge ladder; or, for a finished step's report waiting
+# for the operator's go, the step go. The step go is found by its route and
+# never by its kind's name, so the stand-in knows no kind by name and a
+# project's preset may call it what it likes.
 ROUTE_ASK="ask"
 ROUTE_LADDER="ladder"
+ROUTE_GO="go"
+ROUTES=("$ROUTE_ASK" "$ROUTE_LADDER" "$ROUTE_GO")
 
 # --- Transforms.
 
@@ -140,6 +145,22 @@ parse_messages() {
   done <<<"$rows" | jq -cs 'add // {}'
 }
 
+# True if the word given is one of the routes.
+is_route() {
+  local route
+  for route in "${ROUTES[@]}"; do
+    [ "$1" != "$route" ] || return 0
+  done
+  return 1
+}
+
+# The routes, joined into one line for a refusal to name them.
+to_routes_line() {
+  local joined
+  printf -v joined '%s, ' "${ROUTES[@]}"
+  printf '%s\n' "${joined%, }"
+}
+
 # The names alone, out of a JSON array of {name, ...}, as a JSON array.
 to_names() {
   jq -c 'map(.name)' <<<"$1"
@@ -172,11 +193,11 @@ list_kinds() {
 
 # One kind of question's entry, as JSON {name, summary, route, challenge,
 # second_challenge}, the challenges empty where it has none; a refusal on
-# stderr and a non-zero status where it cannot be read, its route is neither
-# of the two, or it has a second challenge with no first. A route that cannot
-# be read is never taken for either: the one it was meant to be is a guess,
-# and guessing ladder would let a question the operator keeps for themselves
-# pass without them.
+# stderr and a non-zero status where it cannot be read, its route is none of
+# the routes, or it has a second challenge with no first. A route that cannot
+# be read is never taken for any: the one it was meant to be is a guess, and
+# guessing ladder would let a question the operator keeps for themselves pass
+# without them.
 get_kind_entry() {
   local preset="$1" name="$2" file summary route challenge second
   file="$preset/$PRESET_KINDS_FOLDER/$name.md"
@@ -185,8 +206,8 @@ get_kind_entry() {
     return 1
   fi
   IFS="$HEADER_US" read -r summary route challenge second < <(read_header_fields "$file" summary route challenge second-challenge)
-  if [ "$route" != "$ROUTE_ASK" ] && [ "$route" != "$ROUTE_LADDER" ]; then
-    refuse_kind_route_note "$name" "$route" "$ROUTE_ASK" "$ROUTE_LADDER" >&2
+  if ! is_route "$route"; then
+    refuse_kind_route_note "$name" "$route" "$(to_routes_line)" >&2
     return 1
   fi
   if [ -z "$challenge" ] && [ -n "$second" ]; then
@@ -234,6 +255,28 @@ read_opener() {
     return 1
   fi
   printf '%s\n' "$text"
+}
+
+# The entry of the kind whose route is the step go, as get_kind_entry gives
+# it; nothing where the preset holds none, which is a project that wants no
+# step go: its step reports stop as any reply asking nothing, and reach the
+# operator as they would without the stand-in. A refusal on stderr and a
+# non-zero status where an entry cannot be read, or more than one kind takes
+# the route: which of them a step is would be a guess.
+find_go_kind() {
+  local preset="$1" folder="$1/$PRESET_KINDS_FOLDER" entry route found=""
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    route="$(read_header_fields "$entry" route)"
+    [ "$route" = "$ROUTE_GO" ] || continue
+    if [ -n "$found" ]; then
+      refuse_go_kind_twice_note "$ROUTE_GO" "$folder" >&2
+      return 1
+    fi
+    found="$(basename "$entry" .md)"
+  done < <(list_collection_entries "$folder")
+  [ -n "$found" ] || return 0
+  get_kind_entry "$preset" "$found"
 }
 
 # The risks in a preset, as parse_risks hands them back.

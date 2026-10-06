@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 # The sorter: one question, already read into a checked reader's form, given
 # its kind and the risks on its recommended option by a fresh model, against
-# the kinds and risks the preset holds; the answer checked before anything is
-# decided from it. Sourced, never executed.
+# the kinds and risks the preset holds; or one finished step's report, its
+# major problems labelled, against the preset's risks and the two labels the
+# step go adds to them. Either answer is checked before anything is decided
+# from it. Sourced, never executed.
 . "$(dirname "${BASH_SOURCE[0]}")/jobs.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/forms.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/prompts.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/preset.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/ask-model.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/check-form.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/step-go.sh"
 
 # --- Transforms.
 
@@ -22,6 +25,17 @@ to_sorter_prompt() {
     --arg risks "$(to_named_lines "$risks" words)" \
     '{reply: ., form: $form, kinds: $kinds, risks: $risks}')"
   to_filled_prompt "$PROMPTS_DIR/sorter.md" "$prose" "$values"
+}
+
+# The sorter's prompt for a step's report, given the prompt's prose, the
+# reader's form, the reply, and the labels as a JSON array of {name, words}.
+to_step_sorter_prompt() {
+  local prose="$1" form="$2" reply="$3" labels="$4" values
+  values="$(printf '%s' "$reply" | jq -Rs \
+    --arg form "$form" \
+    --arg labels "$(to_named_lines "$labels" words)" \
+    '{reply: ., form: $form, labels: $labels}')"
+  to_filled_prompt "$PROMPTS_DIR/step-sorter.md" "$prose" "$values"
 }
 
 # --- Reads.
@@ -42,4 +56,22 @@ get_sorter_answer() {
   schema="$(sorter_answer_schema "$kind_names" "$risk_names")"
   answer="$(get_model_answer "$SORTER_MODEL" "$SORTER_SECONDS" "$schema" <<<"$prompt")" || return 1
   refuse_bad_sorter_answer "$answer" "$kind_names" "$risk_names"
+}
+
+# The checked labelling of one step's report, as one line of JSON, given the
+# reader's form, the reply and the preset's folder; a refusal naming why on
+# stderr and a non-zero status where the form reports no step, the preset
+# cannot be read, the model could not be asked, or its answer does not pass.
+# The sorter's own model and time, since labelling a problem against the
+# risks is the judgement it already makes for a question's option.
+get_step_sort() {
+  local form reply="$2" preset="$3" risks labels prose prompt schema answer
+  form="$(refuse_stepless_form "$1")" || return 1
+  risks="$(list_risks "$preset")" || return 1
+  labels="$(list_major_labels "$risks")"
+  prose="$(read_prompt step-sorter)" || return 1
+  prompt="$(to_step_sorter_prompt "$prose" "$form" "$reply" "$labels")" || return 1
+  schema="$(step_sort_schema "$(to_names "$labels")")"
+  answer="$(get_model_answer "$SORTER_MODEL" "$SORTER_SECONDS" "$schema" <<<"$prompt")" || return 1
+  refuse_bad_step_sort "$answer" "$(to_names "$labels")"
 }

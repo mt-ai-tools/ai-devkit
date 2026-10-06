@@ -19,7 +19,10 @@ ORGANIZER_COMMAND="organizer/bin/organizer.sh"
 get_held_briefs() {
   local session="$1" held
   held="$("$(get_kit_dir)/$ORGANIZER_COMMAND" held "$session")" || return 1
-  jq -Rcn '[inputs | split("\t")[0] | select(. != "")]' <<<"$held"
+  # Empty lines are dropped before they are split: a session holding nothing
+  # is one empty line here, and its split has no first part, which read as a
+  # brief named null (found live 2026-10-06).
+  jq -Rcn '[inputs | select(. != "") | split("\t")[0]]' <<<"$held"
 }
 
 # The organizer's list as it printed it, every byte, its refusals among it;

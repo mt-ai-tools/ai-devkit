@@ -8,7 +8,9 @@ Fill in the form from what the reply says, in its own terms:
 - asks_operator: true if the reply puts a question to the operator and waits
   for their answer before going on. A question the agent answers itself, a
   rhetorical one, or a mere "let me know if you want anything else" is not
-  one. If unsure, true.
+  one. Nor is waiting for the operator's go to the next step of the work,
+  however it is put ("shall I go on to step 4?"): that is ends_step below. If
+  unsure, true.
 - question: that question, in one plain sentence saying what is to be
   decided, never which option the reply prefers or recommends. Empty when
   asks_operator is false.
@@ -29,6 +31,29 @@ Fill in the form from what the reply says, in its own terms:
   convention, a note, any text agents or people will read and follow):
   "drop" if it drops the proposal, "keep-part" if it keeps some of it,
   "keep-all" if it keeps all of it. Empty otherwise.
+- ends_step: true if the reply reports a step of the work finished, or
+  stopped, and waits for the operator's go before the next one.
+- problems: every problem the reply says it found during the step, each as:
+  - problem: the problem in a few words.
+  - state: "fixed" if the reply says it was fixed; "needs-decision" if it is
+    not fixed and the reply says it needs the operator's decision; "unfixed"
+    otherwise.
+  None when it names none, or when ends_step is false.
+- proof: "passed" if the reply says the step's proof (its tests or checks)
+  passed; "failed" if it says the proof failed or could not be run. Empty
+  when it says neither, or when ends_step is false.
+- next_step: the step the reply proposes to do next, in a few words, as it
+  names it. Empty when it proposes none, or when ends_step is false.
+- next_step_number: that step's number in the brief, where the reply gives
+  one; 0 otherwise.
+- next_step_from: "brief" if the reply says the next step is the brief's own
+  next one; "new-work" if it is work the brief does not hold. Empty when it
+  says neither, or proposes no next step.
+- next_step_marks: each of these the reply says the next step does: "pushes"
+  (pushes commits anywhere), "syncs" (syncs one repository with another),
+  "deletes" (deletes files, data or anything else), "other-session" (touches
+  work another session holds), "runs-alone" (the brief runs it alone at a
+  quiet moment). None when it says none, or when ends_step is false.
 
 Answer with the form alone.
 

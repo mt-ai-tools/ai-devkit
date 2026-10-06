@@ -30,13 +30,14 @@ form_without() {
 }
 
 @test "a reply asking nothing passes with an empty form" {
-  form='{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":true,"guidance_answer":""}'
+  form='{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":true,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run refuse_bad_reader_form "$form"
   [ "$status" -eq 0 ]
 }
 
 @test "each missing field is refused by name" {
-  for field in asks_operator question options recommended claims_done guidance_answer; do
+  for field in asks_operator question options recommended claims_done guidance_answer \
+    ends_step problems proof next_step next_step_number next_step_from next_step_marks; do
     run --separate-stderr refuse_bad_reader_form "$(form_without "$field")"
     [ "$status" -eq 1 ]
     [ -z "$output" ]
@@ -124,7 +125,7 @@ form_without() {
 }
 
 @test "every problem is named, not only the first" {
-  form='{"asks_operator":true,"question":"Which?","options":["a","b"],"recommended":"c","claims_done":false,"guidance_answer":"maybe"}'
+  form='{"asks_operator":true,"question":"Which?","options":["a","b"],"recommended":"c","claims_done":false,"guidance_answer":"maybe","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run --separate-stderr refuse_bad_reader_form "$form"
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_recommended_outside_note c)
@@ -231,4 +232,71 @@ $(refuse_guidance_outside_note maybe)" ]
   run --separate-stderr refuse_bad_summary_answer "$(jq -c '.verdict = "held"' <<<"$whole")"
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_unknown_field_note "$(summary_answer_words)" verdict)" ]
+}
+
+@test "a step's report passes whole, its problems in each state and every mark on the next step" {
+  run refuse_bad_reader_form "$(step_form)"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(step_form)" ]
+  form="$(step_form '.problems = [{problem: "a typo", state: "fixed"}, {problem: "slow", state: "unfixed"},
+    {problem: "which name", state: "needs-decision"}]
+    | .next_step_marks = ["pushes", "syncs", "deletes", "other-session", "runs-alone"]')"
+  run refuse_bad_reader_form "$form"
+  [ "$status" -eq 0 ]
+  run refuse_bad_reader_form "$(step_form '.proof = "" | .next_step = "" | .next_step_number = 0 | .next_step_from = ""')"
+  [ "$status" -eq 0 ]
+}
+
+@test "a step's word outside its own is refused, never read as the nearest" {
+  run --separate-stderr refuse_bad_reader_form "$(step_form '.problems = [{problem: "slow", state: "open"}]')"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_state_outside_note open)" ]
+  run --separate-stderr refuse_bad_reader_form "$(step_form '.proof = "green"')"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_proof_outside_note green)" ]
+  run --separate-stderr refuse_bad_reader_form "$(step_form '.next_step_from = "the brief"')"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_from_outside_note "the brief")" ]
+  run --separate-stderr refuse_bad_reader_form "$(step_form '.next_step_marks = ["push"]')"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_mark_outside_note push)" ]
+  for number in -1 2.5; do
+    run --separate-stderr refuse_bad_reader_form "$(step_form ".next_step_number = $number")"
+    [ "$status" -eq 1 ]
+    [ "$stderr" = "$(refuse_bad_step_number_note "$number")" ]
+  done
+}
+
+@test "a step's problem that is not what was found and its state is refused" {
+  for problem in '"slow"' '{"problem":"slow"}' '{"problem":" ","state":"fixed"}' '{"problem":"slow","state":"fixed","why":"x"}'; do
+    run --separate-stderr refuse_bad_reader_form "$(step_form ".problems = [$problem]")"
+    [ "$status" -eq 1 ]
+    [ "$stderr" = "$(refuse_bad_problem_note)" ]
+  done
+}
+
+@test "a form ending no step yet saying what a step found, proved or comes next is refused" {
+  for filter in '.problems = [{problem: "slow", state: "fixed"}]' '.proof = "passed"' '.next_step = "step 9"' \
+    '.next_step_number = 9' '.next_step_from = "brief"' '.next_step_marks = ["pushes"]'; do
+    run --separate-stderr refuse_bad_reader_form "$(jq -c "$filter" <<<"$(whole_form)")"
+    [ "$status" -eq 1 ]
+    [ "$stderr" = "$(refuse_no_step_but_note)" ]
+  done
+}
+
+@test "the sorter's labelling of a step passes with labels it was handed, and is refused with any other" {
+  labels='["workaround","lost-data","broken-check"]'
+  answer='{"majors":[{"problem":"a table dropped","label":"lost-data"}],"unsure":false}'
+  run refuse_bad_step_sort "$answer" "$labels"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$answer" ]
+  run --separate-stderr refuse_bad_step_sort '{"majors":[{"problem":"a table dropped","label":"data-loss"}],"unsure":false}' "$labels"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_unknown_label_note data-loss)" ]
+  run --separate-stderr refuse_bad_step_sort '{"majors":["a table dropped"],"unsure":false}' "$labels"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_bad_major_note)" ]
+  run --separate-stderr refuse_bad_step_sort '{"majors":[]}' "$labels"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_missing_field_note "$(step_sort_words)" unsure)" ]
 }

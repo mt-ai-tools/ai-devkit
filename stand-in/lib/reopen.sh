@@ -16,6 +16,7 @@
 . "$(dirname "${BASH_SOURCE[0]}")/ladder.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/record.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/operator-message.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/forms.sh"
 
 # The word that asks for the exchange word for word, after the number.
 REOPEN_EXCHANGE="exchange"
@@ -66,9 +67,21 @@ format_reopened_exchange() {
   done
 }
 
+# The problems a go was given over, fixed in passing, each on its line under
+# their heading; nothing for a question, or a go with none.
+format_reopened_fixed() {
+  local problems
+  problems="$(jq -r --arg fixed "$PROBLEM_FIXED" \
+    '(.step.problems // [])[] | select(.state == $fixed) | .problem | gsub("\\s+"; " ")' <<<"$1")"
+  [ -n "$problems" ] || return 0
+  reopen_fixed_heading
+  while IFS= read -r problem; do gate_problem_line "$problem"; done <<<"$problems"
+}
+
 # The question in full, as the operator is shown it, given its line and
 # whether the exchange was asked for. Where the line holds no summary, the
-# answers as given stand in its place, as they do in the gate's message.
+# answers as given stand in its place, as they do in the gate's message; a
+# go shows the problems fixed before it.
 format_reopened() {
   local line="$1" exchange="$2" number when session briefs ladder summary reading
   number="$(jq -r '.number' <<<"$line")"
@@ -91,6 +104,7 @@ format_reopened() {
     fi
     [ -z "$reading" ] || printf '%s\n' "$reading"
   fi
+  format_reopened_fixed "$line"
   if [ "$exchange" = true ]; then
     format_reopened_exchange "$line"
   else
@@ -100,9 +114,14 @@ format_reopened() {
 
 # The note the session's agent is handed: the question open again, in its
 # own first words, with the options and what was settled on, to ask as any
-# other question.
+# other question. A go is asked as whether to go on, since it had no options:
+# the agent is told not to start the step until the operator says.
 format_reopened_agent_note() {
   local line="$1"
+  if jq -e '.step != null' >/dev/null <<<"$line"; then
+    reopen_go_agent_note "$(jq -r '.number' <<<"$line")" "$(jq -r '.question' <<<"$line")"
+    return 0
+  fi
   reopen_agent_note "$(jq -r '.number' <<<"$line")" "$(jq -r '.question' <<<"$line")" \
     "$(jq -r --arg separator "$LADDER_OPTION_SEPARATOR" '(.ladder.first.options // []) | join($separator)' <<<"$line")" \
     "$(jq -r '.approved' <<<"$line")"

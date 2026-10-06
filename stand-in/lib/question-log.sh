@@ -16,7 +16,13 @@
 # operator, a line each; approved, the option the stand-in approved or would
 # have; summary, the summary reader's parts as the operator was shown them,
 # and reading, the cold second reading, each null where none was written;
+# step, for a finished step's report, what it said of its problems, its proof
+# and its next step and what the sorter found major, null for a question;
 # answer, the operator's, empty until they give one.
+#
+# A step's report is logged like a question, its decision being whether to go
+# on: the go the stand-in would give is counted toward its kind's trial as a
+# held answer is, and one it gave is listed and reopened as a settled one is.
 #
 # Every write takes one lock, a file of its own beside the log: two sessions
 # letting a question go at once must leave two whole lines, and bash writes a
@@ -63,9 +69,12 @@ to_log_path() {
 # operator's message in parts, as record.sh and operator-message.sh keep them,
 # and the details only the moment of letting it go knows, as JSON: id, when,
 # session, briefs, retold (empty for none), reasons (one per line) and
-# summary (the summary's parts, null for none). Its number is given as the line is written, and
-# its answer is empty until the operator gives one. The record reaches jq on
-# stdin, never as an argument: its exchange can outgrow what one may hold.
+# summary (the summary's parts, null for none); and, for a step's report
+# alone, kind, outcome and step, which no record holds, since the report is
+# let go in the stop that read it. Its number is given as the line is
+# written, and its answer is empty until the operator gives one. The record
+# reaches jq on stdin, never as an argument: its exchange can outgrow what one
+# may hold.
 to_log_line() {
   local record="$1" parts="$2" details="$3"
   jq -c --argjson parts "$parts" --argjson details "$details" \
@@ -79,17 +88,18 @@ to_log_line() {
       briefs: $details.briefs,
       question: $parts.question,
       retold: ($details.retold | text_or_null),
-      kind: (if .sort then .sort.kind elif .ladder then .ladder.kind else null end),
+      kind: ($details.kind // (if .sort then .sort.kind elif .ladder then .ladder.kind else null end)),
       unsure: (if .sort then .sort.unsure else null end),
       risks: (if .sort then .sort.risks else [] end),
       checks: .checks,
       ladder: (if .ladder then .ladder | {first, picks} else null end),
       exchange: .exchange,
-      outcome: (if ($parts.approved // "") != "" then $held else $operator end),
+      outcome: ($details.outcome // (if ($parts.approved // "") != "" then $held else $operator end)),
       reasons: ($details.reasons | split("\n") | map(select(. != ""))),
       approved: ($parts.approved // ""),
       summary: $details.summary,
       reading: ($parts.reading_text | text_or_null),
+      step: ($details.step // null),
       answer: ""
     }' <<<"$record"
 }

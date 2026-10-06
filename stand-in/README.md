@@ -23,6 +23,20 @@ that would be approved. While a kind is on trial, which every kind is, an
 answer that held reaches the operator too, marked with what would have been
 approved.
 
+A reply that reports a step of the work finished, asks nothing and waits for
+the operator's go is weighed for that go instead. Another model labels the
+problems the report holds: a major one — a risk the preset names, lost data,
+or a check that passed before now failing — reaches the operator fixed or
+not, as does one the labelling is unsure of. A problem left unfixed is sent
+back first, to be fixed, or to be asked as a question where it needs a
+decision, and the next report is read again. A report with nothing left to fix
+still reaches the operator, saying why, where its proof did not pass, its next
+step is not its brief's own, or that step is the brief's first, or pushes,
+syncs, deletes, touches another session's work, or is one the brief runs
+alone. Only what is left would be told to go on; while its kind is on trial
+the reply stops instead, beside a note that the stand-in would have said go
+and what was fixed in passing. A go that could not be logged is never given.
+
 It is switched on for a session by a command the operator types, and in no
 other way. With a brief's name, the brief is taken through the work
 organizer, and the session is handed the preset's opener before anything
@@ -46,7 +60,10 @@ while the question is held.
 Every question it lets go leaves one whole line in a log of its own: when,
 in which session and brief, the question as asked and as retold, how it was
 sorted and checked, every answer on the ladder, the whole exchange, how it
-ended and why, the summary's parts and the second reading. Lines from sessions
+ended and why, the summary's parts and the second reading. So does every
+step's report it weighs, with what it said of its problems, its proof and its
+next step, and what was found major; a go is listed and reopened as a
+settled question is. Lines from sessions
 writing at once never interleave. The first thing the operator types after a
 question reached them is kept as their answer to it. Asked in plain words,
 it shows the operator the questions it settled without them, and brings any
@@ -74,7 +91,8 @@ operator is told why there is none. Where it is off for a session it does
 nothing, and asks no model.
 
 Needs a preset: a folder of kinds of question, each with a one-line summary
-and its route, a list of risks, each opening with its short name, a
+and its route, one of them at most taking the route of a finished step's go,
+a list of risks, each opening with its short name, a
 challenge ladder holding each message the stand-in sends — the two
 challenges, the bigger look around and the plain retelling — quoted under
 the short name it is asked for by, and an opener, what a session started

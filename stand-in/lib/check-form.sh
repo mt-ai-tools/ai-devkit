@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # The form check: whether a reader's form, or a sorter's, checker's, reading's,
-# matcher's or summary's answer, is whole and means one thing, decided in code
-# and never by a model.
-# Every function here is a transform. Sourced, never executed.
+# matcher's or summary's answer, or the sorter's labelling of a step's report,
+# is whole and means one thing, decided in code and never by a model. Every
+# function here is a transform. Sourced, never executed.
 #
 # A form that fails is refused with every reason found, never repaired or
 # guessed at: a guessed field is a decision taken by nobody, and a refused
@@ -34,6 +34,15 @@ CHECK_SHAPE='
     end
   | join($us)'
 
+# A list item that is not an object of exactly the fields given, each a string
+# with words in it: the one test every form's list of items is held to.
+CHECK_ITEM_DEF='
+  def bad_item($fields):
+    type != "object"
+    or ((keys - $fields) != [])
+    or (($fields - keys) != [])
+    or any(.[]; type != "string" or test("^\\s*$"));'
+
 # What is wrong with a reader's form whose shape is right: what its fields
 # say against each other.
 #
@@ -43,7 +52,9 @@ CHECK_SHAPE='
 # is two options, which the reader's prompt asks it to write out.
 #
 # A form claiming no question while holding one, or a question with no words,
-# contradicts itself; which half is true would be a guess.
+# contradicts itself; which half is true would be a guess. So does one
+# claiming no step ended while saying what the step found, proved or comes
+# next.
 #
 # An option label holding "recommend", in any case, carries the agent's own
 # pick, which has its field: the options are what the cold second reading is
@@ -51,7 +62,12 @@ CHECK_SHAPE='
 # it reads anchored (found live 2026-10-06). Refused rather than stripped, as
 # every broken form is. A real option that happens to hold the word is refused
 # too, and goes to the operator: a rare stop they chose over a silent anchor.
-CHECK_READER_RULES='
+#
+# A step's words — a problem's state, the proof, where the next step comes
+# from, a mark on it — are each one of their own, never the nearest: the step
+# go is decided from them, and a word read as the nearest one is a decision
+# nobody took.
+CHECK_READER_RULES="$CHECK_ITEM_DEF"'
   (select(any(.options[]; type != "string" or test("^\\s*$"))) | ["bad-option"]),
   (.options[] | strings | select(test("recommend"; "i")) | ["marked-option", .]),
   (select(.recommended != "")
@@ -64,7 +80,19 @@ CHECK_READER_RULES='
     | ["no-question-but"]),
   (.guidance_answer as $g
     | select(any($guidance[]; . == $g) | not)
-    | ["guidance-outside", $g])
+    | ["guidance-outside", $g]),
+  (.problems[] | select(bad_item($problem_fields)) | ["bad-problem"]),
+  (.problems[] | objects | .state | strings | . as $s
+    | select(any($states[]; . == $s) | not) | ["state-outside", $s]),
+  (.proof as $p | select(any($proofs[]; . == $p) | not) | ["proof-outside", $p]),
+  (.next_step_from as $f | select(any($froms[]; . == $f) | not) | ["from-outside", $f]),
+  (.next_step_marks[] | tostring as $m | select(any($marks[]; . == $m) | not) | ["mark-outside", $m]),
+  (select(.next_step_number < 0 or .next_step_number != (.next_step_number | floor))
+    | ["bad-step-number", (.next_step_number | tostring)]),
+  (select((.ends_step | not)
+      and (.problems != [] or .proof != "" or .next_step != "" or .next_step_number != 0
+        or .next_step_from != "" or .next_step_marks != []))
+    | ["no-step-but"])
   | join($us)'
 
 # What is wrong with a sorter's answer whose shape is right: a kind or a risk
@@ -75,17 +103,21 @@ CHECK_SORTER_RULES='
   (.risks[] | tostring as $r | select(any($risks[]; . == $r) | not) | ["unknown-risk", $r])
   | join($us)'
 
+# What is wrong with the sorter's labelling of a step's report whose shape is
+# right: a major problem that is not an object of exactly its fields, or a
+# label it was not handed, never matched to the nearest one it was.
+CHECK_STEP_SORT_RULES="$CHECK_ITEM_DEF"'
+  (.majors[] | select(bad_item($major_fields)) | ["bad-major"]),
+  (.majors[] | objects | .label | strings | . as $l
+    | select(any($labels[]; . == $l) | not) | ["unknown-label", $l])
+  | join($us)'
+
 # What is wrong with a checker's answer whose shape is right: a list item that
 # is not an object of exactly its fields, each a string with words in it, and
 # a broken entry the checker was not handed. An entry the checker names that
 # the project does not hold would send the agent to read something that is
 # not there.
-CHECK_CHECKER_RULES='
-  def bad_item($fields):
-    type != "object"
-    or ((keys - $fields) != [])
-    or (($fields - keys) != [])
-    or any(.[]; type != "string" or test("^\\s*$"));
+CHECK_CHECKER_RULES="$CHECK_ITEM_DEF"'
   (.breaks[] | select(bad_item($break_fields)) | ["bad-break"]),
   (.breaks[] | objects | .entry | strings | . as $e
     | select(any($names[]; . == $e) | not) | ["unknown-entry", $e]),
@@ -145,8 +177,9 @@ derive_reader_form_problems() {
     printf '%s\n' "$shape"
     return 0
   fi
-  jq -r --argjson guidance "$GUIDANCE_ANSWERS" --arg us "$CHECK_US" \
-    "$CHECK_READER_RULES" <<<"$1"
+  jq -r --argjson guidance "$GUIDANCE_ANSWERS" --argjson problem_fields "$PROBLEM_FIELDS" \
+    --argjson states "$PROBLEM_STATES" --argjson proofs "$STEP_PROOFS" --argjson froms "$STEP_FROMS" \
+    --argjson marks "$STEP_MARKS" --arg us "$CHECK_US" "$CHECK_READER_RULES" <<<"$1"
 }
 
 # Every problem of a sorter's answer, one row each, given the kind names and
@@ -160,6 +193,19 @@ derive_sorter_answer_problems() {
   fi
   jq -r --argjson kinds "$2" --argjson risks "$3" --arg us "$CHECK_US" \
     "$CHECK_SORTER_RULES" <<<"$1"
+}
+
+# Every problem of the sorter's labelling of a step's report, one row each,
+# given the label names as a JSON array.
+derive_step_sort_problems() {
+  local shape
+  shape="$(derive_shape_problems "$1" "$STEP_SORT_FIELDS")"
+  if [ -n "$shape" ]; then
+    printf '%s\n' "$shape"
+    return 0
+  fi
+  jq -r --argjson labels "$2" --argjson major_fields "$MAJOR_FIELDS" --arg us "$CHECK_US" \
+    "$CHECK_STEP_SORT_RULES" <<<"$1"
 }
 
 # Every problem of a checker's answer, one row each, given the names of the
@@ -237,6 +283,15 @@ to_problem_notes() {
       item-outside) refuse_item_outside_note "$arg" ;;
       item-unasked) refuse_item_unasked_note "$arg" ;;
       summary-part-empty) refuse_summary_part_empty_note "$arg" ;;
+      bad-problem) refuse_bad_problem_note ;;
+      state-outside) refuse_state_outside_note "$arg" ;;
+      proof-outside) refuse_proof_outside_note "$arg" ;;
+      from-outside) refuse_from_outside_note "$arg" ;;
+      mark-outside) refuse_mark_outside_note "$arg" ;;
+      bad-step-number) refuse_bad_step_number_note "$arg" ;;
+      no-step-but) refuse_no_step_but_note ;;
+      bad-major) refuse_bad_major_note ;;
+      unknown-label) refuse_unknown_label_note "$arg" ;;
     esac
   done
 }
@@ -269,6 +324,24 @@ refuse_bad_sorter_answer() {
     return 1
   fi
   problems="$(derive_sorter_answer_problems "$answer" "$2" "$3")"
+  if [ -n "$problems" ]; then
+    to_problem_notes "$label" <<<"$problems" >&2
+    return 1
+  fi
+  printf '%s\n' "$answer"
+}
+
+# The sorter's labelling of a step's report, compact, where it is whole and
+# names only the labels given; every reason it is not on stderr and a non-zero
+# status otherwise.
+refuse_bad_step_sort() {
+  local answer problems label
+  label="$(step_sort_words)"
+  if ! answer="$(to_one_json_value "$1")"; then
+    refuse_not_json_note "$label" >&2
+    return 1
+  fi
+  problems="$(derive_step_sort_problems "$answer" "$2")"
   if [ -n "$problems" ]; then
     to_problem_notes "$label" <<<"$problems" >&2
     return 1
@@ -355,6 +428,19 @@ refuse_questionless_form() {
   form="$(refuse_bad_reader_form "$1")" || return 1
   if ! jq -e '.asks_operator' >/dev/null <<<"$form"; then
     refuse_no_question_note >&2
+    return 1
+  fi
+  printf '%s\n' "$form"
+}
+
+# The reader's form, checked again and reporting a step ended; a refusal on
+# stderr and a non-zero status otherwise. Checked again for the reason a
+# question's form is: the sorter only ever labels a report the check passed.
+refuse_stepless_form() {
+  local form
+  form="$(refuse_bad_reader_form "$1")" || return 1
+  if ! jq -e '.ends_step' >/dev/null <<<"$form"; then
+    refuse_no_step_note >&2
     return 1
   fi
   printf '%s\n' "$form"
