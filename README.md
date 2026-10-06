@@ -76,7 +76,9 @@ exposes the stand-in's entry skill there too, with the stand-in's start
 hook registered for the turn-start event and its end hook for the
 session-end event: the skill offers the command that switches the
 stand-in on, the start hook is what carries it out, and without the end
-hook a session's switch outlives it.
+hook a session's switch outlives it. Last, it registers the stand-in's
+question hook for the before-tool event of Claude Code's question tool:
+without it, a question asked in the question box passes the gate unseen.
 
 ## Develop
 

@@ -60,6 +60,11 @@ changes. A command that cannot be carried out is refused whole, in the
 organizer's own words where the organizer refused it, and leaves nothing
 switched on and nothing taken. It is switched off when the session ends.
 
+In a session it is on for, Claude Code's question box is refused, and the
+agent is told to ask in its reply instead, where the gate reads it; in every
+other session the box works as before. Where whether it is on cannot be
+told, the box is let through and the operator told why.
+
 Before any question reaches the operator, whatever its route, the agent is
 asked once to retell it plainly, and its retelling is what the operator reads
 first; then why it came to them; then fixed parts a fresh model writes from
@@ -121,7 +126,9 @@ brief, and to say which brief a session holds. Needs registering for Claude
 Code's end-of-reply event, with a time limit no shorter than the one it
 declares; for its turn-start event, to keep the operator's answers, and
 again, beside the skill that offers the command, to act on the command that
-starts it; for its session-end event, to switch it off; and for its
+starts it; for its session-end event, to switch it off; for its
+before-tool event of the question tool, to keep questions in the reply; and
+for its
 after-tool event of the Skill tool, beside its two other skills, to show
 what they ask for. Needs the Claude Code
 command-line tool, signed in, to ask models through; and `bash`, `awk`,

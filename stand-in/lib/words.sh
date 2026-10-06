@@ -946,3 +946,24 @@ refuse_end_session_note() {
 end_not_removed_note() {
   printf 'The stand-in'\''s session-end hook could not remove the switch of session %s.\n' "$1"
 }
+
+# --- The question box. Questions stay in the reply in a session the stand-in
+# is on for: the gate reads only the reply, so a question asked in the box
+# would pass it unseen (settled 2026-10-06).
+
+refuse_tool_session_note() {
+  printf 'The before-tool event carries no session id the stand-in can use.\n'
+}
+
+# To the agent, in the tool's place: the question tool's name.
+question_box_refused_note() {
+  gate_from_note "$(printf 'do not use the %s tool in this session. Ask your question in your reply instead, in plain conversation, with its options and your recommendation, so the stand-in reads it.' "$1")"
+}
+
+# To the operator, where whether the stand-in is on cannot be told and the
+# box is let through: the reasons the failing part gave.
+question_box_unjudged_note() {
+  local why="$1"
+  [ -n "$why" ] || why='No part of the stand-in said why.'
+  printf 'Stand-in: whether it is on for this session cannot be told, so the question box was let through, and the stand-in will not read its question. Why:\n%s\n' "$why"
+}
