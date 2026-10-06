@@ -672,6 +672,14 @@ edit_record() {
   [ "$(calls)" = "reader $READER_MODEL" ]
 }
 
+@test "an option marked as recommended goes to the operator as a broken form, and nothing more is asked" {
+  answer_for reader "$(rung_form ten '["five (recommended)","ten"]')"
+  run_gate
+  [ "$status" -eq 0 ]
+  [ "$(message)" = "$(gate_broken_note "$(refuse_marked_option_note "five (recommended)")")" ]
+  [ "$(calls)" = "reader $READER_MODEL" ]
+}
+
 @test "a model out of time, or refused, goes to the operator with the reason" {
   status_for checker 124
   run_gate

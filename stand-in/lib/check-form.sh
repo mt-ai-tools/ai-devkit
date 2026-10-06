@@ -44,8 +44,16 @@ CHECK_SHAPE='
 #
 # A form claiming no question while holding one, or a question with no words,
 # contradicts itself; which half is true would be a guess.
+#
+# An option label holding "recommend", in any case, carries the agent's own
+# pick, which has its field: the options are what the cold second reading is
+# handed, and a label marked "(recommended)" tells it the agent's choice, so
+# it reads anchored (found live 2026-10-06). Refused rather than stripped, as
+# every broken form is. A real option that happens to hold the word is refused
+# too, and goes to the operator: a rare stop they chose over a silent anchor.
 CHECK_READER_RULES='
   (select(any(.options[]; type != "string" or test("^\\s*$"))) | ["bad-option"]),
+  (.options[] | strings | select(test("recommend"; "i")) | ["marked-option", .]),
   (select(.recommended != "")
     | .recommended as $r
     | select(any(.options[]; . == $r) | not)
@@ -213,6 +221,7 @@ to_problem_notes() {
       wrong-type) refuse_wrong_type_note "$label" "$arg" "$type" ;;
       unknown-field) refuse_unknown_field_note "$label" "$arg" ;;
       bad-option) refuse_bad_option_note ;;
+      marked-option) refuse_marked_option_note "$arg" ;;
       recommended-outside) refuse_recommended_outside_note "$arg" ;;
       single-option) refuse_single_option_note ;;
       question-missing) refuse_question_missing_note ;;

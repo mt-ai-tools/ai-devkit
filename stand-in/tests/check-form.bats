@@ -83,6 +83,22 @@ form_without() {
   [ "$stderr" = "$(refuse_bad_option_note)" ]
 }
 
+@test "an option label marked as recommended is refused, in any case" {
+  for label in "five (recommended)" "Recommended: five" "five (RECOMMENDED, safest)" "we recommend five"; do
+    form="$(jq -c --arg label "$label" '.options = ["ten", $label] | .recommended = "ten"' <<<"$(whole_form)")"
+    run --separate-stderr refuse_bad_reader_form "$form"
+    [ "$status" -eq 1 ]
+    [ -z "$output" ]
+    [ "$stderr" = "$(refuse_marked_option_note "$label")" ]
+  done
+  # Marked and recommended both: the recommendation matches its label, and
+  # the mark is refused all the same.
+  form="$(jq -c '.options = ["five (recommended)", "ten"] | .recommended = "five (recommended)"' <<<"$(whole_form)")"
+  run --separate-stderr refuse_bad_reader_form "$form"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_marked_option_note "five (recommended)")" ]
+}
+
 @test "a question to the operator with no question is refused" {
   run --separate-stderr refuse_bad_reader_form "$(form_with question '""')"
   [ "$status" -eq 1 ]

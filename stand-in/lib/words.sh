@@ -51,6 +51,10 @@ refuse_bad_option_note() {
   printf 'The reader'\''s form holds an option that is not a short label.\n'
 }
 
+refuse_marked_option_note() {
+  printf 'The reader'\''s form holds the option "%s", which says it is recommended; the recommendation has its own field.\n' "$1"
+}
+
 refuse_recommended_outside_note() {
   printf 'The reader'\''s form recommends "%s", which is not among its options.\n' "$1"
 }
