@@ -48,6 +48,18 @@ setup() {
   [[ "$args" == *'--settings {"disableAllHooks":true,"permissions":{"deny":["Read(//x/**)"]}} '* ]]
 }
 
+@test "a standing text given is added to Claude Code's own instructions whole, and the prompt stays the message" {
+  export FAKE_ANSWER='{}'
+  standing="$(printf 'Every rule.\n\nEvery convention.')"
+  get_model_answer some-model 10 "$schema" "" "" "$standing" <<<"Which colour?" >/dev/null
+  [ "$(cat "$FAKE_STANDING.other")" = "$standing" ]
+  [ "$(cat "$FAKE_PROMPT")" = "Which colour?" ]
+  rm "$FAKE_STANDING.other"
+  get_model_answer some-model 10 "$schema" <<<"Which colour?" >/dev/null
+  [ ! -e "$FAKE_STANDING.other" ]
+  [ "$(grep -cxF -- --append-system-prompt-file "$FAKE_ARGS")" -eq 0 ]
+}
+
 @test "a call past its time limit is refused as a timeout" {
   export FAKE_ANSWER='{}' FAKE_SLEEP=5
   run --separate-stderr get_model_answer some-model 1 "$schema" <<<"Which colour?"

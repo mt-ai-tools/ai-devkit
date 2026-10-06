@@ -14,6 +14,7 @@ setup_fake_claude() {
   mkdir -p "$fakebin"
   export FAKE_ARGS="$BATS_TEST_TMPDIR/claude-args"
   export FAKE_PROMPT="$BATS_TEST_TMPDIR/claude-prompt"
+  export FAKE_STANDING="$BATS_TEST_TMPDIR/claude-standing"
   export FAKE_CALLS="$BATS_TEST_TMPDIR/claude-calls"
   export FAKE_ANSWERS="$BATS_TEST_TMPDIR/claude-answers"
   mkdir -p "$FAKE_ANSWERS"
@@ -22,14 +23,16 @@ setup_fake_claude() {
   # one run asks several jobs, each job's answer and status may be given apart,
   # by answer_for and status_for: the job is told by the first field its
   # schema requires, since two jobs may run on one model. Every call is logged
-  # in turn as "<job> <model>", and its arguments, its prompt and the folder
-  # it ran in kept under the job's name.
+  # in turn as "<job> <model>", and its arguments, its prompt, the text added
+  # to Claude Code's own instructions where one was, and the folder it ran in
+  # kept under the job's name.
   cat >"$fakebin/claude" <<'FAKE'
 #!/usr/bin/env bash
-model="" schema="" previous=""
+model="" schema="" standing="" previous=""
 for arg in "$@"; do
   [ "$previous" = --model ] && model="$arg"
   [ "$previous" = --json-schema ] && schema="$arg"
+  [ "$previous" = --append-system-prompt-file ] && standing="$arg"
   previous="$arg"
 done
 case "$(jq -r '.required[0] // empty' <<<"$schema" 2>/dev/null)" in
@@ -48,6 +51,7 @@ printf '%s\n' "$@" >"$FAKE_ARGS"
 cp "$FAKE_ARGS" "$FAKE_ARGS.$job"
 cat >"$FAKE_PROMPT"
 cp "$FAKE_PROMPT" "$FAKE_PROMPT.$job"
+[ -z "$standing" ] || cat "$standing" >"$FAKE_STANDING.$job"
 pwd >"$FAKE_ARGS.$job.pwd"
 [ -n "${FAKE_SLEEP:-}" ] && sleep "$FAKE_SLEEP"
 [ -f "$FAKE_ANSWERS/$job.status" ] && exit "$(cat "$FAKE_ANSWERS/$job.status")"

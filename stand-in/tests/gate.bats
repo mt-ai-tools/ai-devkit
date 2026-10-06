@@ -220,14 +220,14 @@ all_three() {
 
 @test "the checker is handed every rule and convention whole, and nothing that is not an entry" {
   run_gate
-  prompt="$FAKE_PROMPT.checker"
-  grep -qxF "=====ENTRY rule-one.md=====" "$prompt"
-  grep -qxF "Rule one body." "$prompt"
-  grep -qxF "=====ENTRY convention-one.md=====" "$prompt"
-  grep -qxF "Convention one body." "$prompt"
+  standing="$FAKE_STANDING.checker"
+  grep -qxF "=====ENTRY rule-one.md=====" "$standing"
+  grep -qxF "Rule one body." "$standing"
+  grep -qxF "=====ENTRY convention-one.md=====" "$standing"
+  grep -qxF "Convention one body." "$standing"
   # Counted rather than negated: a negated command does not fail a test.
-  [ "$(grep -cF "=====ENTRY README.md=====" "$prompt")" -eq 0 ]
-  grep -qF -- "$reply" "$prompt"
+  [ "$(grep -cF "=====ENTRY README.md=====" "$standing")" -eq 0 ]
+  grep -qF -- "$reply" "$FAKE_PROMPT.checker"
   grep -qF -- '"enum":["convention-one.md","rule-one.md"]' "$FAKE_ARGS.checker"
 }
 

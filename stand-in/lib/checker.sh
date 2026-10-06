@@ -101,21 +101,34 @@ read_entry_texts() {
     '.[] | select(.collection == $collection) | [.name, .path] | join("\u001f")' <<<"$entries")
 }
 
-# The checker's prompt for one question, given the reader's form, the reply
-# and the entries list. Every long text reaches jq through a file descriptor,
-# never as an argument: the rules and conventions together outgrow what one
-# argument to a command may hold.
-get_checker_prompt() {
-  local form="$1" reply="$2" entries="$3" prose rules conventions values
+# What the checker is handed the same on every question, given the entries
+# list: its instructions and every entry whole. Every long text reaches jq
+# through a file descriptor, never as an argument: the rules and conventions
+# together outgrow what one argument to a command may hold.
+#
+# Kept apart from the question so that it reads back from the cache rather than
+# being paid in full each time (measured in ask-model.sh): it must hold nothing
+# that changes between questions, or no question after the first reads it back.
+get_checker_standing() {
+  local entries="$1" prose rules conventions values
   prose="$(read_prompt checker)" || return 1
   rules="$(read_entry_texts "$entries" "$CHECK_RULES")" || return 1
   conventions="$(read_entry_texts "$entries" "$CHECK_CONVENTIONS")" || return 1
-  values="$(jq -cn --arg form "$form" \
+  values="$(jq -cn \
     --rawfile rules <(printf '%s' "$rules") \
     --rawfile conventions <(printf '%s' "$conventions") \
-    --rawfile reply <(printf '%s' "$reply") \
-    '{form: $form, rules: $rules, conventions: $conventions, reply: $reply}')"
+    '{rules: $rules, conventions: $conventions}')"
   to_filled_prompt "$PROMPTS_DIR/checker.md" "$prose" "$values"
+}
+
+# The checker's prompt for one question, sent after what it is handed the same
+# every time, given the reader's form and the reply.
+get_checker_question() {
+  local form="$1" reply="$2" prose values
+  prose="$(read_prompt checker-question)" || return 1
+  values="$(jq -cn --arg form "$form" --rawfile reply <(printf '%s' "$reply") \
+    '{form: $form, reply: $reply}')"
+  to_filled_prompt "$PROMPTS_DIR/checker-question.md" "$prose" "$values"
 }
 
 # The checked checker's answer for one question, as one line of JSON, given
@@ -123,11 +136,12 @@ get_checker_prompt() {
 # stderr and a non-zero status where the form holds no question, an entry
 # cannot be read, the model could not be asked, or its answer does not pass.
 get_checker_answer() {
-  local form reply="$2" entries="$3" names prompt schema answer
+  local form reply="$2" entries="$3" names standing prompt schema answer
   form="$(refuse_questionless_form "$1")" || return 1
   names="$(to_entry_names "$entries")"
-  prompt="$(get_checker_prompt "$form" "$reply" "$entries")" || return 1
+  standing="$(get_checker_standing "$entries")" || return 1
+  prompt="$(get_checker_question "$form" "$reply")" || return 1
   schema="$(checker_answer_schema "$names")"
-  answer="$(get_model_answer "$CHECKER_MODEL" "$CHECKER_SECONDS" "$schema" <<<"$prompt")" || return 1
+  answer="$(get_model_answer "$CHECKER_MODEL" "$CHECKER_SECONDS" "$schema" "" "" "$standing" <<<"$prompt")" || return 1
   refuse_bad_checker_answer "$answer" "$names"
 }

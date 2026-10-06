@@ -73,3 +73,20 @@ setup() {
   [ "$stderr" = "$(refuse_no_question_note)" ]
   [ ! -e "$FAKE_ARGS" ]
 }
+
+@test "every entry is sent ahead of the question, the same for every question, and the question apart" {
+  export FAKE_ANSWER='{"breaks":[],"miscalled":[],"explains_code":false}'
+  entries="$(list_check_entries "$rules" "$conventions")"
+  get_checker_answer "$(whole_form)" "Five or ten? Five." "$entries" >/dev/null
+  cp "$FAKE_STANDING.checker" "$BATS_TEST_TMPDIR/first-standing"
+  grep -qxF "# A" "$FAKE_STANDING.checker"
+  grep -qxF "# B" "$FAKE_STANDING.checker"
+  # Counted rather than negated: a negated command does not fail a test.
+  [ "$(grep -cF "Five or ten" "$FAKE_STANDING.checker")" -eq 0 ]
+  grep -qF "Five or ten? Five." "$FAKE_PROMPT.checker"
+  [ "$(grep -cxF "# A" "$FAKE_PROMPT.checker")" -eq 0 ]
+  get_checker_answer "$(jq -c '.question = "Red or blue?" | .options = ["red","blue"] | .recommended = "red"' <<<"$(whole_form)")" \
+    "Red or blue? Red." "$entries" >/dev/null
+  grep -qF "Red or blue? Red." "$FAKE_PROMPT.checker"
+  cmp "$BATS_TEST_TMPDIR/first-standing" "$FAKE_STANDING.checker"
+}

@@ -74,12 +74,34 @@ to_model_answer() {
 # choose: a headless call with nothing allowed is refused a read outside its
 # working directory (measured 2026-10-05). Settings given, as a JSON object,
 # are added to those every call runs with, as to_call_settings merges them.
+# A standing text given — the long part of a job's prompt that is the same on
+# every call — is sent apart from the prompt, as below.
+#
+# Why apart: Claude Code remembers (caches) a prompt only whole, at the end of
+# each part it sends, and the prompt on stdin is one part. A long unchanging
+# text sent there ahead of a changing question was paid in full on every call,
+# though it came first; sent as an addition to Claude Code's own instructions,
+# a part of its own, it is read back from the cache. Measured 2026-10-06 on
+# the rules and conventions check, about 40 000 tokens on Sonnet 5.5, two
+# questions a minute apart: piped whole, $0.163 then $0.151 (only Claude
+# Code's own instructions read back); the entries sent apart, $0.163 then
+# $0.017. The text is handed over through a file descriptor, never as an
+# argument, which it would outgrow; it must be the same byte for byte each
+# time, since a single trailing newline more was measured to miss the cache.
 get_model_answer() {
-  local model="$1" seconds="$2" schema="$3" tools="${4:-}" settings envelope status=0
+  local model="$1" seconds="$2" schema="$3" tools="${4:-}" standing="${6:-}" settings envelope status=0
+  local standing_args=() standing_fd
   settings="$(to_call_settings "${5:-}")" || return 1
+  # Opened for the whole call and closed after it: a process substitution
+  # kept in a list of arguments is closed before the command runs.
+  if [ -n "$standing" ]; then
+    exec {standing_fd}< <(printf '%s' "$standing")
+    standing_args=(--append-system-prompt-file "/dev/fd/$standing_fd")
+  fi
   envelope="$(timeout -k "$ASK_MODEL_KILL_AFTER" "$seconds" \
     claude -p "$ASK_MODEL_ISOLATION" --model "$model" --settings "$settings" --tools "$tools" \
-    --output-format json --json-schema "$schema" 2>/dev/null)" || status=$?
+    "${standing_args[@]}" --output-format json --json-schema "$schema" 2>/dev/null)" || status=$?
+  [ -z "$standing" ] || exec {standing_fd}<&-
   if [[ "$ASK_MODEL_TIMEOUT_STATUSES" == *" $status "* ]]; then
     refuse_model_timeout_note "$model" "$seconds" >&2
     return 1
