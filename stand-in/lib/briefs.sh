@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # The briefs, as the work organizer keeps them: its list, a brief taken for a
-# session, and which briefs a session holds. The stand-in asks all of it of
-# the organizer's own command, and never reads or writes its marks. Sourced,
-# never executed.
+# session, which briefs a session holds, and which every session holds and
+# where they work. The stand-in asks all of it of the organizer's own
+# command, and never reads or writes its marks. Sourced, never executed.
 
 # Loaded once, however many of the stand-in's parts source it, as words.sh is.
 [ -z "${STAND_IN_LOADED_BRIEFS:-}" ] || return 0
@@ -27,6 +27,17 @@ get_held_briefs() {
   # is one empty line here, and its split has no first part, which read as a
   # brief named null (found live 2026-10-06).
   jq -Rcn '[inputs | select(. != "") | split("\t")[0]]' <<<"$held"
+}
+
+# The briefs sessions hold, as a JSON array of {brief, session} in name
+# order; given paths from inside the project, only those working where any of
+# them lies, as the organizer judges a brief's places. A refusal on stderr and
+# a non-zero status where the organizer cannot be run or refuses, as it does
+# wherever a brief working there could be left out of its answer.
+list_taken_briefs() {
+  local taken
+  taken="$("$(get_kit_dir)/$ORGANIZER_COMMAND" taken "$@")" || return 1
+  jq -Rcn '[inputs | select(. != "") | split("\t") | {brief: .[0], session: .[1]}]' <<<"$taken"
 }
 
 # The organizer's list as it printed it, every byte, its refusals among it;

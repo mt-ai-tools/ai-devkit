@@ -20,7 +20,10 @@
 # null. exchange: every reply the gate held and every message it sent the
 # agent over the question, in order, each {from, text}, whole. checks: the
 # checker's answer each time the question was checked, in order. sort: the
-# sorter's answer the question was routed on, or null.
+# sorter's answer the question was routed on, or null. closing: the closing
+# loop's round under way — the briefs it sweeps for and every finding its
+# looks have brought so far, each as code checked it — or null; the look
+# whose reply is awaited is the round, as a fixed round's is.
 #
 # And, across questions: dropped, every proposal the agent dropped under a
 # challenge, {question, kind}, kept for the session's end report.
@@ -51,7 +54,7 @@ EXCHANGE_AGENT="agent"
 EXCHANGE_STAND_IN="stand-in"
 
 # The record of a session the gate has not held anything for.
-EMPTY_RECORD='{"sent_back":0,"challenge":null,"ladder":null,"round":null,"rounds_sent":[],"asked":null,"operator":null,"exchange":[],"checks":[],"sort":null,"dropped":[]}'
+EMPTY_RECORD='{"sent_back":0,"challenge":null,"ladder":null,"round":null,"rounds_sent":[],"asked":null,"operator":null,"exchange":[],"checks":[],"sort":null,"closing":null,"dropped":[]}'
 
 # What a record must be to be read: anything else was not written by the gate,
 # or not whole, and is refused rather than repaired.
@@ -69,6 +72,8 @@ RECORD_SHAPE='
   and (.exchange | type == "array")
   and (.checks | type == "array")
   and (.sort | type == "null" or type == "object")
+  and (.closing | type == "null"
+    or (type == "object" and (.briefs | type == "array") and (.findings | type == "array")))
   and (.dropped | type == "array")'
 
 # --- Transforms.
@@ -82,10 +87,12 @@ to_record_path() {
 # new turn of the operator's began. A ladder in progress goes with it, as a
 # challenge, a round and the exchange do: a new turn may have changed what the
 # agent is asking, and rungs climbed before it would be compared with answers
-# to something else. What was dropped stays.
+# to something else. So does a closing round under way: its looks' findings
+# were sorted against the work as it stood before the operator spoke. What
+# was dropped stays.
 with_chain_reset() {
   jq -c '.sent_back = 0 | .challenge = null | .ladder = null | .round = null | .rounds_sent = []
-    | .asked = null | .operator = null | .exchange = [] | .checks = [] | .sort = null' <<<"$1"
+    | .asked = null | .operator = null | .exchange = [] | .checks = [] | .sort = null | .closing = null' <<<"$1"
 }
 
 # The record with one more send-back counted.
@@ -107,6 +114,13 @@ with_round() {
 # True if the fixed round named was sent for the question the record holds.
 is_round_sent() {
   jq -e --arg name "$2" 'any(.rounds_sent[]; . == $name)' >/dev/null <<<"$1"
+}
+
+# The record with the fixed round named noted as sent for the question, its
+# reply awaiting no round of its own: read as any reply, since what it says
+# decides what follows.
+with_round_sent() {
+  jq -c --arg name "$2" '.rounds_sent += [$name]' <<<"$1"
 }
 
 # The fixed round whose reply the record awaits; nothing where there is none.
@@ -197,6 +211,23 @@ with_ladder_pick() {
 # The ladder the record holds, as JSON; nothing where there is none.
 to_ladder() {
   jq -c '.ladder // empty' <<<"$1"
+}
+
+# The record holding a closing round begun for the briefs given, as a JSON
+# array, with no finding yet.
+with_closing() {
+  jq -c --argjson briefs "$2" '.closing = {briefs: $briefs, findings: []}' <<<"$1"
+}
+
+# The record with the findings given, a JSON array, added to its closing
+# round's.
+with_closing_findings() {
+  jq -c --argjson findings "$2" '.closing.findings += $findings' <<<"$1"
+}
+
+# The closing round the record holds, as JSON; nothing where there is none.
+to_closing() {
+  jq -c '.closing // empty' <<<"$1"
 }
 
 # The record with the challenged proposal noted as dropped and the question

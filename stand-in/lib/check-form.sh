@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The form check: whether a reader's form, or a sorter's, checker's, reading's,
-# matcher's, summary's or round reader's answer, or the sorter's labelling of
-# a step's report, is whole and means one thing, decided in code and never by
+# matcher's, summary's or round reader's answer, the sorter's labelling of a
+# step's report, or the closing reader's form, is whole and means one thing, decided in code and never by
 # a model. Every function here is a transform. Sourced, never executed.
 #
 # A form that fails is refused with every reason found, never repaired or
@@ -179,6 +179,42 @@ CHECK_ROUND_RULES='
       ($numbers[] | select(. as $n | any($given[]; . == $n) | not) | ["decision-missing", tostring]))
   | join($us)'
 
+# What is wrong with the closing reader's form whose shape is right: a
+# finding that is not its four fields — words, a sort, a list of paths, a
+# brief — or whose sort is none of the filter's, or unsorted; a path that
+# leaves the project root; a hand-off to a brief no other session holds, or a
+# brief named beside any other sort; a quick finding naming no files; and a
+# reply saying nothing is left while it names a finding that belongs here, or
+# the other way round.
+#
+# A quick finding with no files is refused because the check on it could not
+# run: whether another session works there, or left changes there, is read
+# off its files, and a fix in passing nobody could check is one taken on the
+# agent's word. A path leaving the root is refused because no brief can work
+# there, so the check would pass it unread. Whether anything is left is read
+# twice, once as the findings' sorts and once as the agent's own words, and
+# the two must agree: which half is true would be a guess, and the loop ends
+# on it.
+CHECK_LOOK_RULES='
+  def bad_finding:
+    type != "object"
+    or ((keys - $fields) != []) or (($fields - keys) != [])
+    or (.finding | type != "string" or test("^\\s*$"))
+    or (.sort | type != "string") or (.brief | type != "string")
+    or (.files | type != "array" or any(.[]; type != "string" or test("^\\s*$")));
+  def good: .findings[] | objects | select(bad_finding | not);
+  ([good | select(.sort == $here)] | length) as $here_count
+  | (.findings[] | select(bad_finding) | ["bad-finding"]),
+  (good | .sort as $s | select(any($sorts[]; . == $s) | not) | ["sort-outside", $s]),
+  (good | select(.sort == $unsorted) | ["unsorted", (.finding | gsub("\\s+"; " "))]),
+  (good | .files[] | select(startswith("/") or test("(^|/)\\.\\.(/|$)")) | ["file-outside", .]),
+  (good | select(.sort == $hand_off) | .brief as $b | select(any($briefs[]; . == $b) | not) | ["brief-outside", $b]),
+  (good | select(.sort != $hand_off and .brief != "") | ["brief-unasked", .brief]),
+  (good | select(.sort == $quick and (.files | length) == 0) | ["quick-no-files", (.finding | gsub("\\s+"; " "))]),
+  (select(.nothing_left and $here_count > 0) | ["left-but-here"]),
+  (select((.nothing_left | not) and $here_count == 0) | ["here-none-but-left"])
+  | join($us)'
+
 # The input as one compact JSON value; a non-zero status where it is not
 # exactly one. Two values one after the other are refused like none: which of
 # them is the form would be a guess.
@@ -297,6 +333,20 @@ derive_round_answer_problems() {
     "$CHECK_ROUND_RULES" <<<"$1"
 }
 
+# Every problem of the closing reader's form, one row each, given the briefs
+# other sessions hold as a JSON array of names.
+derive_look_form_problems() {
+  local shape
+  shape="$(derive_shape_problems "$1" "$LOOK_FORM_FIELDS")"
+  if [ -n "$shape" ]; then
+    printf '%s\n' "$shape"
+    return 0
+  fi
+  jq -r --argjson fields "$FINDING_FIELDS" --argjson sorts "$FINDING_SORTS" --argjson briefs "$2" \
+    --arg here "$FINDING_HERE" --arg quick "$FINDING_QUICK" --arg hand_off "$FINDING_HAND_OFF" \
+    --arg unsorted "$FINDING_UNSORTED" --arg us "$CHECK_US" "$CHECK_LOOK_RULES" <<<"$1"
+}
+
 # The words for each problem row, the form called by the label given.
 to_problem_notes() {
   local label="$1" code arg type
@@ -337,6 +387,15 @@ to_problem_notes() {
       decision-missing) refuse_decision_missing_note "$arg" ;;
       bad-major) refuse_bad_major_note ;;
       unknown-label) refuse_unknown_label_note "$arg" ;;
+      bad-finding) refuse_bad_finding_note ;;
+      sort-outside) refuse_sort_outside_note "$arg" ;;
+      unsorted) refuse_unsorted_note "$arg" ;;
+      file-outside) refuse_file_outside_note "$arg" ;;
+      brief-outside) refuse_brief_outside_note "$arg" ;;
+      brief-unasked) refuse_brief_unasked_note "$arg" ;;
+      quick-no-files) refuse_quick_no_files_note "$arg" ;;
+      left-but-here) refuse_left_but_here_note ;;
+      here-none-but-left) refuse_here_none_but_left_note ;;
     esac
   done
 }
@@ -479,6 +538,24 @@ refuse_bad_round_answer() {
     return 1
   fi
   printf '%s\n' "$answer"
+}
+
+# The closing reader's form, compact, where it is whole and hands off only to
+# the briefs given; every reason it is not on stderr and a non-zero status
+# otherwise.
+refuse_bad_look_form() {
+  local form problems label
+  label="$(look_form_words)"
+  if ! form="$(to_one_json_value "$1")"; then
+    refuse_not_json_note "$label" >&2
+    return 1
+  fi
+  problems="$(derive_look_form_problems "$form" "$2")"
+  if [ -n "$problems" ]; then
+    to_problem_notes "$label" <<<"$problems" >&2
+    return 1
+  fi
+  printf '%s\n' "$form"
 }
 
 # The reader's form, checked again and holding a question; a refusal on

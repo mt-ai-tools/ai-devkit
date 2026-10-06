@@ -47,3 +47,16 @@ taken${us}b${us}aidk-plans${us}1 h"
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
+
+@test "a row holds a path inside one of its places, or a folder holding one, never a sibling's" {
+  rows="a${us}s1${us}monoframe/mf-users,aidk-plans
+b${us}s2${us}monoframe/mf-users-old
+c${us}s3${us}"
+  run derive_places_holding monoframe/mf-users/src/x.ts <<<"$rows"
+  [ "$status" -eq 0 ]
+  [ "$output" = "a${us}s1" ]
+  run derive_places_holding monoframe nothing/here <<<"$rows"
+  [ "$output" = "a${us}s1"$'\n'"b${us}s2" ]
+  run derive_places_holding nothing/here <<<"$rows"
+  [ -z "$output" ]
+}

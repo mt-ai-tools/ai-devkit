@@ -3,6 +3,7 @@
 # creates lists name: which may be named at all, and which two are the same
 # place. Sourced, never executed.
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/header.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/flow-list.sh"
 
 # True if a path stays inside the project root as written: relative, and with
 # no `..` segment. Every path a brief names is read from the root, and one that
@@ -16,6 +17,26 @@ is_inside_root_path() {
   esac
   return 0
 }
+
+# A brief's places: its touches and creates together, comma-joined, since a
+# brief that brings a folder into being works there as surely as one that
+# edits it.
+derive_places() {
+  local touches creates
+  touches="$(parse_flow_list "$1")" || touches=""
+  creates="$(parse_flow_list "$2")" || creates=""
+  printf '%s' "$touches${touches:+${creates:+,}}$creates"
+}
+
+# Whether two paths are the same place, as awk functions every reading of
+# places shares, so a ready brief's collision and a path's holder are judged
+# alike; why it reads so is said at derive_same_places.
+PLACES_SAME_AWK='
+  function bare(p) { sub(/\/+$/, "", p); return p }
+  function same(a, b) {
+    a = bare(a); b = bare(b)
+    return a == b || index(a, b "/") == 1 || index(b, a "/") == 1
+  }'
 
 # Which ready briefs share a place with a taken one. Each line on stdin is
 # "<kind><US><name><US><places><US><age>", kind being `ready` or `taken`,
@@ -34,12 +55,7 @@ is_inside_root_path() {
 # `mf-users`) apart. A trailing slash is ignored, so a writer's habit does not
 # change the answer.
 derive_same_places() {
-  awk -F "$HEADER_US" -v US="$HEADER_US" '
-    function bare(p) { sub(/\/+$/, "", p); return p }
-    function same(a, b) {
-      a = bare(a); b = bare(b)
-      return a == b || index(a, b "/") == 1 || index(b, a "/") == 1
-    }
+  awk -F "$HEADER_US" -v US="$HEADER_US" "$PLACES_SAME_AWK"'
     function overlapping(i, j,   ni, nj, pi, pj, x, y) {
       ni = split(places[i], pi, ",")
       nj = split(places[j], pj, ",")
@@ -57,6 +73,27 @@ derive_same_places() {
           print name[i] US name[j] US age[j]
         }
       }
+    }
+  '
+}
+
+# Which rows hold any of the paths given. Each line on stdin is
+# "<name><US><session><US><places>", places comma-joined; each line out is
+# "<name><US><session>" for a row one of whose places is the same place as a
+# path, in the order the rows came in. The paths come as arguments, each
+# already inside the root. Same place both ways, as a ready brief's collision
+# is: a path inside a place lies where that brief works, and a folder holding
+# a place holds that work.
+derive_places_holding() {
+  local paths
+  printf -v paths '%s\037' "$@"
+  awk -F "$HEADER_US" -v US="$HEADER_US" -v paths="${paths%$'\037'}" "$PLACES_SAME_AWK"'
+    BEGIN { count = split(paths, wanted, US) }
+    {
+      n = split($3, held, ",")
+      for (i = 1; i <= n; i++)
+        for (j = 1; j <= count; j++)
+          if (same(held[i], wanted[j])) { print $1 US $2; next }
     }
   '
 }

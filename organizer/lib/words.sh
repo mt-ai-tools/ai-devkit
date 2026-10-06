@@ -61,7 +61,7 @@ problem_marks_unreadable_note() {
 # --- Refusals: the operation stops and changes nothing.
 
 refuse_usage_note() {
-  printf 'Usage: list | check | take <brief> <session> | free <session> | held <session> | free-brief <brief> | done <brief>\n'
+  printf 'Usage: list | check | take <brief> <session> | free <session> | held <session> | taken [<path>...] | free-brief <brief> | done <brief>\n'
 }
 
 refuse_marks_unreadable_note() {
@@ -82,6 +82,18 @@ refuse_draft_left_note() {
 
 refuse_held_unreadable_note() {
   printf 'The taken mark for %s cannot be read, so which briefs a session holds cannot be told; free it.\n' "$1"
+}
+
+refuse_taken_mark_unreadable_note() {
+  printf 'The taken mark for %s cannot be read, so who holds it, and where they work, cannot be told; free it.\n' "$1"
+}
+
+refuse_places_unreadable_note() {
+  printf '%s: its touches or creates list cannot be read, so where it is worked on cannot be told.\n' "$1"
+}
+
+refuse_path_outside_note() {
+  printf '%s leaves the project root, so no brief can work there.\n' "$1"
 }
 
 refuse_bad_name_note() {

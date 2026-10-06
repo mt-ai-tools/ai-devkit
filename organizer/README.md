@@ -1,8 +1,8 @@
 # organizer
 
 A work organizer over a folder of briefs: what is ready to start, what waits
-and on what, what a session has taken, and which ready briefs would work
-where a taken one already does — and the one writer of a new brief, in the
+and on what, what a session has taken, which ready briefs would work where
+a taken one already does, and which taken briefs work where a path lies — and the one writer of a new brief, in the
 one shape a brief has, once the operator has said yes to it.
 
 The order of the work is derived, never kept: each brief's header says what

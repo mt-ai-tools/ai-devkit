@@ -332,3 +332,84 @@ $(refuse_guidance_outside_note maybe)" ]
   run --separate-stderr refuse_bad_round_answer '{"decisions":[]}' '[]'
   [ "$status" -eq 0 ]
 }
+
+# --- The closing reader's form.
+
+# One finding: what it is, its sort, its files as a JSON array, its brief.
+look_finding() {
+  jq -cn --arg f "$1" --arg sort "$2" --argjson files "${3:-[]}" --arg brief "${4:-}" \
+    '{finding: $f, sort: $sort, files: $files, brief: $brief}'
+}
+
+# A closing reader's form holding the findings given, a JSON array, and
+# nothing_left as given.
+look_with() {
+  jq -cn --argjson findings "$1" --argjson left "$2" '{findings: $findings, nothing_left: $left}'
+}
+
+others='["frozen-account"]'
+
+@test "a closing reader's form passes whole, a finding of every sort among it" {
+  findings="[$(look_finding "README" here '["aidk-plans/x.md"]'),$(look_finding "noted" written-down),$(look_finding "logging" not-same-job),$(look_finding "copy" quick '["src/a.ts","src/"]'),$(look_finding "theirs" hand-off '[]' frozen-account),$(look_finding "screen" park)]"
+  run refuse_bad_look_form "$(look_with "$findings" false)" "$others"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(look_with "$findings" false)" ]
+  run refuse_bad_look_form "$(look_with '[]' true)" '[]'
+  [ "$status" -eq 0 ]
+}
+
+@test "a finding that is not its four fields, or sorted outside the filter, is refused" {
+  for bad in '{"finding":"x","sort":"park","files":[]}' '{"finding":" ","sort":"park","files":[],"brief":""}' \
+    '{"finding":"x","sort":"park","files":[""],"brief":""}' '{"finding":"x","sort":"park","files":"a","brief":""}' '"x"'; do
+    run --separate-stderr refuse_bad_look_form "$(look_with "[$bad]" true)" "$others"
+    [ "$status" -eq 1 ]
+    [ "$stderr" = "$(refuse_bad_finding_note)" ]
+  done
+  run --separate-stderr refuse_bad_look_form "$(look_with "[$(look_finding x maybe)]" true)" "$others"
+  [ "$stderr" = "$(refuse_sort_outside_note maybe)" ]
+  run --separate-stderr refuse_bad_look_form "$(look_with "[$(look_finding "a  thing" unsorted)]" true)" "$others"
+  [ "$stderr" = "$(refuse_unsorted_note "a thing")" ]
+}
+
+@test "a path leaving the project root is refused" {
+  for path in /etc/passwd ../x a/../../b ..; do
+    run --separate-stderr refuse_bad_look_form "$(look_with "[$(look_finding x park "[\"$path\"]")]" true)" "$others"
+    [ "$status" -eq 1 ]
+    [ "$stderr" = "$(refuse_file_outside_note "$path")" ]
+  done
+}
+
+@test "a hand-off to a brief no other session holds, or a brief beside another sort, is refused" {
+  run --separate-stderr refuse_bad_look_form "$(look_with "[$(look_finding x hand-off '[]' file-trash)]" true)" "$others"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_brief_outside_note file-trash)" ]
+  run --separate-stderr refuse_bad_look_form "$(look_with "[$(look_finding x hand-off)]" true)" "$others"
+  [ "$stderr" = "$(refuse_brief_outside_note "")" ]
+  run --separate-stderr refuse_bad_look_form "$(look_with "[$(look_finding x park '[]' frozen-account)]" true)" "$others"
+  [ "$stderr" = "$(refuse_brief_unasked_note frozen-account)" ]
+}
+
+@test "a quick finding naming no files is refused, since where it lies could not be checked" {
+  run --separate-stderr refuse_bad_look_form "$(look_with "[$(look_finding "a copy" quick)]" true)" "$others"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_quick_no_files_note "a copy")" ]
+}
+
+@test "nothing left beside a finding that belongs here, or something left beside none, is refused" {
+  run --separate-stderr refuse_bad_look_form "$(look_with "[$(look_finding x here)]" true)" "$others"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_left_but_here_note)" ]
+  run --separate-stderr refuse_bad_look_form "$(look_with "[$(look_finding x park)]" false)" "$others"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_here_none_but_left_note)" ]
+}
+
+@test "a closing reader's form missing a field, holding another, or not JSON is refused" {
+  run --separate-stderr refuse_bad_look_form '{"findings":[]}' "$others"
+  [ "$stderr" = "$(refuse_missing_field_note "$(look_form_words)" nothing_left)" ]
+  run --separate-stderr refuse_bad_look_form '{"findings":[],"nothing_left":true,"why":"x"}' "$others"
+  [ "$stderr" = "$(refuse_unknown_field_note "$(look_form_words)" why)" ]
+  run --separate-stderr refuse_bad_look_form 'nope' "$others"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_not_json_note "$(look_form_words)")" ]
+}

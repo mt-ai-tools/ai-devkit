@@ -19,15 +19,20 @@
 # step, for a finished step's report, what it said of its problems, its proof
 # and its next step and what the sorter found major, null for a question;
 # round, for a request to start building, every decision of the round as the
-# operator was shown it, each {number, by, decision}, null otherwise; answer,
-# the operator's, empty until they give one.
+# operator was shown it, each {number, by, decision}, null otherwise; closing,
+# for a round of the closing loop, its number and every finding of its two
+# looks as code checked it, null otherwise; answer, the operator's, empty
+# until they give one.
 #
 # A step's report is logged like a question, its decision being whether to go
 # on: the go the stand-in would give is counted toward its kind's trial as a
 # held answer is, and one it gave is listed and reopened as a settled one is.
 # So is a request to start building, its decision being whether to build on
 # the round as listed: its line is where the session's next round begins, and
-# the numbers its list holds are ones the operator may reopen.
+# the numbers its list holds are ones the operator may reopen. So is a round
+# of the closing loop, its decision being whether anything is left that
+# belongs to the brief: its line is how the rounds are counted, and what the
+# end report lists as fixed in passing, dropped and parked.
 #
 # Every write takes one lock, a file of its own beside the log: two sessions
 # letting a question go at once must leave two whole lines, and bash writes a
@@ -57,10 +62,13 @@ LOG_LOCK_NAME=".questions.jsonl.lock"
 LOG_LOCK_SECONDS=10
 
 # How a question ended: brought to the operator; brought to them though its
-# answer held, while its kind is on trial; or settled without them.
+# answer held, while its kind is on trial; settled without them; or, for a
+# round of the closing loop, handed back to the agent with what to do next,
+# which never awaits the operator's answer and is never theirs to reopen.
 OUTCOME_TO_OPERATOR="to-operator"
 OUTCOME_WOULD_HAVE_APPROVED="would-have-approved"
 OUTCOME_SETTLED="settled"
+OUTCOME_TO_AGENT="to-agent"
 
 # --- Transforms.
 
@@ -81,8 +89,8 @@ to_log_path() {
 # summary (the summary's parts, null for none); and, for a step's report
 # alone, kind, outcome and step, which no record holds, since the report is
 # let go in the stop that read it; for a request to start building, outcome
-# and round, for the same reason; and for a question settled without the
-# operator, its outcome. Its number is given as the line is
+# and round, for the same reason; for a round of the closing loop, outcome
+# and closing; and for a question settled without the operator, its outcome. Its number is given as the line is
 # written, and its answer is empty until the operator gives one. The record
 # reaches jq on stdin, never as an argument: its exchange can outgrow what one
 # may hold.
@@ -112,6 +120,7 @@ to_log_line() {
       reading: ($parts.reading_text | text_or_null),
       step: ($details.step // null),
       round: ($details.round // null),
+      closing: ($details.closing // null),
       answer: ""
     }' <<<"$record"
 }

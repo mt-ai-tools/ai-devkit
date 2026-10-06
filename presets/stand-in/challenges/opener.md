@@ -11,6 +11,6 @@ the challenge ladder). Prepare every question of the brief before asking
 any, then ask them one at a time, each explained plainly with an
 everyday example, its options' risks named, and one recommendation.
 
-When the brief is built, run the closing loop; when it comes back empty,
-finish the brief with the organizer's done and commit the paths it
-prints.
+When the brief is built, say so plainly: the stand-in then runs the
+closing loop with you. When it comes back empty, finish the brief with
+the organizer's done and commit the paths it prints.

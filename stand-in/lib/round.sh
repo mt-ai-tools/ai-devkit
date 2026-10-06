@@ -47,7 +47,9 @@ ROUND_US=$'\037'
 # so it falls in the round after the request it was reopened from, and the
 # next request lays it out anew. Another session's questions are its own
 # round. A step's report and a request to build are no decision of a round,
-# only where one ends.
+# only where one ends; a round of the closing loop is none either, since the
+# operator decides nothing in it: what it finds that belongs to the brief is
+# asked again as questions, which are.
 derive_round_decisions() {
   local lines="$1" session="$2"
   [ -n "$lines" ] || { printf '[]\n'; return 0; }
@@ -57,7 +59,7 @@ derive_round_decisions() {
     | (reduce range(0; $own | length) as $i (-1;
         if ($own[$i].round != null or $own[$i].step != null) then $i else . end)) as $last
     | $own[($last + 1):]
-    | map(select(.round == null and .step == null)
+    | map(select(.round == null and .step == null and .closing == null)
       | {number, by: (if .outcome == $settled then $stand_in else $operator end),
          question: (.retold // .question), options: (.ladder.first.options // []),
          recommended: (.summary.recommends_now // .ladder.first.recommended // ""),

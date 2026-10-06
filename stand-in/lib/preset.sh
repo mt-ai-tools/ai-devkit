@@ -19,6 +19,10 @@ PRESET_RISKS_FILE="challenges/risks.md"
 # stand-in sends: read from the file the operator reads, never copied into
 # code or a prompt, so the words a project swaps in are the words sent.
 PRESET_LADDER_FILE="challenges/challenge-ladder.md"
+# The operator's closing loop, whose named quotes are the messages the
+# stand-in sends once the work is said to be done, read as the ladder's are
+# and for the same reason.
+PRESET_CLOSING_FILE="challenges/closing-loop.md"
 # What a session started under the stand-in with a brief is told first: read
 # from the file the operator reads and swaps, never copied into code.
 PRESET_OPENER_FILE="challenges/opener.md"
@@ -242,7 +246,23 @@ get_kind_entry() {
 # reordering would silently send the wrong words, and a preset missing one is
 # found on the first question rather than half-way up a ladder.
 get_ladder_messages() {
-  local file="$1/$PRESET_LADDER_FILE" text messages name
+  local preset="$1"
+  shift
+  get_preset_messages "$preset/$PRESET_LADDER_FILE" "$@"
+}
+
+# The messages a preset's closing loop holds under the names given, as
+# get_ladder_messages hands back the ladder's, and refused as it refuses.
+get_closing_messages() {
+  local preset="$1"
+  shift
+  get_preset_messages "$preset/$PRESET_CLOSING_FILE" "$@"
+}
+
+# The messages the preset's file given holds under the names given, the one
+# reading both the ladder's and the closing loop's go through.
+get_preset_messages() {
+  local file="$1" text messages name
   shift
   if ! text="$(cat "$file" 2>/dev/null)"; then
     refuse_unreadable_file_note "$file" >&2

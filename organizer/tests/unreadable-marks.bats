@@ -82,3 +82,10 @@ teardown() {
   run organizer free session-1
   [ "$status" -eq 0 ]
 }
+
+@test "the taken briefs are refused with the reason" {
+  run --separate-stderr organizer taken aidk-plans
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
+  [ "$stderr" = "$(refuse_marks_unreadable_note "$marks")" ]
+}

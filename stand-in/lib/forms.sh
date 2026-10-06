@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The fixed forms the stand-in's agents fill — the reader's, the sorter's and
 # its labelling of a step's report, the checker's, the matcher's, the
-# reading's, the summary's and the round reader's — in one place:
+# reading's, the summary's, the round reader's and the closing reader's — in
+# one place:
 # every field and its JSON type, from which both the schema a model answers
 # to and the check in code are drawn, so the two can never disagree on what a
 # form holds. What each field means is the prompts' to say. Sourced, never
@@ -14,7 +15,8 @@ STAND_IN_LOADED_FORMS=1
 # The reader's form. asks_operator: the reply puts a question to the operator
 # that waits for their answer. question: that question in one sentence.
 # options: the option labels the reply names, in its order. recommended: the
-# label it recommends. claims_done: it says the work is finished.
+# label it recommends. claims_done: it says the whole brief, or all its work,
+# is finished, which starts the closing loop (settled 2026-10-06).
 # closes_round: it says the round of questions is over and asks the operator
 # whether to start building, whose answer is always theirs and reaches them
 # with every decision of the round laid out (settled 2026-10-06).
@@ -187,6 +189,43 @@ ROUND_ANSWER_FIELDS='{
 # The fields of one decision of the round's list.
 ROUND_DECISION_FIELDS='["number", "decision"]'
 
+# The closing reader's form, for a reply to one look of the closing loop
+# (settled 2026-10-06): findings, every thing the reply says it found, each {finding, sort,
+# files, brief}: what it is, the sort the agent gave it by the filter below,
+# the files or folders it touches as paths from the project root, and for a
+# hand-off the brief it goes to. nothing_left: the reply says nothing that
+# belongs to the brief is left. The agent sorts and code checks what it can,
+# never a model: a reader only copies the agent's sort, so the filter stays
+# the agent's judgement and the checks on it stay in code.
+LOOK_FORM_FIELDS='{
+  "findings": "array",
+  "nothing_left": "boolean"
+}'
+
+# The fields of one finding.
+FINDING_FIELDS='["finding", "sort", "files", "brief"]'
+
+# The sorts a finding may be, by decision 2's filter: belongs to this brief,
+# and goes through the gate as a question; belongs elsewhere and is already
+# written down, in another brief or the notes, and is dropped; a place the new
+# thing could also be used that is not the same job, and is dropped, since
+# the second look adopts the new thing only where it replaces hand-made
+# copies of itself; written down nowhere and quick (no decision, a few lines
+# in one module, nobody else's uncommitted edits in its files), and fixed in
+# passing; a place to use the new thing in an area another session works in,
+# handed off into that session's brief; anything else, parked as a line in
+# the notes or asked about as a brief of its own. And unsorted, where the
+# reply gives none: the reader says so rather than guess, and the check
+# refuses the form.
+FINDING_HERE="here"
+FINDING_WRITTEN_DOWN="written-down"
+FINDING_NOT_SAME_JOB="not-same-job"
+FINDING_QUICK="quick"
+FINDING_HAND_OFF="hand-off"
+FINDING_PARK="park"
+FINDING_UNSORTED="unsorted"
+FINDING_SORTS="[\"$FINDING_HERE\", \"$FINDING_WRITTEN_DOWN\", \"$FINDING_NOT_SAME_JOB\", \"$FINDING_QUICK\", \"$FINDING_HAND_OFF\", \"$FINDING_PARK\", \"$FINDING_UNSORTED\"]"
+
 # The fields of one item of each of the checker's lists, every one a string.
 CHECKER_BREAK_FIELDS='["entry", "why"]'
 CHECKER_MISCALLED_FIELDS='["called", "actually"]'
@@ -278,6 +317,25 @@ matcher_answer_schema() {
 # The schema the summary reader answers to.
 summary_answer_schema() {
   to_form_schema "$SUMMARY_ANSWER_FIELDS" '{}'
+}
+
+# The schema the closing reader answers to, given the briefs other sessions
+# hold as a JSON array of names: a hand-off goes to one of them, or the brief
+# is empty.
+look_form_schema() {
+  local finding
+  finding="$(jq -cn --argjson sorts "$FINDING_SORTS" --argjson briefs "$1" --argjson fields "$FINDING_FIELDS" '{
+    type: "object",
+    properties: {
+      finding: {type: "string"},
+      sort: {type: "string", enum: $sorts},
+      files: {type: "array", items: {type: "string"}},
+      brief: {type: "string", enum: ($briefs + [""] | unique)}
+    },
+    required: $fields,
+    additionalProperties: false
+  }')"
+  to_form_schema "$LOOK_FORM_FIELDS" "$(jq -cn --argjson finding "$finding" '{findings: {items: $finding}}')"
 }
 
 # The schema the round reader answers to, given the decisions' numbers as a

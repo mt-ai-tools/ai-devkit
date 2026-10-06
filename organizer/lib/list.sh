@@ -22,16 +22,6 @@ SESSION_SHOWN_LENGTH=8
 
 # --- Transforms.
 
-# A brief's places: its touches and creates together, comma-joined, since a
-# brief that brings a folder into being works there as surely as one that
-# edits it.
-derive_places() {
-  local touches creates
-  touches="$(parse_flow_list "$1")" || touches=""
-  creates="$(parse_flow_list "$2")" || creates=""
-  printf '%s' "$touches${touches:+${creates:+,}}$creates"
-}
-
 # The list, from the check's problems, the briefs' rows, the marks' rows and
 # now. Each section is left out where it would be empty, and sections are
 # parted by a blank line. Where the marks could not be read, a fifth argument

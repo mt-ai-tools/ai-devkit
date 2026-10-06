@@ -117,3 +117,20 @@ teardown() {
   [ "$(read_session_record "$file")" = "$record" ]
   [ "$(with_chain_reset "$record")" = "$EMPTY_RECORD" ]
 }
+
+@test "a closing round holds its briefs and every look's findings, and is let go with the question" {
+  record="$(with_closing "$EMPTY_RECORD" '["file-trash"]')"
+  record="$(with_closing_findings "$record" '[{"finding":"a"}]')"
+  record="$(with_closing_findings "$record" '[{"finding":"b"}]')"
+  [ "$(to_closing "$record")" = '{"briefs":["file-trash"],"findings":[{"finding":"a"},{"finding":"b"}]}' ]
+  [ "$(with_chain_reset "$record")" = "$EMPTY_RECORD" ]
+  [ -z "$(to_closing "$EMPTY_RECORD")" ]
+}
+
+@test "a record holding a broken closing round is refused" {
+  mkdir -p "$(dirname "$file")"
+  jq -c '.closing = {"briefs": "file-trash", "findings": []}' <<<"$EMPTY_RECORD" >"$file"
+  run --separate-stderr read_session_record "$file"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_state_unreadable_note "$file")" ]
+}

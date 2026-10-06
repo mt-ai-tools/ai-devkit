@@ -51,6 +51,25 @@ alone. Only what is left would be told to go on; while its kind is on trial
 the reply stops instead, beside a note that the stand-in would have said go
 and what was fixed in passing. A go that could not be logged is never given.
 
+A reply saying the work of the session's brief is done starts the closing
+loop, the operator's own sweep: rounds of two looks around, in the preset's
+words, the first for anything to move, change or delete, the second for
+every place the new work should now be used. A step's report that names no
+next step and says nothing of the brief being done is first asked whether
+the whole brief is done; the reader is never asked whether work sounds
+finished. Each look's reply is read by another model into what it found,
+each with the sort the agent gave it: belongs to the brief, already written
+down elsewhere, not the same job, quick to fix in passing, handed off into
+another session's brief, or parked. Code checks what it can: a finding to be
+fixed in passing where another session's brief works becomes a hand-off into
+that brief, and one whose files hold changes nobody committed is parked.
+What belongs to the brief goes back to the agent to be asked, one question
+at a time, through the gate as any question. A round finding nothing that
+belongs to the brief ends the loop, and the agent is told to finish the
+brief through the work organizer and commit what that prints; the round that
+makes three finding something that does reaches the operator instead, with
+its list, rounds whose findings all belong elsewhere not counting.
+
 It is switched on for a session by a command the operator types, and in no
 other way. With a brief's name, the brief is taken through the work
 organizer, and the session is handed the preset's opener before anything
@@ -83,7 +102,8 @@ ended and why, the summary's parts and the second reading. So does every
 step's report it weighs, with what it said of its problems, its proof and its
 next step, and what was found major; a go is listed and reopened as a
 settled question is. So does every request to start building, with the
-round's list as the operator was shown it. Lines from sessions
+round's list as the operator was shown it, and every round of the closing
+loop, with each finding and its sort. Lines from sessions
 writing at once never interleave. The first thing the operator types after a
 question reached them is kept as their answer to it. Asked in plain words,
 it shows the operator the questions it settled without them, and brings any
@@ -116,13 +136,15 @@ and its route, one of them at most taking the route of a finished step's go,
 a list of risks, each opening with its short name, a
 challenge ladder holding each message the stand-in sends — the two
 challenges, the bigger look around and the plain retelling — quoted under
-the short name it is asked for by, and an opener, what a session started
-with a brief is told first. Needs the rules, and the conventions
+the short name it is asked for by, a closing loop holding its two looks and
+the question whether the whole brief is done, quoted the same way, and an
+opener, what a session started with a brief is told first. Needs the rules, and the conventions
 where a project keeps them, and the kit's advisor, whose command a second
 reading runs. Needs a working folder of its own, holding a switch per
 session it is on for, its record of each and its log, worth nothing beyond
 one machine. Needs the kit's work organizer, to show its list, to take a
-brief, and to say which brief a session holds. Needs registering for Claude
+brief, to say which brief a session holds, and which briefs every session
+holds and where they work. Needs registering for Claude
 Code's end-of-reply event, with a time limit no shorter than the one it
 declares; for its turn-start event, to keep the operator's answers, and
 again, beside the skill that offers the command, to act on the command that
@@ -131,4 +153,4 @@ before-tool event of the question tool, to keep questions in the reply;
 and for its after-tool event of the Skill tool, beside its two other
 skills, to show what they ask for. Needs the Claude Code
 command-line tool, signed in, to ask models through; and `bash`, `awk`,
-`jq` and util-linux's `flock`.
+`jq`, `git` and util-linux's `flock`.

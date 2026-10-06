@@ -1485,3 +1485,355 @@ accepted_message() {
   [ "$(message)" = "$(operator_message "$(gate_kind_line new-module "The new-module kind.")"$'\n'"$(gate_kept_line)")" ]
   [ "$(calls | grep -c '^matcher ')" -eq 0 ]
 }
+
+# --- The closing loop.
+
+# The suite's session holding its brief, file-trash, working in aidk-plans;
+# another session holding frozen-account, working in monoframe/mf-users; and
+# the project under git, every file committed.
+closing_ground() {
+  . "$lib/closing.sh"
+  hold_brief
+  printf -- '---\nsummary: Frozen.\nafter: []\ntouches: [monoframe/mf-users]\ncreates: []\n---\n\n# frozen-account\n' \
+    >"$project/aidk-plans/frozen-account.md"
+  printf 'session: session-2\nsince: 2026-10-06T09:00:00Z\n' >"$project/aidk-organizer/taken/frozen-account"
+  mkdir -p "$project/monoframe/mf-users/src" "$project/monoframe/mf-media/src"
+  printf 'users\n' >"$project/monoframe/mf-users/src/users.ts"
+  printf 'media\n' >"$project/monoframe/mf-media/src/media.ts"
+  printf 'sizes\n' >"$project/monoframe/mf-media/src/sizes.ts"
+  git -C "$project" init -q
+  git -C "$project" add -A
+  git -C "$project" -c user.name=suite -c user.email=suite@example.invalid commit -qm ground
+}
+
+# A reader's form of a reply saying the work is done.
+done_form() { jq -c '.claims_done = true' <<<"$(no_question_form)"; }
+done_reply="The brief is done: every step is built and its proof passed."
+
+# One finding as the closing reader writes it: what it is, its sort, its
+# files as a JSON array, and the brief it is handed to.
+finding() {
+  jq -cn --arg f "$1" --arg sort "$2" --argjson files "${3:-[]}" --arg brief "${4:-}" \
+    '{finding: $f, sort: $sort, files: $files, brief: $brief}'
+}
+
+# The closing reader's form of a look's reply holding the findings given,
+# saying nothing is left exactly where none of them belongs here.
+look_form() {
+  local findings
+  findings="$(printf '%s\n' "$@" | jq -cs 'map(select(. != null))')"
+  jq -cn --argjson findings "$findings" '{findings: $findings, nothing_left: all($findings[]; .sort != "here")}'
+}
+
+# A sweep started by a reply saying the work is done, on a new turn.
+start_sweep() {
+  answer_for reader "$(done_form)"
+  run_gate false "$done_reply"
+}
+
+# The reply to a look, read by the closing reader as the form given.
+look_reply() {
+  answer_for closing "$1"
+  run_gate true "${2:-I looked around.}"
+}
+
+# A whole round: the sweep started, then each look answered as given.
+sweep_round() {
+  start_sweep
+  look_reply "$1"
+  look_reply "$2"
+}
+
+# A look as the gate sends it, with how to report.
+look_note() { gate_challenge_note "$1"; to_closing_report_note; }
+
+# The log's last line.
+last_line() { tail -n 1 "$(log_file)"; }
+
+here_finding="$(finding "The README still calls the loop beta" here '["aidk-plans/stand-in-loops.md"]')"
+
+@test "a reply saying the work is done is sent the cleanup look, read by the reader alone" {
+  closing_ground
+  start_sweep
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  [ "$(reason)" = "$(look_note "$cleanup_look")" ]
+  [[ "$(reason)" == "From the stand-in: "* ]]
+  [ "$(calls)" = "reader $READER_MODEL" ]
+  [ "$(jq -c '{round, closing}' "$record_file")" = '{"round":"cleanup-look","closing":{"briefs":["file-trash"],"findings":[]}}' ]
+}
+
+@test "each look's reply is read by the closing reader alone, handed the briefs other sessions hold" {
+  closing_ground
+  start_sweep
+  rm "$FAKE_CALLS"
+  look_reply "$(look_form)" "Nothing to tidy."
+  [ "$(reason)" = "$(look_note "$use_look")" ]
+  [ "$(calls)" = "closing $CLOSING_MODEL" ]
+  prompt="$FAKE_PROMPT.closing"
+  grep -qxF -- "- frozen-account" "$prompt"
+  [ "$(grep -c -- "- file-trash" "$prompt")" -eq 0 ]
+  grep -qF -- "$project" "$prompt"
+  grep -qxF -- "Nothing to tidy." "$prompt"
+  grep -qF -- '"enum":["","frozen-account"]' "$FAKE_ARGS.closing"
+  [ "$(jq -r '.round' "$record_file")" = use-look ]
+}
+
+@test "a finding of each sort from both looks: what belongs here is asked, a copy switched over in passing, another session's area handed off, the rest parked or dropped" {
+  closing_ground
+  sweep_round \
+    "$(look_form "$here_finding" \
+      "$(finding "A typo the notes already hold" written-down)" \
+      "$(finding "A settings screen of its own" park)")" \
+    "$(look_form \
+      "$(finding "media.ts builds the sizes by hand; switch it to the new reader" quick '["monoframe/mf-media/src/media.ts"]')" \
+      "$(finding "mf-users could take it in its own screens" hand-off '[]' frozen-account)" \
+      "$(finding "It could also be used for logging" not-same-job)")"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  expected="$(closing_here_note
+    gate_problem_line "The README still calls the loop beta"
+    closing_quick_heading
+    gate_problem_line "media.ts builds the sizes by hand; switch it to the new reader"
+    closing_hand_off_heading
+    closing_hand_off_line "mf-users could take it in its own screens" frozen-account ""
+    closing_park_heading
+    gate_problem_line "A settings screen of its own")"
+  [ "$(reason)" = "$expected" ]
+  # One line for the round, every finding with its look and its sort.
+  line="$(last_line)"
+  [ "$(jq -c '{number, question, outcome, kind, approved, answer, briefs}' <<<"$line")" = \
+    "$(jq -cn --arg q "$(closing_round_question 1)" '{number: 1, question: $q, outcome: "to-agent", kind: null, approved: "", answer: "", briefs: ["file-trash"]}')" ]
+  [ "$(jq -c '.closing | {number, briefs}' <<<"$line")" = '{"number":1,"briefs":["file-trash"]}' ]
+  [ "$(jq -c '[.closing.findings[] | [.look, .sort, .moved]]' <<<"$line")" = \
+    '[["cleanup-look","here",""],["cleanup-look","written-down",""],["cleanup-look","park",""],["use-look","quick",""],["use-look","hand-off",""],["use-look","not-same-job",""]]' ]
+  [ "$(jq -c '.closing.findings[4].briefs' <<<"$line")" = '["frozen-account"]' ]
+  [ "$(jq -c '[.exchange[] | .from]' <<<"$line")" = '["agent","stand-in","agent","stand-in","agent"]' ]
+  [ "$(jq -c . "$record_file")" = "$EMPTY_RECORD" ]
+  # A round is no question of the operator's: nothing they type is its answer.
+  run "$BATS_TEST_DIRNAME/../hooks/answer-hook.sh" <<<"$(jq -cn --arg s "$session" '{session_id: $s, hook_event_name: "UserPromptSubmit", prompt: "fine"}')"
+  [ "$(last_line | jq -r '.answer')" = "" ]
+}
+
+@test "a quick finding in a file another session's brief works in is handed off into that brief, never fixed in passing" {
+  closing_ground
+  sweep_round "$(look_form "$here_finding")" \
+    "$(look_form "$(finding "users.ts copies the new reader by hand" quick '["monoframe/mf-users/src/users.ts"]')")"
+  expected="$(closing_here_note
+    gate_problem_line "The README still calls the loop beta"
+    closing_hand_off_heading
+    closing_hand_off_line "users.ts copies the new reader by hand" frozen-account "$(closing_moved_held_words)")"
+  [ "$(reason)" = "$expected" ]
+  [ "$(last_line | jq -c '.closing.findings[1] | {sort, briefs, moved}')" = '{"sort":"hand-off","briefs":["frozen-account"],"moved":"held"}' ]
+}
+
+@test "a quick finding whose files hold changes nobody committed is parked, never fixed in passing" {
+  closing_ground
+  printf 'edited\n' >>"$project/monoframe/mf-media/src/sizes.ts"
+  printf 'new\n' >"$project/monoframe/mf-media/src/fresh.ts"
+  sweep_round "$(look_form "$here_finding")" \
+    "$(look_form "$(finding "sizes.ts repeats the table" quick '["monoframe/mf-media/src/sizes.ts"]')" \
+      "$(finding "fresh.ts repeats it too" quick '["monoframe/mf-media/src/fresh.ts"]')" \
+      "$(finding "media.ts repeats it as well" quick '["monoframe/mf-media/src/media.ts"]')")"
+  expected="$(closing_here_note
+    gate_problem_line "The README still calls the loop beta"
+    closing_quick_heading
+    gate_problem_line "media.ts repeats it as well"
+    closing_park_heading
+    closing_moved_line "sizes.ts repeats the table" "$(closing_moved_uncommitted_words)"
+    closing_moved_line "fresh.ts repeats it too" "$(closing_moved_uncommitted_words)")"
+  [ "$(reason)" = "$expected" ]
+  [ "$(last_line | jq -c '[.closing.findings[] | [.sort, .moved]]')" = \
+    '[["here",""],["park","uncommitted"],["park","uncommitted"],["quick",""]]' ]
+}
+
+@test "where git cannot tell whether a file holds uncommitted changes, nothing is fixed in passing: the operator is told why" {
+  closing_ground
+  rm -rf "$project/.git"
+  start_sweep
+  look_reply "$(look_form "$(finding "media.ts repeats the table" quick '["monoframe/mf-media/src/media.ts"]')" \
+    "$here_finding")"
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(message)" = "$(gate_broken_note "$(refuse_changes_unknown_note monoframe/mf-media/src/media.ts)")" ]
+}
+
+@test "an empty round ends the loop: the sweep is done, and the brief is finished with done and committed" {
+  closing_ground
+  sweep_round "$(look_form)" "$(look_form)"
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  [ "$(reason)" = "$(closing_swept_note; closing_finish_line)" ]
+  [ "$(last_line | jq -c '{outcome, closing: (.closing | {number, findings})}')" = \
+    '{"outcome":"to-agent","closing":{"number":1,"findings":[]}}' ]
+  # A round is no decision of a round of questions laid out before building.
+  answer_for reader "$(jq -c '.asks_operator = false | .question = "" | .options = [] | .recommended = "" | .closes_round = true' <<<"$(whole_form)")"
+  run_gate false "Shall I start building?"
+  [ "$(message)" = "$(round_heading; round_empty_line; round_hint)" ]
+}
+
+@test "a round whose findings all belong elsewhere ends the loop too, with what to do with them" {
+  closing_ground
+  sweep_round "$(look_form "$(finding "A settings screen of its own" park)")" \
+    "$(look_form "$(finding "media.ts builds the sizes by hand" quick '["monoframe/mf-media/src/media.ts"]')")"
+  expected="$(closing_swept_note
+    closing_quick_heading
+    gate_problem_line "media.ts builds the sizes by hand"
+    closing_park_heading
+    gate_problem_line "A settings screen of its own"
+    closing_finish_line)"
+  [ "$(reason)" = "$expected" ]
+}
+
+@test "a third round still finding something that belongs here tells the operator, with the list" {
+  closing_ground
+  rest="$(look_form "$here_finding" "$(finding "It could also be used for logging" not-same-job)")"
+  sweep_round "$rest" "$(look_form)"
+  [ "$(reason)" = "$(closing_here_note; gate_problem_line "The README still calls the loop beta")" ]
+  sweep_round "$rest" "$(look_form)"
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  sweep_round "$rest" "$(look_form "$(finding "mf-users could take it" hand-off '[]' frozen-account)")"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  expected="$(closing_notice_note 3
+    closing_finding_line "The README still calls the loop beta" "$(closing_sort_words here)"
+    closing_finding_line "It could also be used for logging" "$(closing_sort_words not-same-job)"
+    closing_finding_line "mf-users could take it" "$(closing_sort_words hand-off), $(closing_into_words frozen-account)")"
+  [ "$(message)" = "$expected" ]
+  [ "$(last_line | jq -c '{number, outcome, reasons, answer}')" = \
+    "$(jq -cn --arg why "$(closing_notice_why_line 3)" '{number: 3, outcome: "to-operator", reasons: [$why], answer: ""}')" ]
+  [ "$(jq -c . "$record_file")" = "$EMPTY_RECORD" ]
+  # The operator's answer to the notice is kept on its line.
+  run "$BATS_TEST_DIRNAME/../hooks/answer-hook.sh" <<<"$(jq -cn --arg s "$session" '{session_id: $s, hook_event_name: "UserPromptSubmit", prompt: "Leave the README."}')"
+  [ "$(last_line | jq -r '.answer')" = "Leave the README." ]
+}
+
+# A closing round's line of the log, written by the suite: number, session,
+# the briefs swept for as a JSON array, and the sort of its one finding.
+closing_line() {
+  jq -c --argjson number "$1" --arg session "$2" --argjson briefs "$3" --arg sort "$4" \
+    '.number = $number | .session = $session | .briefs = $briefs | .question = "A round."
+      | .ladder = null | .summary = null | .outcome = "to-agent"
+      | .closing = {number: 1, briefs: $briefs, findings: [{look: "cleanup-look", finding: "x", files: [], sort: $sort, briefs: [], moved: ""}]}' \
+    <<<"$(log_line "$1" "$OUTCOME_TO_OPERATOR" "$2" 2026-10-06T08:00:00Z)"
+}
+
+@test "rounds whose findings belong elsewhere, other briefs' rounds and other sessions' do not count toward the notice" {
+  closing_ground
+  add_log_lines "$history" \
+    "$(closing_line 1 "$session" '["other-brief"]' here)" \
+    "$(closing_line 2 session-2 '["file-trash"]' here)" \
+    "$(closing_line 3 "$session" '["other-brief"]' here)"
+  here_round="$(look_form "$here_finding")"
+  sweep_round "$here_round" "$(look_form)"
+  sweep_round "$(look_form "$(finding "A settings screen of its own" park)")" "$(look_form)"
+  [ "$(last_line | jq -r '.closing.number')" -eq 2 ]
+  sweep_round "$here_round" "$(look_form)"
+  # The third round of this brief, the second finding something here: still the agent's.
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  [ "$(reason)" = "$(closing_here_note; gate_problem_line "The README still calls the loop beta")" ]
+  sweep_round "$here_round" "$(look_form)"
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [[ "$(message)" == "$(closing_notice_note 3 | head -n 1)"* ]]
+  [ "$(last_line | jq -c '{outcome, closing: .closing.number}')" = '{"outcome":"to-operator","closing":4}' ]
+}
+
+@test "a round that cannot be logged goes to the operator, since its rounds could not be counted" {
+  closing_ground
+  start_sweep
+  look_reply "$(look_form "$here_finding")"
+  mkdir -p "$history/log"
+  chmod a-w "$history/log"
+  look_reply "$(look_form)"
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  expected="$(closing_unlogged_note 1
+    closing_finding_line "The README still calls the loop beta" "$(closing_sort_words here)"
+    gate_log_failed_line "$(refuse_log_unwritable_note "$history/log")")"
+  [ "$(message)" = "$expected" ]
+}
+
+@test "a look whose form fails, or hands off to a brief no other session holds, goes to the operator" {
+  closing_ground
+  start_sweep
+  look_reply "$(look_form "$(finding "A thing" unsorted)")"
+  [ "$(message)" = "$(gate_broken_note "$(refuse_unsorted_note "A thing")")" ]
+  start_sweep
+  look_reply "$(look_form "$(finding "Hand it over" hand-off '[]' file-trash)")"
+  [ "$(message)" = "$(gate_broken_note "$(refuse_brief_outside_note file-trash)")" ]
+}
+
+@test "a new turn of the operator's lets go of a round under way" {
+  closing_ground
+  start_sweep
+  answer_for reader "$(whole_form)"
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
+  rm "$FAKE_CALLS"
+  run_gate false
+  [ "$(reason)" = "$(retelling)" ]
+  [ "$(calls)" = "$(all_three)" ]
+  [ "$(jq -c '.closing' "$record_file")" = null ]
+}
+
+@test "a reply saying the work is done in a session holding no brief stops as it is; where which cannot be told, the operator is told" {
+  . "$lib/closing.sh"
+  mkdir -p "$project/aidk-plans"
+  start_sweep
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  [ "$(calls)" = "reader $READER_MODEL" ]
+  hold_brief
+  printf 'garbage\n' >"$project/aidk-organizer/taken/file-trash"
+  start_sweep
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(message)" = "$(closing_briefs_unknown_note "$(. "$BATS_TEST_DIRNAME/../../organizer/lib/words.sh"; refuse_held_unreadable_note file-trash)")" ]
+}
+
+@test "a preset whose closing loop lacks a message goes to the operator" {
+  closing_ground
+  closing="$preset_dir/challenges/closing-loop.md"
+  closing_file "$cleanup_look" "$use_look" "$whole_done" | sed 's/`use-look`/`renamed`/' >"$closing"
+  start_sweep
+  [ "$(message)" = "$(gate_broken_note "$(refuse_ladder_message_missing_note "$closing" use-look)")" ]
+}
+
+# A step's report naming no next step, as the reader reads it.
+no_next_form() { step_form '.next_step = "" | .next_step_number = 0 | .next_step_from = ""'; }
+no_next_reply="Step 9 is built and its proof passed."
+
+@test "a step's report naming no next step is asked whether the whole brief is done, and a yes starts the sweep" {
+  closing_ground
+  . "$lib/step-go.sh"
+  step_report "$(no_next_form)"
+  run_gate false "$no_next_reply"
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  [ "$(reason)" = "$(gate_challenge_note "$whole_done")" ]
+  [ "$(calls)" = "reader $READER_MODEL" ]
+  [ ! -e "$(log_file)" ]
+  answer_for reader "$(done_form)"
+  run_gate true "Yes, the whole brief is done."
+  [ "$(reason)" = "$(look_note "$cleanup_look")" ]
+}
+
+@test "asked once: a second report naming no next step is weighed as any step's, and reaches the operator saying so" {
+  closing_ground
+  . "$lib/step-go.sh"
+  step_report "$(no_next_form)"
+  run_gate false "$no_next_reply"
+  run_gate true "$no_next_reply"
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(message)" = "$(gate_step_operator_note "$(gate_step_question "")" "$(gate_next_unsaid_line)")" ]
+  # A report naming its next step is never asked.
+  answer_for reader "$(step_form)"
+  run_gate false "$step_reply"
+  [ "$(message)" = "$(trial_message)" ]
+}
+
+@test "a step's report naming no next step, in a session holding no brief, is weighed as before" {
+  . "$lib/step-go.sh"
+  kind step-go go
+  mkdir -p "$project/aidk-plans"
+  answer_for reader "$(no_next_form)"
+  answer_for step-sorter "$clean_step_sort"
+  run_gate false "$no_next_reply"
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  why="$(gate_next_unsaid_line)"$'\n'"$(gate_no_brief_line)"
+  [ "$(message)" = "$(gate_step_operator_note "$(gate_step_question "")" "$why")" ]
+}

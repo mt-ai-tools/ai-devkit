@@ -9,6 +9,9 @@
 #   free <session>            free every brief a session holds
 #   held <session>            the briefs a session holds and for how long,
 #                             one "<brief><TAB><age>" line each
+#   taken [<path>...]         the briefs sessions hold, one
+#                             "<brief><TAB><session>" line each; given paths,
+#                             only those working where any of them lies
 #   free-brief <brief>        free one brief, whoever holds it
 #   done <brief>              finish a brief, printing every path it changed
 #
@@ -29,6 +32,7 @@ tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/check.sh"
 . "$tool_root/lib/list.sh"
 . "$tool_root/lib/done.sh"
+. "$tool_root/lib/taken.sh"
 
 usage() {
   refuse_usage_note >&2
@@ -79,6 +83,9 @@ case "$command" in
     [ "$#" -eq 1 ] || usage
     now="$(get_now)"
     list_held_briefs "$marks" "$1" "$now"
+    ;;
+  taken)
+    list_taken_briefs "$plans" "$marks" "$@"
     ;;
   free-brief)
     [ "$#" -eq 1 ] || usage

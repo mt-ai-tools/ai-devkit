@@ -189,6 +189,42 @@ refuse_decision_missing_note() {
   printf 'The round reader left out decision %s.\n' "$1"
 }
 
+refuse_bad_finding_note() {
+  printf 'The closing reader'\''s form holds a finding that is not what was found, its sort, its files and a brief.\n'
+}
+
+refuse_sort_outside_note() {
+  printf 'The closing reader'\''s form sorts a finding "%s", which is not one of its words.\n' "$1"
+}
+
+refuse_unsorted_note() {
+  printf 'The agent gave no sort for something it found: %s.\n' "$1"
+}
+
+refuse_file_outside_note() {
+  printf 'The closing reader'\''s form names the file %s, which is no path inside the project root.\n' "$1"
+}
+
+refuse_brief_outside_note() {
+  printf 'The closing reader'\''s form hands a finding to the brief "%s", which no other session holds.\n' "$1"
+}
+
+refuse_brief_unasked_note() {
+  printf 'The closing reader'\''s form names the brief "%s" for a finding it does not hand off.\n' "$1"
+}
+
+refuse_quick_no_files_note() {
+  printf 'The agent would fix "%s" in passing but names no file it touches, so where it lies cannot be checked.\n' "$1"
+}
+
+refuse_left_but_here_note() {
+  printf 'The closing reader'\''s form says nothing is left for the brief, yet holds a finding that belongs to it.\n'
+}
+
+refuse_here_none_but_left_note() {
+  printf 'The closing reader'\''s form says something is left for the brief, yet holds no finding that belongs to it.\n'
+}
+
 # The names the refusals above call the forms by.
 reader_form_words() { printf "reader's form"; }
 sorter_answer_words() { printf "sorter's answer"; }
@@ -198,6 +234,7 @@ matcher_answer_words() { printf "matcher's answer"; }
 summary_answer_words() { printf "summary's answer"; }
 step_sort_words() { printf "sorter's labelling of the step"; }
 round_answer_words() { printf "round reader's answer"; }
+look_form_words() { printf "closing reader's form"; }
 
 # --- The rules and conventions.
 
@@ -705,6 +742,123 @@ round_unanswered_prompt_words() {
 
 round_by_stand_in_prompt_words() {
   printf 'Decided by the stand-in, without the operator. It settled on: %s' "$1"
+}
+
+# --- The closing loop: the sweep after the work is done, in rounds of two
+# looks, until a round finds nothing that belongs to the brief.
+
+# Under each look, how the agent reports, given the sort words in the
+# filter's order: here, written down, not the same job, quick, hand-off,
+# park. It reports first and changes nothing, since a fix made in the same
+# reply could not be held back once code found it belongs to someone else.
+closing_report_note() {
+  printf 'Report what you find, and change nothing yet. For each finding, say what it is, name the files it touches, and give it one of these sorts:\n'
+  printf -- '- %s: it belongs to this brief (its summary and what it touches).\n' "$1"
+  printf -- '- %s: it belongs elsewhere and is already written down, in another brief or the notes.\n' "$2"
+  printf -- '- %s: the new thing could also be used there, but it is not the same job.\n' "$3"
+  printf -- '- %s: written down nowhere, needs no decision, a few lines in one module, and nobody else'\''s uncommitted edits in its files.\n' "$4"
+  printf -- '- %s: a place to use the new thing in an area another session is working in; name that session'\''s brief.\n' "$5"
+  printf -- '- %s: anything else.\n' "$6"
+  printf 'Then say plainly whether anything that belongs to this brief is left.\n'
+}
+
+closing_here_note() {
+  gate_from_note 'the closing sweep found work that belongs to this brief. Ask the operator about each, one question at a time, with its options and your recommendation, and do it once it is decided:'
+}
+
+closing_swept_note() {
+  gate_from_note 'the closing sweep came back with nothing that belongs to this brief.'
+}
+
+closing_finish_line() {
+  printf 'Then finish the brief with the organizer'\''s done, and commit the paths it prints.\n'
+}
+
+closing_quick_heading() {
+  printf 'Fix these in passing:\n'
+}
+
+closing_hand_off_heading() {
+  printf 'Write a hand-off for each into the brief named, and leave its code alone:\n'
+}
+
+closing_park_heading() {
+  printf 'Park each as a line in the notes, or ask the operator whether to write a brief for it:\n'
+}
+
+# A finding handed off, given what it is, the briefs it goes into, joined,
+# and why it was not fixed in passing, empty where the agent sorted it so.
+closing_hand_off_line() {
+  if [ -n "${3:-}" ]; then
+    printf -- '- %s (into %s; not fixed in passing: %s)\n' "$1" "$2" "$3"
+  else
+    printf -- '- %s (into %s)\n' "$1" "$2"
+  fi
+}
+
+# The briefs a finding goes into, joined, as the operator reads them.
+closing_into_words() {
+  printf 'into %s' "$1"
+}
+
+# A finding the agent would have fixed in passing that code moved, given what
+# it is and why.
+closing_moved_line() {
+  printf -- '- %s (not fixed in passing: %s)\n' "$1" "$2"
+}
+
+closing_moved_held_words() {
+  printf 'another session works there'
+}
+
+closing_moved_uncommitted_words() {
+  printf 'its files hold changes nobody committed'
+}
+
+# What each sort is called where the operator reads a round.
+closing_sort_words() {
+  case "$1" in
+    here) printf 'belongs to this brief' ;;
+    written-down) printf 'already written down elsewhere, dropped' ;;
+    not-same-job) printf 'not the same job, dropped' ;;
+    quick) printf 'fixed in passing' ;;
+    hand-off) printf 'handed off' ;;
+    park) printf 'parked' ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+# One finding as the operator reads it: what it is, and its sort's words.
+closing_finding_line() {
+  printf -- '- %s (%s)\n' "$1" "$2"
+}
+
+# The decision a round puts, as the log keeps it, given its number.
+closing_round_question() {
+  printf 'Closing sweep, round %s: is anything left that belongs to the brief?' "$1"
+}
+
+closing_notice_note() {
+  printf 'Stand-in: the closing sweep has found something that belongs to this brief in %s rounds, so it is yours to look at. This round'\''s findings:\n' "$1"
+}
+
+# Why the round came to the operator, as the log keeps it.
+closing_notice_why_line() {
+  printf -- '- The closing sweep found something that belongs to the brief in %s rounds, which comes to you.\n' "$1"
+}
+
+closing_unlogged_note() {
+  printf 'Stand-in: round %s of the closing sweep could not be logged, so its rounds cannot be counted, and it is yours. Its findings:\n' "$1"
+}
+
+closing_briefs_unknown_note() {
+  local why="$1"
+  [ -n "$why" ] || why='No part of the stand-in said why.'
+  printf 'Stand-in: the agent says the work is done, but which brief this session holds could not be told, so the closing sweep was not started. Why:\n%s\n' "$why"
+}
+
+refuse_changes_unknown_note() {
+  printf 'Whether %s holds changes nobody committed cannot be told: git could not read it.\n' "$1"
 }
 
 # --- The question log.

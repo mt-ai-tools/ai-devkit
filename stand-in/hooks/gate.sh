@@ -9,8 +9,10 @@
 # is weighed for the operator's go to the next step: the go said, the agent
 # sent back to fix what is left, or the report brought to the operator with
 # why. A reply that closes the round of questions and asks to start building
-# reaches the operator with every decision of the round laid out. In every
-# other session it does nothing at all.
+# reaches the operator with every decision of the round laid out. A reply
+# saying the work is done starts the closing loop: rounds of two looks around,
+# each look's findings checked in code and sorted, until a round finds nothing
+# that belongs to the brief. In every other session it does nothing at all.
 #
 # The order is the point: the rules and conventions check runs before any
 # route, so a question that breaks one never reaches the operator; the
@@ -133,11 +135,15 @@ switch="$(find_switch "$history" "$session")"
 . "$tool_root/lib/operator-message.sh"
 . "$tool_root/lib/question-log.sh"
 . "$tool_root/lib/briefs.sh"
+. "$tool_root/lib/closing.sh"
+. "$tool_root/lib/closing-reader.sh"
+. "$tool_root/lib/changes.sh"
 
 preset="$(get_config_path AIDK_STAND_IN)"
 rules="$(get_config_path AIDK_RULES)"
 conventions="$(get_config_path AIDK_CONVENTIONS)"
 reply="$(to_event_reply "$event")"
+root="$(get_project_root)"
 record_file="$(to_record_path "$history" "$session")"
 saved="$(read_session_record "$record_file")"
 record="$saved"
@@ -506,9 +512,9 @@ log_step() {
   log_let_go "$parts" "" "$why" "" "$step"
 }
 
-# Let a step's report stop, showing the operator the message given and,
-# under it, any line the log gave back.
-let_step_stop() {
+# Let the reply stop, showing the operator the message given and, under it,
+# any line the log gave back.
+let_stop_told() {
   local message="$1" logged="$2"
   [ -z "$logged" ] || message+=$'\n'"$logged"
   record="$(with_chain_reset "$record")"
@@ -526,7 +532,7 @@ step_to_operator() {
   local form="$1" sort="$2" entry="$3" why="$4" question logged
   question="$(to_step_question "$form")"
   logged="$(log_step "$form" "$sort" "$entry" "$question" "" "$why" "$OUTCOME_TO_OPERATOR")"
-  let_step_stop "$(gate_step_operator_note "$question" "$why")" "$logged"
+  let_stop_told "$(gate_step_operator_note "$question" "$why")" "$logged"
 }
 
 # Send a step's report back to the agent with the words given, to fix what is
@@ -556,11 +562,11 @@ answer_go() {
   if is_on_trial "$(jq -r '.name' <<<"$entry")"; then
     why="$(gate_trial_line "$(jq -r '.name' <<<"$entry")")"
     logged="$(log_step "$form" "$sort" "$entry" "$question" "$(step_go_words)" "$why" "$OUTCOME_WOULD_HAVE_APPROVED")"
-    let_step_stop "$(to_go_message "$question" "$why" "$fixed")" "$logged"
+    let_stop_told "$(to_go_message "$question" "$why" "$fixed")" "$logged"
   fi
   logged="$(log_step "$form" "$sort" "$entry" "$question" "$(step_go_words)" "" "$OUTCOME_SETTLED")"
   if [ -n "$logged" ]; then
-    let_step_stop "$(to_go_message "$question" "$logged" "$fixed")" ""
+    let_stop_told "$(to_go_message "$question" "$logged" "$fixed")" ""
   fi
   record="$(with_chain_reset "$record")"
   keep_record
@@ -624,6 +630,153 @@ answer_round() {
   exit 0
 }
 
+# The words of the preset's closing-loop message named, every one asked for
+# each time, as the ladder's are.
+closing_message() {
+  local messages
+  messages="$(get_closing_messages "$preset" "${CLOSING_MESSAGES[@]}")" || return 1
+  jq -r --arg name "$1" '.[$name]' <<<"$messages"
+}
+
+# Send the look named, with how to report what it finds, its reply awaited as
+# a fixed round's is: never counted toward the send-back limit, and refused
+# rather than sent twice in one round.
+send_look() {
+  local name="$1" words
+  if is_round_sent "$record" "$name"; then
+    refuse_round_twice_note "$name" >&2
+    exit 1
+  fi
+  words="$(closing_message "$name")"
+  record="$(with_round "$record" "$name")"
+  hold_reply "$(gate_challenge_note "$words"; to_closing_report_note)"
+}
+
+# A reply saying the work is done: the closing loop's first look, for the
+# briefs the session holds. A session holding none has nothing to sweep for,
+# and stops as it would without the loop; where which it holds cannot be
+# told, the operator is told the loop was not started, rather than the claim
+# passing as if it had been swept.
+start_closing() {
+  local why briefs failed
+  why="$(mktemp)"
+  if ! briefs="$(get_held_briefs "$session" 2>"$why")"; then
+    failed="$(cat "$why")"
+    rm -f "$why"
+    let_stop_told "$(closing_briefs_unknown_note "$failed")" ""
+  fi
+  rm -f "$why"
+  [ "$(jq 'length' <<<"$briefs")" -gt 0 ] || let_stop
+  record="$(with_closing "$record" "$briefs")"
+  send_look "$CLOSING_CLEANUP_LOOK"
+}
+
+# A step's report naming no next step and not saying the brief is done: asked
+# whether the whole brief is done, once, instead of the report passing on
+# (settled 2026-10-06). The reader is never asked whether work sounds
+# finished: what it reads off the agent's own answer decides, so a reply
+# saying it is done starts the loop, and one naming a next step is weighed
+# for the go.
+ask_whole_done() {
+  local words
+  words="$(closing_message "$CLOSING_WHOLE_DONE")"
+  record="$(with_round_sent "$record" "$CLOSING_WHOLE_DONE")"
+  hold_reply "$(gate_challenge_note "$words")"
+}
+
+# True if the step's report given waits on whether the whole brief is done:
+# it names no next step, the question was not asked yet, and the session
+# holds a brief to be done with. Asked once: a second report naming no next
+# step is weighed as any step's, and reaches the operator saying so.
+is_whole_done_unasked() {
+  local briefs
+  [ -z "$(jq -r '.next_step' <<<"$1")" ] || return 1
+  ! is_round_sent "$record" "$CLOSING_WHOLE_DONE" || return 1
+  briefs="$(get_held_briefs "$session" 2>/dev/null)" || return 1
+  [ "$(jq 'length' <<<"$briefs")" -gt 0 ]
+}
+
+# The checks code makes of each finding the agent would fix in passing, left
+# in the variable checks, keyed by its place in the form: which briefs other
+# sessions hold where its files lie, asked of the organizer, and whether its
+# files hold changes nobody committed, asked of git. Either one that cannot
+# answer ends the gate: a fix in passing nobody could check is never let
+# through.
+check_findings() {
+  local form="$1" quick index files held uncommitted
+  checks="{}"
+  while IFS= read -r quick; do
+    index="$(jq -r '.index' <<<"$quick")"
+    readarray -t files < <(jq -r '.files[]' <<<"$quick")
+    held="$(list_taken_briefs "${files[@]}")"
+    held="$(to_other_briefs "$held" "$session")"
+    uncommitted="$(list_uncommitted_paths "$root" "${files[@]}")"
+    checks="$(with_finding_check "$checks" "$index" "$(to_finding_check "$held" "$uncommitted")")"
+  done < <(jq -c '.[]' <<<"$(to_quick_files "$form")")
+}
+
+# Write a closing round to the log, given the decision it put, why it came to
+# the operator (empty where it did not), how it ended, and its details as
+# to_closing_details gives them. Prints what log_let_go prints.
+log_round() {
+  local question="$1" why="$2" outcome="$3" closing="$4" parts details
+  parts="$(to_operator_message_parts "$question" "" "$why" "" "")"
+  details="$(jq -cn --arg outcome "$outcome" --argjson closing "$closing" '{outcome: $outcome, closing: $closing}')"
+  log_let_go "$parts" "" "$why" "" "$details"
+}
+
+# Both looks are in: the round is logged, one line with every finding and
+# its sort, and what follows is decided from the sorts. Nothing belonging
+# here ends the loop: the agent is told the sweep is done, and to finish the
+# brief. Something belonging here goes back to the agent to be asked as
+# questions; on the round that makes it the notice's count, to the operator
+# instead, with the list. A round that cannot be logged goes to the operator
+# too: its count could not be kept, and the notice could then never come.
+finish_round() {
+  local closing briefs findings lines tally number counted question details why message logged
+  closing="$(to_closing "$record")"
+  briefs="$(jq -c '.briefs' <<<"$closing")"
+  findings="$(jq -c '.findings' <<<"$closing")"
+  lines="$(list_log_lines "$(to_log_dir "$history")")"
+  tally="$(derive_closing_tally "$lines" "$session" "$briefs" "$findings")"
+  number="$(jq -r '.number' <<<"$tally")"
+  counted="$(jq -r '.counted' <<<"$tally")"
+  question="$(closing_round_question "$number")"
+  details="$(to_closing_details "$number" "$briefs" "$findings")"
+  record="$(with_turn "$record" "$EXCHANGE_AGENT" "$reply")"
+  if is_closing_here "$findings" && [ "$counted" -ge "$CLOSING_NOTICE_ROUNDS" ]; then
+    why="$(closing_notice_why_line "$counted")"
+    logged="$(log_round "$question" "$why" "$OUTCOME_TO_OPERATOR" "$details")"
+    let_stop_told "$(closing_notice_note "$counted"; format_closing_findings "$findings")" "$logged"
+  fi
+  logged="$(log_round "$question" "" "$OUTCOME_TO_AGENT" "$details")"
+  if [ -n "$logged" ]; then
+    let_stop_told "$(closing_unlogged_note "$number"; format_closing_findings "$findings")" "$logged"
+  fi
+  message="$(format_closing_agent_note "$findings")"
+  record="$(with_chain_reset "$record")"
+  keep_record
+  to_block_answer "$message"
+  exit 0
+}
+
+# The reply to a look, whatever it says: read by the closing reader alone,
+# each finding the agent would fix in passing checked, and kept on the round;
+# then the second look, or, after it, the round's end.
+answer_look() {
+  local look="$1" closing taken others form findings
+  closing="$(to_closing "$record")"
+  [ -n "$closing" ] || { refuse_state_unreadable_note "$record_file" >&2; exit 1; }
+  taken="$(list_taken_briefs)"
+  others="$(to_other_briefs "$taken" "$session")"
+  form="$(get_look_form "$reply" "$others" "$root")"
+  check_findings "$form"
+  findings="$(to_checked_findings "$form" "$look" "$checks")"
+  record="$(with_closing_findings "$record" "$findings")"
+  [ "$look" != "$CLOSING_CLEANUP_LOOK" ] || send_look "$CLOSING_USE_LOOK"
+  finish_round
+}
+
 # Take the route the question's forms decide.
 route_question() {
   local form="$1" sort="$2" entry="$3" kept="$4" risks route words question name
@@ -662,6 +815,7 @@ case "$round" in
   "$LADDER_PLAIN_RETELLING") answer_retold ;;
   "$LADDER_BIGGER_LOOK") take_ladder; answer_looked ;;
   "$LADDER_SURE_AGAIN") take_ladder; answer_sure_again ;;
+  "$CLOSING_CLEANUP_LOOK" | "$CLOSING_USE_LOOK") answer_look "$round" ;;
   *)
     refuse_state_unreadable_note "$record_file" >&2
     exit 1
@@ -698,12 +852,20 @@ fi
 
 # A reply asking nothing stops as it is, unless it closes the round of
 # questions and asks to start building, which reaches the operator with the
-# round laid out, or reports a step finished, which waits for a go the step go
-# weighs. A reply still asking a question is taken as a question first, even
-# where it also asks to go on: nothing is ready to go on while it is open.
+# round laid out; says the work is done, which starts the closing loop; or
+# reports a step finished, which waits for a go the step go weighs, or, naming
+# no next step, is asked whether the whole brief is done. A reply still asking
+# a question is taken as a question first, even where it also asks to go on
+# or says it is done: nothing is ready to go on, or done, while it is open.
+# A claim of done is taken before a step's report it ends with: the loop is
+# what decides done, so the claim is swept rather than weighed as a step.
 if ! jq -e '.asks_operator' >/dev/null <<<"$form"; then
   if jq -e '.closes_round' >/dev/null <<<"$form"; then answer_round; fi
-  if jq -e '.ends_step' >/dev/null <<<"$form"; then answer_step "$form"; fi
+  if jq -e '.claims_done' >/dev/null <<<"$form"; then start_closing; fi
+  if jq -e '.ends_step' >/dev/null <<<"$form"; then
+    if is_whole_done_unasked "$form"; then ask_whole_done; fi
+    answer_step "$form"
+  fi
   let_stop
 fi
 question="$(jq -r '.question' <<<"$form")"

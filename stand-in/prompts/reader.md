@@ -24,8 +24,9 @@ Fill in the form from what the reply says, in its own terms:
 - recommended: the label of the option the reply recommends, written exactly
   as it stands in options. Empty when the reply recommends none, or when it
   recommends something that is not one of its options.
-- claims_done: true if the reply says the brief, or the work it was given, is
-  finished.
+- claims_done: true if the reply says the whole brief, or all the work it
+  was given, is finished. One step of it finished is not this; that is
+  ends_step below.
 - closes_round: true if the reply says the questions about the work are all
   settled and asks the operator whether to start building ("that was the
   last question; shall I start building?"). Not a step's report waiting for

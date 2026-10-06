@@ -175,3 +175,22 @@ setup() {
   [ "$status" -eq 0 ]
   [ -n "$output" ]
 }
+
+@test "the closing loop's messages are read by name, and a missing one is refused" {
+  preset "alpha:First." "one"
+  run get_closing_messages "$preset_dir" use-look whole-brief-done
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(jq -cn --arg u "$use_look" --arg w "$whole_done" '{"use-look": $u, "whole-brief-done": $w}')" ]
+  file="$preset_dir/challenges/closing-loop.md"
+  run --separate-stderr get_closing_messages "$preset_dir" nonesuch
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_ladder_message_missing_note "$file" nonesuch)" ]
+}
+
+@test "the kit's own preset closing loop holds the operator's three messages" {
+  run get_closing_messages "$BATS_TEST_DIRNAME/../../presets/stand-in" cleanup-look use-look whole-brief-done
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '."cleanup-look"' <<<"$output")" = "Should we move, change, delete or update anything since your work is done? Take a look around. Take your time. Don't propose things that belong to other ongoing sessions' work." ]
+  [[ "$(jq -r '."use-look"' <<<"$output")" == "Your work introduced something new. Find every place in the frame that should now use it: "*"Don't propose things that belong to other ongoing sessions' work." ]]
+  [ "$(jq -r '."whole-brief-done"' <<<"$output")" = "Is the whole brief done?" ]
+}

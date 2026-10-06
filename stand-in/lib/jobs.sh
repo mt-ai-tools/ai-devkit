@@ -47,6 +47,12 @@ SUMMARY_MODEL="claude-sonnet-5-5"
 # reader's model, since it retells as that one does.
 ROUND_MODEL="claude-sonnet-5-5"
 
+# The closing reader reads a reply to one look of the closing loop into its
+# findings, each with the sort the agent gave it: reading only, as the reader
+# does, so the reader's model. Read alone on a look's reply, as the matcher is
+# on a rung, since what that reply is for is known before it is read.
+CLOSING_MODEL="claude-sonnet-5-5"
+
 # The cold second reading of a question whose answer moved on the ladder:
 # the advisor's own command, the operator's own last rung, which they reach
 # for when an answer will not settle. A stronger model than any reader, since
@@ -73,6 +79,7 @@ SORTER_SECONDS=40
 MATCHER_SECONDS=40
 SUMMARY_SECONDS=40
 ROUND_SECONDS=40
+CLOSING_SECONDS=40
 # The reading reads code with tools, turn after turn, so it is given what its
 # stop has left beside the matcher. Measured 2026-10-05: 55 to 95 s.
 READING_SECONDS=120
@@ -139,6 +146,15 @@ derive_stop_seconds() {
 # of the lock, so the stop may wait at the lock twice. It runs in the stop
 # that read the request, since the list must reach the operator with it, and
 # no other stop knows the round is over.
+#
+# The closing loop (settled 2026-10-06) adds no model to the stop that starts
+# it: a reply saying the work is done, or a step's report naming no next step,
+# is read by the reader alone, and the first look, or "is the whole brief
+# done?", is sent from that stop. Each look's reply makes a stop of its own:
+# the closing reader alone, then the organizer and git asked where each
+# finding to be fixed in passing lies, which ask no model. The second look's
+# stop also reads the log to count the rounds and writes the round's line,
+# each under its own hold of the lock, so it may wait at the lock twice.
 derive_jobs_seconds() {
   local stop longest=0
   for stop in \
@@ -147,7 +163,8 @@ derive_jobs_seconds() {
     "$(derive_stop_seconds "$MATCHER_SECONDS" "$READING_SECONDS")" \
     "$(($(derive_stop_seconds "$READER_SECONDS" "$SUMMARY_SECONDS") + LOG_LOCK_SECONDS))" \
     "$(($(derive_stop_seconds "$READER_SECONDS" "$SORTER_SECONDS") + LOG_LOCK_SECONDS))" \
-    "$(($(derive_stop_seconds "$READER_SECONDS" "$ROUND_SECONDS") + 2 * LOG_LOCK_SECONDS))"; do
+    "$(($(derive_stop_seconds "$READER_SECONDS" "$ROUND_SECONDS") + 2 * LOG_LOCK_SECONDS))" \
+    "$(($(derive_stop_seconds "$CLOSING_SECONDS") + 2 * LOG_LOCK_SECONDS))"; do
     [ "$stop" -le "$longest" ] || longest="$stop"
   done
   printf '%s\n' "$longest"
