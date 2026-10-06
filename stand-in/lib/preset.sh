@@ -15,6 +15,9 @@ PRESET_RISKS_FILE="challenges/risks.md"
 # stand-in sends: read from the file the operator reads, never copied into
 # code or a prompt, so the words a project swaps in are the words sent.
 PRESET_LADDER_FILE="challenges/challenge-ladder.md"
+# What a session started under the stand-in with a brief is told first: read
+# from the file the operator reads and swaps, never copied into code.
+PRESET_OPENER_FILE="challenges/opener.md"
 
 # The two routes a kind of question may take, as its header writes them: to
 # the operator always, or up the challenge ladder.
@@ -217,6 +220,20 @@ get_ladder_messages() {
     fi
   done
   jq -c --args '. as $all | reduce $ARGS.positional[] as $name ({}; .[$name] = $all[$name])' "$@" <<<"$messages"
+}
+
+# A preset's opener, as its file holds it, header included: handed over whole,
+# as the checker hands over an entry. The kit's header reader reads fields
+# only, and cutting the body out here would be a second reader of the
+# header's shape, free to drift from the first. A refusal on stderr and a
+# non-zero status where it cannot be read or holds nothing.
+read_opener() {
+  local file="$1/$PRESET_OPENER_FILE" text
+  if ! text="$(cat "$file" 2>/dev/null)" || [ -z "$text" ]; then
+    refuse_unreadable_file_note "$file" >&2
+    return 1
+  fi
+  printf '%s\n' "$text"
 }
 
 # The risks in a preset, as parse_risks hands them back.

@@ -543,3 +543,70 @@ reopen_agent_note() {
 skill_name_unreadable_note() {
   printf 'The stand-in'\''s skill hook cannot read the skill'\''s name from %s.\n' "$1"
 }
+
+# --- The switch.
+
+refuse_switch_unwritable_note() {
+  printf 'The stand-in'\''s switch cannot be written in %s.\n' "$1"
+}
+
+refuse_switch_unremovable_note() {
+  printf 'The stand-in'\''s switch %s cannot be removed.\n' "$1"
+}
+
+# --- The command that starts the stand-in. What the operator is shown opens
+# with "Stand-in:", as every message the gate brings them does.
+
+refuse_start_usage_note() {
+  printf 'Type /%s with the name of one brief to start it, with %s to switch the stand-in on with no brief, or with nothing to see the briefs to pick from.\n' "$1" "$2"
+}
+
+organizer_unrunnable_note() {
+  printf 'The work organizer cannot be run: %s is not an executable file.\n' "$1"
+}
+
+# A refusal: the prompt never reaches the model, and the reasons follow as the
+# part that refused gave them, the organizer's own words among them.
+start_refused_note() {
+  local why="$1"
+  [ -n "$why" ] || why='No part of the stand-in said why.'
+  printf 'Stand-in: not started, and nothing was switched on. Why:\n%s\n' "$why"
+}
+
+# Under a refusal, where the switch this command wrote could not be taken
+# back: the stand-in stays on for the session with no brief taken.
+start_switch_left_line() {
+  printf 'The stand-in'\''s switch for this session could not be removed, so the stand-in is on for this session with no brief taken. Why:\n%s\n' "$1"
+}
+
+start_brief_shown_note() {
+  printf 'Stand-in: on for this session, working on %s.\n' "$1"
+}
+
+start_session_shown_note() {
+  printf 'Stand-in: on for this session, with no brief taken.\n'
+}
+
+# The model's note for the brief form: the brief, where the opener was read
+# from, and the opener whole.
+start_brief_agent_note() {
+  printf 'The user started this session under the stand-in, working on the brief %s, which the work organizer has taken for this session. Before anything else, follow the stand-in'\''s opener below, read from %s; what it names sits beside it.\n\n%s\n' "$1" "$2" "$3"
+}
+
+start_session_agent_note() {
+  printf 'The user switched the stand-in on for this session, with no brief taken.\n'
+}
+
+start_list_agent_note() {
+  printf 'The work organizer'\''s list of briefs (%s lines) has been shown to the user above, exactly as printed. Nothing was taken, and the stand-in was not switched on.\n' "$1"
+}
+
+# --- The session's end.
+
+refuse_end_session_note() {
+  printf 'The session-end event carries no session id the stand-in can use, so no switch was removed.\n'
+}
+
+end_not_removed_note() {
+  printf 'The stand-in'\''s session-end hook could not remove the switch of session %s.\n' "$1"
+}

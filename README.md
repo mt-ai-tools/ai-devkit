@@ -70,7 +70,12 @@ never learns what the operator answered, and exposes the stand-in's two
 skills where Claude Code looks for a project's skills, with its skill
 hook registered for the after-tool event of the Skill tool: as with the
 organizer's, the hook is what shows the settled questions and a
-reopened one, and the skills alone only say that they could not.
+reopened one, and the skills alone only say that they could not. It
+exposes the stand-in's entry skill there too, with the stand-in's start
+hook registered for the turn-start event and its end hook for the
+session-end event: the skill offers the command that switches the
+stand-in on, the start hook is what carries it out, and without the end
+hook a session's switch outlives it.
 
 ## Develop
 

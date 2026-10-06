@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# What the answer hook reads from Claude Code's turn-start event: the session
-# and the prompt the operator typed. Needs jq, for the reason the gate's event
-# reader gives. Every function here is a transform. Sourced, never executed.
+# What the stand-in's turn-start hooks read from Claude Code's turn-start
+# event — the session and the prompt the operator typed — and the answers they
+# give back. Needs jq, for the reason the gate's event reader gives. Every
+# function here is a transform. Sourced, never executed.
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/session-id.sh"
 
@@ -27,4 +28,22 @@ to_prompt_text() {
     return 1
   fi
   printf '%s\n' "$prompt"
+}
+
+# --- Answering.
+
+# The answer that refuses the prompt: it never reaches the model, and the
+# operator is shown the reason given, whole.
+to_prompt_block_answer() {
+  jq -cn --arg reason "$1" '{decision: "block", reason: $reason}'
+}
+
+# The answer that lets the prompt go on: the message the operator's terminal
+# shows whole, every byte as given, and the note added to the model's
+# context, since the model never sees the message.
+to_prompt_answer() {
+  jq -cn --arg message "$1" --arg note "$2" '{
+    systemMessage: $message,
+    hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $note}
+  }'
 }

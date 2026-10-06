@@ -23,6 +23,15 @@ that would be approved. While a kind is on trial, which every kind is, an
 answer that held reaches the operator too, marked with what would have been
 approved.
 
+It is switched on for a session by a command the operator types, and in no
+other way. With a brief's name, the brief is taken through the work
+organizer, and the session is handed the preset's opener before anything
+else; with a word asking for no brief, it is switched on and nothing is
+taken; bare, the organizer's list is shown to pick from, and nothing
+changes. A command that cannot be carried out is refused whole, in the
+organizer's own words where the organizer refused it, and leaves nothing
+switched on and nothing taken. It is switched off when the session ends.
+
 Before any question reaches the operator, whatever its route, the agent is
 asked once to retell it plainly, and its retelling is what the operator reads
 first; then why it came to them; then fixed parts a fresh model writes from
@@ -65,17 +74,21 @@ operator is told why there is none. Where it is off for a session it does
 nothing, and asks no model.
 
 Needs a preset: a folder of kinds of question, each with a one-line summary
-and its route, a list of risks, each opening with its short name, and a
+and its route, a list of risks, each opening with its short name, a
 challenge ladder holding each message the stand-in sends — the two
 challenges, the bigger look around and the plain retelling — quoted under
-the short name it is asked for by. Needs the rules, and the conventions
+the short name it is asked for by, and an opener, what a session started
+with a brief is told first. Needs the rules, and the conventions
 where a project keeps them, and the kit's advisor, whose command a second
 reading runs. Needs a working folder of its own, holding a switch per
 session it is on for, its record of each and its log, worth nothing beyond
-one machine. Needs the kit's work organizer, to say which brief a session
-holds. Needs registering for Claude Code's end-of-reply event, with a time
-limit no shorter than the one it declares; for its turn-start event, to keep
-the operator's answers; and for its after-tool event of the Skill tool,
-beside its two skills, to show what they ask for. Needs the Claude Code
+one machine. Needs the kit's work organizer, to show its list, to take a
+brief, and to say which brief a session holds. Needs registering for Claude
+Code's end-of-reply event, with a time limit no shorter than the one it
+declares; for its turn-start event, to keep the operator's answers, and
+again, beside the skill that offers the command, to act on the command that
+starts it; for its session-end event, to switch it off; and for its
+after-tool event of the Skill tool, beside its two other skills, to show
+what they ask for. Needs the Claude Code
 command-line tool, signed in, to ask models through; and `bash`, `awk`,
 `jq` and util-linux's `flock`.

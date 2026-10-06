@@ -149,3 +149,29 @@ setup() {
   [[ "$(jq -r '."bigger-look"' <<<"$output")" == "Since you are not sure, take a bigger look around. "*"and ask questions if needed." ]]
   [ "$(jq -r '."plain-retelling"' <<<"$output")" = "Explain it much more plainly. Use everyday words. Call things by their names." ]
 }
+
+@test "the opener is its file whole, header included" {
+  preset "alpha:First." "one"
+  text=$'---\nsummary: Opener.\n---\n\n# The opener\n\nRead the brief.'
+  printf '%s\n' "$text" >"$preset_dir/challenges/opener.md"
+  run read_opener "$preset_dir"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$text" ]
+}
+
+@test "an opener that is missing or empty is refused" {
+  preset "alpha:First." "one"
+  run --separate-stderr read_opener "$preset_dir"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_unreadable_file_note "$preset_dir/challenges/opener.md")" ]
+  : >"$preset_dir/challenges/opener.md"
+  run --separate-stderr read_opener "$preset_dir"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_unreadable_file_note "$preset_dir/challenges/opener.md")" ]
+}
+
+@test "the kit's own preset holds an opener" {
+  run read_opener "$BATS_TEST_DIRNAME/../../presets/stand-in"
+  [ "$status" -eq 0 ]
+  [ -n "$output" ]
+}
