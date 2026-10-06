@@ -3,10 +3,11 @@
 # written here once, and renaming the skill is the whole of renaming it.
 name: devkit-stand-in-reopen
 description: >-
-  Brings back one question the stand-in settled without the user, shows
-  it to them in full, and opens it again to be asked as a normal
-  question. Use whenever the user asks to reopen one by its number from
-  the stand-in's settled list: "reopen 3", "bring back question 3". Pass
+  Brings back one question the stand-in settled without the user, or one
+  decision of a round it laid out before building, shows it to them in
+  full, and opens it again to be asked as a normal question. Use whenever
+  the user asks to reopen one by its number from the stand-in's settled
+  list or a round's list: "reopen 3", "bring back question 3". Pass
   the number alone as the argument; add the word "exchange" after it
   when the user asks to see the exchange word for word, as in "3
   exchange".

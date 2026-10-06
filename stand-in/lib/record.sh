@@ -9,9 +9,10 @@
 # it, since a reply last stopped. challenge: the challenge the agent has yet
 # to answer — the kind's entry, the step it is at, and the question's form and
 # sort as they stood when it was sent — or null. ladder: the question on the
-# ladder — its words, its kind, the lines the operator is to be shown beside
-# it, the first rung's options and recommendation, and the matcher's pick of
-# each later reply in order — or null; never held together with a challenge.
+# ladder — its words, its kind, the route it climbs (the ladder, or the light
+# check's one challenge), the lines the operator is to be shown beside it, the
+# first rung's options and recommendation, and the matcher's pick of each
+# later reply in order — or null; never held together with a challenge.
 # round: the fixed round whose reply the gate is waiting for, or null.
 # rounds_sent: every fixed round sent for the question. asked: the question
 # as the reader last read it, its options and recommendation, or null.
@@ -55,7 +56,8 @@ RECORD_SHAPE='
   and (.sent_back | type == "number" and . >= 0)
   and (.challenge | type == "null" or type == "object")
   and (.ladder | type == "null"
-    or (type == "object" and (.first | type == "object") and (.picks | type == "array")))
+    or (type == "object" and (.route | type == "string") and (.first | type == "object")
+      and (.picks | type == "array")))
   and (.round | type == "null" or type == "string")
   and (.rounds_sent | type == "array")
   and (.asked | type == "null" or type == "object")
@@ -174,12 +176,13 @@ to_challenge() {
 }
 
 # The record holding a question put on the ladder: its words, its kind's
-# name, the lines the operator is to be shown beside it, and its first rung's
-# answer, {options, recommended}. The question's challenge, if it had one, is
-# over.
+# name, the route it climbs, the lines the operator is to be shown beside it,
+# and its first rung's answer, {options, recommended}. The question's
+# challenge, if it had one, is over.
 with_ladder() {
-  jq -c --arg question "$2" --arg kind "$3" --arg lines "$4" --argjson first "$5" \
-    '.challenge = null | .ladder = {question: $question, kind: $kind, lines: $lines, first: $first, picks: []}' <<<"$1"
+  jq -c --arg question "$2" --arg kind "$3" --arg route "$4" --arg lines "$5" --argjson first "$6" \
+    '.challenge = null
+      | .ladder = {question: $question, kind: $kind, route: $route, lines: $lines, first: $first, picks: []}' <<<"$1"
 }
 
 # The record with the matcher's pick of one more reply on the ladder it holds.

@@ -60,16 +60,16 @@ teardown() {
 
 @test "a ladder holds its question, kind, lines, first answer and each pick, and ends any challenge" {
   record="$(with_challenge "$EMPTY_RECORD" '{"name":"naming"}' 1 "$(whole_form)" '{}')"
-  record="$(with_ladder "$record" "Five retries or ten?" defaults "- kept" '{"options":["five","ten"],"recommended":"five"}')"
+  record="$(with_ladder "$record" "Five retries or ten?" defaults ladder "- kept" '{"options":["five","ten"],"recommended":"five"}')"
   record="$(with_ladder_pick "$record" '{"pick":"item","item":"ten"}')"
   [ "$(jq -c '.challenge' <<<"$record")" = null ]
   run to_ladder "$record"
   [ "$status" -eq 0 ]
-  [ "$output" = '{"question":"Five retries or ten?","kind":"defaults","lines":"- kept","first":{"options":["five","ten"],"recommended":"five"},"picks":[{"pick":"item","item":"ten"}]}' ]
+  [ "$output" = '{"question":"Five retries or ten?","kind":"defaults","route":"ladder","lines":"- kept","first":{"options":["five","ten"],"recommended":"five"},"picks":[{"pick":"item","item":"ten"}]}' ]
 }
 
 @test "a ladder is let go with the question, and a record holding a broken one is refused" {
-  record="$(with_ladder "$(with_send_back "$EMPTY_RECORD")" "Five retries or ten?" defaults "" '{}')"
+  record="$(with_ladder "$(with_send_back "$EMPTY_RECORD")" "Five retries or ten?" defaults ladder "" '{}')"
   [ -z "$(to_ladder "$(with_chain_reset "$record")")" ]
   mkdir -p "$(dirname "$file")"
   jq -c '.ladder = {first: {}, picks: "five"}' <<<"$EMPTY_RECORD" >"$file"

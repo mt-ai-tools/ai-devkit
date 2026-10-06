@@ -26,7 +26,7 @@ setup() {
 }
 
 @test "read-reply refuses a form the check refuses, and prints none" {
-  export FAKE_ANSWER='{"asks_operator":true,"question":"Five or ten?","options":["five","ten"],"recommended":"seven","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
+  export FAKE_ANSWER='{"asks_operator":true,"question":"Five or ten?","options":["five","ten"],"recommended":"seven","claims_done":false,"closes_round":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run --separate-stderr "$script" read-reply <<<"$reply"
   [ "$status" -eq 1 ]
   [ -z "$output" ]
@@ -34,10 +34,10 @@ setup() {
 }
 
 @test "sort hands back the sorter's checked answer, the preset's kinds and risks in its prompt" {
-  export FAKE_ANSWER='{"kind":"defaults","unsure":false,"risks":["workaround"]}'
+  export FAKE_ANSWER='{"kind":"defaults","unsure":false,"risks":["workaround"],"defers":false}'
   run --separate-stderr "$script" sort "$(whole_form)" <<<"$reply"
   [ "$status" -eq 0 ]
-  [ "$output" = '{"kind":"defaults","unsure":false,"risks":["workaround"]}' ]
+  [ "$output" = '{"kind":"defaults","unsure":false,"risks":["workaround"],"defers":false}' ]
   grep -qx -- "$SORTER_MODEL" "$FAKE_ARGS"
   grep -qxF -- "- defaults: Defaults." "$FAKE_PROMPT"
   grep -qxF -- "- security-gap: The security-gap risk." "$FAKE_PROMPT"
@@ -46,12 +46,12 @@ setup() {
 }
 
 @test "sort refuses a kind or a risk the project's preset does not hold" {
-  export FAKE_ANSWER='{"kind":"technical-choice","unsure":false,"risks":[]}'
+  export FAKE_ANSWER='{"kind":"technical-choice","unsure":false,"risks":[],"defers":false}'
   run --separate-stderr "$script" sort "$(whole_form)" <<<"$reply"
   [ "$status" -eq 1 ]
   [ -z "$output" ]
   [ "$stderr" = "$(refuse_unknown_kind_note technical-choice)" ]
-  export FAKE_ANSWER='{"kind":"naming","unsure":false,"risks":["tangled"]}'
+  export FAKE_ANSWER='{"kind":"naming","unsure":false,"risks":["tangled"],"defers":false}'
   run --separate-stderr "$script" sort "$(whole_form)" <<<"$reply"
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_unknown_risk_note tangled)" ]
@@ -61,7 +61,7 @@ setup() {
   run --separate-stderr "$script" sort '{"asks_operator":true}' <<<"$reply"
   [ "$status" -eq 1 ]
   [ ! -e "$FAKE_ARGS" ]
-  form='{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":true,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
+  form='{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":true,"closes_round":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run --separate-stderr "$script" sort "$form" <<<"Done."
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_no_question_note)" ]

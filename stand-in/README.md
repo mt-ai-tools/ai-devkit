@@ -10,7 +10,9 @@ and the risks its recommended option carries, against a preset of the
 operator's own judgement. A question that breaks an entry, or calls something
 a rule that no entry is, goes back to the agent; a kind that carries a
 challenge is challenged first; the rest is routed in code, back to the agent,
-on to the operator with why, or up the operator's own challenge ladder. On
+on to the operator with why, up the operator's own challenge ladder, through
+a light check of one "are you sure?" alone, or accepted as it stands — unless
+the recommendation puts work off, which reaches the operator. On
 the ladder the agent is challenged twice more in the preset's own words; each
 reply is matched by another model against the first answer's options, and
 the answer holds only where every reply picks the option first recommended,
@@ -19,9 +21,21 @@ asked once more whether it is sure. Where it moves again, it reaches the
 operator with a cold second reading of the question by another model, which
 decides nothing; where it holds, it reaches them told it moved and then held.
 Either way it never counts as held: an answer that moved once is never one
-that would be approved. While a kind is on trial, which every kind is, an
-answer that held reaches the operator too, marked with what would have been
-approved.
+that would be approved. On the light check an answer that moves reaches the
+operator at once, with no bigger look and no second reading. While a kind is
+on trial, which every kind is, an answer that held, or a recommendation that
+would have been accepted, reaches the operator too, marked with what would
+have stood; once a kind is switched, it stands without them, the agent told
+to go on with it, and is logged as settled. A settling that cannot be logged
+is never given.
+
+A reply that closes the round of questions and asks to start building always
+reaches the operator, with every decision of the round laid out: one short
+numbered line each, in everyday words written by another fresh model from
+the log, saying whether the operator or the stand-in decided it. The round is
+the session's questions since it last asked to build or reported a step. Each
+number is the decision's own in the log, so any of them can be reopened, and
+the agent is then told building waits until it is settled again.
 
 A reply that reports a step of the work finished, asks nothing and waits for
 the operator's go is weighed for that go instead. Another model labels the
@@ -63,11 +77,13 @@ sorted and checked, every answer on the ladder, the whole exchange, how it
 ended and why, the summary's parts and the second reading. So does every
 step's report it weighs, with what it said of its problems, its proof and its
 next step, and what was found major; a go is listed and reopened as a
-settled question is. Lines from sessions
+settled question is. So does every request to start building, with the
+round's list as the operator was shown it. Lines from sessions
 writing at once never interleave. The first thing the operator types after a
 question reached them is kept as their answer to it. Asked in plain words,
 it shows the operator the questions it settled without them, and brings any
-of them back in full, word for word on request, for the agent to ask again;
+of them, or any decision a round's list laid out, back in full, word for
+word on request, for the agent to ask again;
 both are shown through a hook, exactly as written, never retold by a model.
 
 Models read; code decides. A form counts only once a check in code has
@@ -86,8 +102,8 @@ holds one question past a small number of send-backs asking the agent to
 rethink, the ladder's challenges among them; the bigger look around, the
 second "are you sure?" after it and the plain retelling are fixed rounds
 outside that count, each sent at most once for a question. A second
-reading, a summary or a log line that fails never holds a question up: the
-operator is told why there is none. Where it is off for a session it does
+reading, a summary, a round's list or a log line that fails never holds a
+question up: the operator is told why there is none. Where it is off for a session it does
 nothing, and asks no model.
 
 Needs a preset: a folder of kinds of question, each with a one-line summary

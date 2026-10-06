@@ -18,12 +18,13 @@ new() { printf '%s' '{"pick":"new","item":""}'; }
 gone() { printf '%s' '{"pick":"not-asking","item":""}'; }
 
 # A ladder whose first rung recommends the label given from five and ten,
-# holding the picks given, in order.
+# holding the picks given, in order; it climbs the route in the variable
+# route, the ladder where none is set.
 ladder() {
   local recommended="$1"
   shift
-  printf '%s\n' "$@" | jq -cs --arg recommended "$recommended" \
-    '{question: "Five retries or ten?", kind: "defaults", lines: "",
+  printf '%s\n' "$@" | jq -cs --arg recommended "$recommended" --arg route "${route:-ladder}" \
+    '{question: "Five retries or ten?", kind: "defaults", route: $route, lines: "",
       first: {options: ["five", "ten"], recommended: $recommended}, picks: map(select(. != null))}'
 }
 
@@ -98,4 +99,29 @@ ladder() {
   expected+="$(gate_answer_gone_line "$(gate_looked_number 4)")"$'\n'
   expected+="$(gate_pick_line "$(gate_sure_again_number 5)" five)"
   [ "$output" = "$expected" ]
+}
+
+@test "the light check asks \"are you sure?\" alone: one pick decides, held or moved" {
+  route=light
+  [ "$(to_rung_message_name "$(ladder five)")" = are-you-sure ]
+  run derive_ladder_step "$(ladder five)"
+  [ "$output" = "$LADDER_CLIMB" ]
+  run derive_ladder_step "$(ladder five "$(item five)")"
+  [ "$output" = "$LADDER_HELD" ]
+  [ "$(to_ladder_rungs "$(ladder five)")" -eq 2 ]
+  for last in "$(item ten)" "$(new)" "$(gone)"; do
+    run derive_ladder_step "$(ladder five "$last")"
+    [ "$output" = "$LADDER_CHANGED" ]
+  done
+  route=ladder
+  [ "$(to_ladder_rungs "$(ladder five)")" -eq 3 ]
+}
+
+@test "a ladder climbing a route that climbs none is refused, never read as either" {
+  route=ask
+  run --separate-stderr derive_ladder_step "$(ladder five "$(item five)")"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_ladder_route_note ask)" ]
+  run --separate-stderr to_rung_message_name "$(ladder five)"
+  [ "$status" -eq 1 ]
 }

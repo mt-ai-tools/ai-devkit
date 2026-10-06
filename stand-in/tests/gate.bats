@@ -4,11 +4,14 @@ bats_require_minimum_version 1.5.0
 # question can take, the challenge and its answers, the ladder, the bigger
 # look around, "are you sure?" once more and the cold second reading, the
 # plain retelling before every question reaches the operator and the
-# summary's parts under it, the loop guard, and
-# every way the gate itself can fail letting the reply stop with a reason.
+# summary's parts under it, the loop guard, the step go, the round's
+# decisions laid out before building, the kinds accepted as they stand and
+# those given one challenge, the trial and the switched kind, and every way
+# the gate itself can fail letting the reply stop with a reason.
 # Claude Code is the suite's own fake, answering each model apart.
 
 load fake-claude
+load question-log
 
 setup() {
   setup_fake_claude
@@ -35,7 +38,7 @@ setup() {
   reply="Should we use five retries or ten? I recommend five."
   answer_for reader "$(whole_form)"
   answer_for checker "$(clean_check)"
-  answer_for sorter '{"kind":"defaults","unsure":false,"risks":[]}'
+  answer_for sorter '{"kind":"defaults","unsure":false,"risks":[],"defers":false}'
   answer_for summary "$(summary_form)"
 }
 
@@ -67,7 +70,7 @@ clean_check() {
 
 # A reader's form for a reply asking nothing, answering a challenge as given.
 no_question_form() {
-  printf '{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":false,"guidance_answer":"%s","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}' "${1:-}"
+  printf '{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":false,"closes_round":false,"guidance_answer":"%s","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}' "${1:-}"
 }
 
 # The end-of-reply event, as Claude Code hands it to a Stop hook.
@@ -92,7 +95,7 @@ message() { jq -r '.systemMessage' <<<"$output"; }
 rung_form() {
   jq -cn --arg recommended "$1" --argjson options "${2:-[\"five\",\"ten\"]}" \
     '{asks_operator: true, question: "Five retries or ten?", options: $options,
-      recommended: $recommended, claims_done: false, guidance_answer: "", ends_step: false, problems: [],
+      recommended: $recommended, claims_done: false, closes_round: false, guidance_answer: "", ends_step: false, problems: [],
       proof: "", next_step: "", next_step_number: 0, next_step_from: "", next_step_marks: []}'
 }
 
@@ -181,7 +184,7 @@ all_three() {
 }
 
 @test "a question with no recommendation goes back to the agent to state one" {
-  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
+  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"closes_round":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run_gate
   [ "$status" -eq 0 ]
   [ "$(jq -r '.decision' <<<"$output")" = block ]
@@ -230,7 +233,7 @@ all_three() {
 
 @test "a kind with a challenge is challenged first, and a drop lets the reply stop, noted" {
   kind naming ask "Do we really need it?" "Have you read them?"
-  answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
   run_gate
   [ "$status" -eq 0 ]
   [ "$(reason)" = "$(gate_challenge_note "Do we really need it?")" ]
@@ -246,7 +249,7 @@ all_three() {
 
 @test "a proposal kept is challenged a second time, and kept again goes to the operator" {
   kind naming ask "Do we really need it?" "Have you read them?"
-  answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
   run_gate
   answer_for reader "$(no_question_form keep-part)"
   run_gate true
@@ -263,7 +266,7 @@ all_three() {
 
 @test "a proposal kept under a one-step challenge goes on to the routes" {
   kind naming ask "Do we really need it?"
-  answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
   run_gate
   answer_for reader "$(no_question_form keep-all)"
   run_gate true
@@ -275,7 +278,7 @@ all_three() {
 
 @test "a reply that answers the challenge neither way goes to the operator" {
   kind naming ask "Do we really need it?"
-  answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
   run_gate
   answer_for reader "$(no_question_form)"
   run_gate true
@@ -285,7 +288,7 @@ all_three() {
 }
 
 @test "an always-yours kind goes to the operator, saying why, its plain retelling first and the summary under it" {
-  answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
   run_gate
   [ "$status" -eq 0 ]
   [ "$(reason)" = "$(retelling)" ]
@@ -307,7 +310,7 @@ all_three() {
 }
 
 @test "a risk named on the recommended option goes to the operator, with the risk's words" {
-  answer_for sorter '{"kind":"defaults","unsure":false,"risks":["workaround"]}'
+  answer_for sorter '{"kind":"defaults","unsure":false,"risks":["workaround"],"defers":false}'
   run_gate
   [ "$(reason)" = "$(retelling)" ]
   retell
@@ -315,7 +318,7 @@ all_three() {
 }
 
 @test "a sort the sorter is unsure of goes to the operator" {
-  answer_for sorter '{"kind":"defaults","unsure":true,"risks":[]}'
+  answer_for sorter '{"kind":"defaults","unsure":true,"risks":[],"defers":false}'
   run_gate
   [ "$(reason)" = "$(retelling)" ]
   retell
@@ -323,7 +326,7 @@ all_three() {
 }
 
 @test "a summary that fails never holds the question: the operator is told why and shown the answers" {
-  answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
   status_for summary 124
   run_gate
   retell
@@ -336,7 +339,7 @@ all_three() {
 }
 
 @test "a plain retelling that asks nothing, or cannot be read, leaves the question as first asked, saying so" {
-  answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
   run_gate
   retell "$(no_question_form)"
   why="$(gate_kind_line naming "The naming kind.")"$'\n'"$(gate_retelling_unread_line "")"
@@ -561,7 +564,7 @@ all_three() {
     [ "$status" -eq 0 ]
     [ "$(message)" = "$(gate_broken_note "$(refuse_ladder_message_missing_note "$ladder_file" "$name")")" ]
   done
-  answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
   run_gate
   [ "$(message)" = "$(gate_broken_note "$(refuse_ladder_message_missing_note "$ladder_file" plain-retelling)")" ]
   printf -- '---\nsummary: Ladder.\n---\n\n2. Then:\n   > Clean?\n' >"$ladder_file"
@@ -581,7 +584,7 @@ all_three() {
 }
 
 @test "the ladder's challenges count toward the send-back limit, and the loop guard still sends the retelling" {
-  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
+  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"closes_round":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run_gate false
   run_gate true
   answer_for reader "$(rung_form five)"
@@ -598,7 +601,7 @@ all_three() {
 }
 
 @test "the fixed rounds are never counted: a ladder at the limit is still sent the bigger look and the retelling" {
-  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
+  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"closes_round":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   answer_for reading '{"reading":"Ten is safer."}'
   run_gate false
   answer_for reader "$(rung_form five)"
@@ -640,7 +643,7 @@ edit_record() {
   answer_for matcher "$(item ten)"
   run_gate true
   [ "$(message)" = "$(gate_broken_note "$(refuse_round_twice_note "$LADDER_SURE_AGAIN")")" ]
-  answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
   run_gate
   [ "$(reason)" = "$(retelling)" ]
   edit_record '.round = null | .operator = null'
@@ -666,7 +669,7 @@ edit_record() {
 }
 
 @test "a broken form goes to the operator with the check's reason" {
-  answer_for reader '{"asks_operator":true,"question":"Five or ten?","options":["five","ten"],"recommended":"seven","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
+  answer_for reader '{"asks_operator":true,"question":"Five or ten?","options":["five","ten"],"recommended":"seven","claims_done":false,"closes_round":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run_gate
   [ "$status" -eq 0 ]
   [ "$(message)" = "$(gate_broken_note "$(refuse_recommended_outside_note seven)")" ]
@@ -702,11 +705,11 @@ edit_record() {
   kind defaults maybe
   run_gate
   [ "$status" -eq 0 ]
-  [ "$(message)" = "$(gate_broken_note "$(refuse_kind_route_note defaults maybe "ask, ladder, go")")" ]
+  [ "$(message)" = "$(gate_broken_note "$(refuse_kind_route_note defaults maybe "ask, ladder, go, accept, light")")" ]
 }
 
 @test "a question sent back three times in a row goes to the operator on the fourth" {
-  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
+  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"closes_round":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run_gate false
   run_gate true
   run_gate true
@@ -736,7 +739,7 @@ edit_record() {
 }
 
 @test "a new turn of the operator's starts the count again" {
-  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
+  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"closes_round":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run_gate false
   run_gate true
   run_gate true
@@ -772,7 +775,7 @@ edit_record() {
 }
 
 @test "a record that cannot be written lets the reply stop, saying so" {
-  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
+  answer_for reader '{"asks_operator":true,"question":"Five retries or ten?","options":["five","ten"],"recommended":"","claims_done":false,"closes_round":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   mkdir -p "$history/sessions"
   chmod a-w "$history/sessions"
   run_gate
@@ -795,7 +798,7 @@ edit_record() {
 log_file() { printf '%s/log/questions.jsonl' "$history"; }
 
 @test "a question let go leaves one whole log line: as asked and retold, why, its sort and checks, the exchange and the summary" {
-  answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
   run_gate
   retell
   [ "$(wc -l <"$(log_file)")" -eq 1 ]
@@ -831,7 +834,7 @@ log_file() { printf '%s/log/questions.jsonl' "$history"; }
 }
 
 @test "a log that cannot be written never holds the question up: the operator is told under it" {
-  answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
   mkdir -p "$history/log"
   chmod a-w "$history/log"
   run_gate
@@ -953,7 +956,7 @@ step_operator_message() {
   run_gate false "$step_reply"
   [ "$(reason)" = "$(gate_ask_first_note; gate_problem_line "which name the new file takes")" ]
   answer_for reader "$(whole_form)"
-  answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
   rm "$FAKE_CALLS"
   run_gate true
   [ "$(calls)" = "$(all_three)" ]
@@ -1097,7 +1100,7 @@ step_operator_message() {
 
 @test "a question sorted as a step's report goes to the operator: a reply that asks is never said go to" {
   kind step-go go
-  answer_for sorter '{"kind":"step-go","unsure":false,"risks":[]}'
+  answer_for sorter '{"kind":"step-go","unsure":false,"risks":[],"defers":false}'
   run_gate
   [ "$(reason)" = "$(retelling)" ]
   retell
@@ -1118,7 +1121,7 @@ run_skill() {
   kit="$BATS_TEST_TMPDIR/kit"
   mkdir -p "$kit"
   cp -r "$BATS_TEST_DIRNAME/../../lib" "$BATS_TEST_DIRNAME/../../stand-in" "$BATS_TEST_DIRNAME/../../organizer" "$kit/"
-  sed -i '/^is_on_trial() {$/,/^}$/s/return 0/return 1/' "$kit/stand-in/lib/step-go.sh"
+  sed -i '/^is_on_trial() {$/,/^}$/s/return 0/return 1/' "$kit/stand-in/lib/trial.sh"
   gate="$kit/stand-in/hooks/gate.sh"
   step_report "$(step_form '.problems = [{problem: "a typo in a refusal", state: "fixed"}]')"
   run_gate false "$step_reply"
@@ -1144,7 +1147,7 @@ run_skill() {
   kit="$BATS_TEST_TMPDIR/kit"
   mkdir -p "$kit"
   cp -r "$BATS_TEST_DIRNAME/../../lib" "$BATS_TEST_DIRNAME/../../stand-in" "$BATS_TEST_DIRNAME/../../organizer" "$kit/"
-  sed -i '/^is_on_trial() {$/,/^}$/s/return 0/return 1/' "$kit/stand-in/lib/step-go.sh"
+  sed -i '/^is_on_trial() {$/,/^}$/s/return 0/return 1/' "$kit/stand-in/lib/trial.sh"
   gate="$kit/stand-in/hooks/gate.sh"
   step_report
   mkdir -p "$history/log"
@@ -1152,4 +1155,343 @@ run_skill() {
   run_gate false "$step_reply"
   [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
   [ "$(message)" = "$(go_message "$(gate_log_failed_line "$(refuse_log_unwritable_note "$history/log")")")" ]
+}
+
+# --- The round's decisions, laid out before building.
+
+# A copy of the kit with every kind through the trial, its gate left in gate.
+# Nothing switches a kind yet, so the suite switches one in the copy, at the
+# one place that tells a switched kind apart.
+switch_kinds() {
+  kit="$BATS_TEST_TMPDIR/kit"
+  mkdir -p "$kit"
+  cp -r "$BATS_TEST_DIRNAME/../../lib" "$BATS_TEST_DIRNAME/../../stand-in" "$BATS_TEST_DIRNAME/../../organizer" "$kit/"
+  sed -i '/^is_on_trial() {$/,/^}$/s/return 0/return 1/' "$kit/stand-in/lib/trial.sh"
+  gate="$kit/stand-in/hooks/gate.sh"
+}
+
+# The reader's form of a reply that closes the round and asks to build.
+round_form() {
+  jq -c '.asks_operator = false | .question = "" | .options = [] | .recommended = "" | .closes_round = true' <<<"$(whole_form)"
+}
+round_reply="That was the last question. Shall I start building step 1?"
+
+# The log line given, answered as given.
+answered() { jq -c --arg answer "$2" '.answer = $answer' <<<"$1"; }
+
+# A request to build as the log keeps it, by number, session and the
+# decisions it laid out, as a JSON array.
+round_line() {
+  jq -c --argjson round "$3" --arg q "$(gate_round_question)" \
+    '.question = $q | .retold = null | .ladder = null | .summary = null | .round = $round' \
+    <<<"$(log_line "$1" "$OUTCOME_TO_OPERATOR" "$2" 2026-10-06T08:00:00Z)"
+}
+
+# The suite session's log: an earlier round, closed by a request to build and
+# a step built after it; then this round's three decisions — the operator's
+# answer, the stand-in's settling, and one it would have approved that the
+# operator answered — with another session's question among them.
+round_log() {
+  add_log_lines "$history" \
+    "$(answered "$(log_line 1 "$OUTCOME_TO_OPERATOR" "$session" 2026-10-06T07:00:00Z)" "five")" \
+    "$(round_line 2 "$session" '[{"number":1,"by":"operator","decision":"Five tries."}]')" \
+    "$(jq -c '.step = {} | .approved = "go"' <<<"$(log_line 3 "$OUTCOME_WOULD_HAVE_APPROVED" "$session" 2026-10-06T08:30:00Z go)")" \
+    "$(answered "$(log_line 4 "$OUTCOME_TO_OPERATOR" "$session" 2026-10-06T09:00:00Z)" "Ten, to be safe.")" \
+    "$(log_line 5 "$OUTCOME_SETTLED" session-2 2026-10-06T09:05:00Z)" \
+    "$(log_line 6 "$OUTCOME_SETTLED" "$session" 2026-10-06T09:10:00Z five)" \
+    "$(answered "$(log_line 7 "$OUTCOME_WOULD_HAVE_APPROVED" "$session" 2026-10-06T09:20:00Z five)" "yes")"
+}
+
+round_answer='{"decisions":[{"number":4,"decision":"A failed call is tried ten times, not five."},{"number":6,"decision":"The retry waits 5 seconds, not 10."},{"number":7,"decision":"Old rows are kept for five days."}]}'
+
+# The operator's message for this round, as the round reader wrote it.
+round_message() {
+  round_heading
+  round_item_line 4 "$(round_by_operator_words)" "A failed call is tried ten times, not five."
+  round_item_line 6 "$(round_by_stand_in_words)" "The retry waits 5 seconds, not 10."
+  round_item_line 7 "$(round_by_operator_words)" "Old rows are kept for five days."
+  round_hint
+}
+
+@test "a closed round shows every decision of the round, the operator's and the stand-in's, each marked and numbered" {
+  round_log
+  answer_for reader "$(round_form)"
+  answer_for round "$round_answer"
+  run_gate false "$round_reply"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(message)" = "$(round_message)" ]
+  [ "$(calls)" = "reader $READER_MODEL"$'\n'"round $ROUND_MODEL" ]
+  # The round reader is handed the round's decisions alone, by their log
+  # numbers, with who decided each and what was answered or settled on.
+  prompt="$FAKE_PROMPT.round"
+  [ "$(grep -c '^=====DECISION ' "$prompt")" -eq 3 ]
+  grep -qxF "=====DECISION 4=====" "$prompt"
+  grep -qxF "Question: Should a call be tried five or ten times? (4)" "$prompt"
+  grep -qxF "$(round_by_operator_prompt_words "Ten, to be safe.")" "$prompt"
+  grep -qxF "$(round_by_stand_in_prompt_words five)" "$prompt"
+  grep -qxF "The agent recommended: Five tries." "$prompt"
+  grep -qF -- '"enum":[4,6,7]' "$FAKE_ARGS.round"
+  # The request is logged with the list as the operator was shown it.
+  line="$(tail -n 1 "$(log_file)")"
+  [ "$(jq -c '{number, question, outcome, kind, approved, answer}' <<<"$line")" = \
+    "$(jq -cn --arg q "$(gate_round_question)" '{number: 8, question: $q, outcome: "to-operator", kind: null, approved: "", answer: ""}')" ]
+  [ "$(jq -c '[.round[] | [.number, .by]]' <<<"$line")" = '[[4,"operator"],[6,"stand-in"],[7,"operator"]]' ]
+  [ "$(jq -c '[.exchange[] | .text]' <<<"$line")" = "$(jq -cn --arg a "$round_reply" '[$a]')" ]
+}
+
+@test "a round reader that fails never holds the request up: each decision is shown as the log keeps it, saying why" {
+  round_log
+  answer_for reader "$(round_form)"
+  answer_for round '{"decisions":[{"number":4,"decision":"Ten."}]}'
+  run_gate false "$round_reply"
+  why="$(refuse_decision_missing_note 6; refuse_decision_missing_note 7)"
+  expected="$(round_heading
+    round_failed_note "$why"
+    round_item_line 4 "$(round_by_operator_words)" "$(round_answered_words "Should a call be tried five or ten times? (4)" "Ten, to be safe.")"
+    round_item_line 6 "$(round_by_stand_in_words)" "$(round_settled_words "Should a call be tried five or ten times? (6)" five)"
+    round_item_line 7 "$(round_by_operator_words)" "$(round_answered_words "Should a call be tried five or ten times? (7)" yes)"
+    round_hint)"
+  [ "$(message)" = "$expected" ]
+}
+
+@test "a round with no decision since the last request asks no model, and says so" {
+  add_log_lines "$history" "$(round_line 1 "$session" '[]')"
+  answer_for reader "$(round_form)"
+  run_gate false "$round_reply"
+  [ "$(message)" = "$(round_heading; round_empty_line; round_hint)" ]
+  [ "$(calls)" = "reader $READER_MODEL" ]
+  [ "$(tail -n 1 "$(log_file)" | jq -c '.round')" = '[]' ]
+}
+
+@test "a reply asking a question beside the request to build is taken as the question first" {
+  answer_for reader "$(jq -c '.closes_round = true' <<<"$(whole_form)")"
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
+  run_gate
+  [ "$(calls)" = "$(all_three)" ]
+  [ "$(reason)" = "$(retelling)" ]
+}
+
+@test "\"reopen N\" brings one back and building waits: the reopened decision is laid out anew before building" {
+  round_log
+  answer_for reader "$(round_form)"
+  answer_for round "$round_answer"
+  run_gate false "$round_reply"
+  kit="$BATS_TEST_DIRNAME/../.."
+  # The operator's own decision, laid out in the list, is reopened in full,
+  # and the agent is told building waits.
+  answer="$(run_skill "$kit" devkit-stand-in-reopen 4)"
+  shown="$(jq -r '.systemMessage' <<<"$answer")"
+  [ "$(head -n 1 <<<"$shown")" = "$(reopen_decided_heading 4 when where | head -n 1)" ]
+  grep -qxF -- "$(reopen_question_line "Should a call be tried five or ten times? (4)")" <<<"$shown"
+  grep -qxF -- "$(reopen_answered_line "Ten, to be safe.")" <<<"$shown"
+  [ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$answer")" = \
+    "$(reopen_decided_agent_note 4 "Five retries or ten? (4)" "five${LADDER_OPTION_SEPARATOR}ten" "Ten, to be safe."; reopen_round_waits_note)" ]
+  # The stand-in's own settling in the list is reopened too, building waiting.
+  answer="$(run_skill "$kit" devkit-stand-in-reopen 6)"
+  [ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$answer")" = \
+    "$(reopen_agent_note 6 "Five retries or ten? (6)" "five${LADDER_OPTION_SEPARATOR}ten" five; reopen_round_waits_note)" ]
+  # The agent asks it again, and it reaches the operator as a normal question.
+  answer_for reader "$(whole_form)"
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
+  run_gate false
+  retell
+  [ "$(message)" = "$(operator_message "$(gate_kind_line naming "The naming kind.")")" ]
+  # Asked to build again, the operator sees the decision taken anew alone:
+  # what they did not reopen was laid out already, and stands.
+  answer_for reader "$(round_form)"
+  answer_for round '{"decisions":[{"number":9,"decision":"A failed call is tried five times."}]}'
+  run_gate false "$round_reply"
+  [ "$(message)" = "$(round_heading; round_item_line 9 "$(round_by_operator_words)" "A failed call is tried five times."; round_hint)" ]
+}
+
+@test "\"go\" starts the first step: it is kept as the request's answer, and the round's decisions are not laid out again" {
+  round_log
+  answer_for reader "$(round_form)"
+  answer_for round "$round_answer"
+  run_gate false "$round_reply"
+  [[ "$(message)" == *"$(round_hint)" ]]
+  run "$BATS_TEST_DIRNAME/../hooks/answer-hook.sh" <<<"$(jq -cn --arg s "$session" '{session_id: $s, hook_event_name: "UserPromptSubmit", prompt: "go"}')"
+  [ "$status" -eq 0 ]
+  [ "$(tail -n 1 "$(log_file)" | jq -c '{number, answer}')" = '{"number":8,"answer":"go"}' ]
+  rm "$FAKE_CALLS"
+  run_gate false "$round_reply"
+  [ "$(message)" = "$(round_heading; round_empty_line; round_hint)" ]
+  [ "$(calls)" = "reader $READER_MODEL" ]
+}
+
+@test "a number neither settled nor laid out in a round still cannot be reopened" {
+  round_log
+  answer_for reader "$(round_form)"
+  answer_for round "$round_answer"
+  run_gate false "$round_reply"
+  shown="$(run_skill "$BATS_TEST_DIRNAME/../.." devkit-stand-in-reopen 8 | jq -r '.systemMessage')"
+  [ "$shown" = "$(reopen_unknown_note 8)" ]
+}
+
+# --- Kinds accepted as they stand, and kinds given one challenge. Sorting is
+# the sorter's job, so each case gives the sort and proves the route.
+
+# The sorter's answer naming the kind given, putting work off where the
+# second word is "defers".
+sorted() {
+  jq -cn --arg kind "$1" --argjson defers "$([ "${2:-}" = defers ] && echo true || echo false)" \
+    '{kind: $kind, unsure: false, risks: [], defers: $defers}'
+}
+
+# A reader's form asking the question given, recommending the first of the
+# two options given.
+asking() {
+  jq -cn --arg q "$1" --arg a "$2" --arg b "$3" \
+    '{asks_operator: true, question: $q, options: [$a, $b], recommended: $a, claims_done: false,
+      closes_round: false, guidance_answer: "", ends_step: false, problems: [], proof: "", next_step: "",
+      next_step_number: 0, next_step_from: "", next_step_marks: []}'
+}
+
+# The operator's message for a recommendation the stand-in would have
+# accepted, given the label and why it came to them.
+accepted_message() {
+  printf '%s\n%s' "$(gate_accepted_note "$plain_question" "$1" "$2")" "$(story)"
+}
+
+@test "\"Shall I push?\" and \"fix here or in a new session?\", sorted as organising the work, reach the operator with no ladder" {
+  kind organising-the-work ask
+  for question in "Shall I push?" "Fix it here or in a new session?"; do
+    rm -f "$FAKE_CALLS" "$record_file"
+    answer_for reader "$(asking "$question" here "a new session")"
+    answer_for sorter "$(sorted organising-the-work)"
+    run_gate
+    [ "$(reason)" = "$(retelling)" ]
+    [ "$(calls)" = "$(all_three)" ]
+    [ "$(jq -c '.ladder' "$record_file")" = null ]
+    retell
+    [ "$(message)" = "$(operator_message "$(gate_kind_line organising-the-work "The organising-the-work kind.")")" ]
+    [ "$(calls | grep -c '^matcher ')" -eq 0 ]
+  done
+}
+
+@test "\"which step first?\" and \"fold step 4 into step 3?\", sorted as step timing, are never challenged: on trial they reach the operator as what would have been accepted" {
+  kind step-timing accept
+  for question in "Which step first, 3 or 4?" "Fold step 4 into step 3?"; do
+    rm -f "$FAKE_CALLS"
+    answer_for reader "$(asking "$question" "step 3 first" "step 4 first")"
+    answer_for sorter "$(sorted step-timing)"
+    run_gate
+    [ "$(reason)" = "$(retelling)" ]
+    [ "$(calls)" = "$(all_three)" ]
+    retell
+    [ "$(message)" = "$(accepted_message "step 3 first" "$(gate_trial_line step-timing)")" ]
+    [ "$(tail -n 1 "$(log_file)" | jq -c '{question, kind, outcome, approved, ladder}')" = \
+      "$(jq -cn --arg q "$question" '{question: $q, kind: "step-timing", outcome: "would-have-approved", approved: "step 3 first", ladder: null}')" ]
+  done
+}
+
+@test "once through the trial, step timing stands with no challenge: the agent goes on, and it is logged as settled and listed" {
+  . "$lib/reopen.sh"
+  switch_kinds
+  kind step-timing accept
+  question="Fold step 4 into step 3?"
+  answer_for reader "$(asking "$question" yes no)"
+  answer_for sorter "$(sorted step-timing)"
+  run_gate
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  [ "$(reason)" = "$(gate_settled_note yes)" ]
+  [ "$(calls)" = "$(all_three)" ]
+  [ "$(jq -c '{number, question, kind, outcome, approved, reasons, retold, summary}' "$(log_file)")" = \
+    "$(jq -cn --arg q "$question" '{number: 1, question: $q, kind: "step-timing", outcome: "settled", approved: "yes", reasons: [], retold: null, summary: null}')" ]
+  [ "$(jq -c '[.exchange[] | .text]' "$(log_file)")" = "$(jq -cn --arg a "$reply" '[$a]')" ]
+  [ ! -s "$record_file" ] || [ "$(jq -c . "$record_file")" = "$EMPTY_RECORD" ]
+  shown="$(run_skill "$kit" devkit-stand-in-settled all | jq -r '.systemMessage')"
+  grep -qxF -- "$(settled_item_line 1 "$question")" <<<"$shown"
+}
+
+@test "\"leave it for later?\" reaches the operator, even once through the trial: work put off is theirs" {
+  switch_kinds
+  kind step-timing accept
+  answer_for reader "$(asking "Leave the cleanup for later?" "later" "now")"
+  answer_for sorter "$(sorted step-timing defers)"
+  run_gate
+  [ "$(reason)" = "$(retelling)" ]
+  retell
+  [ "$(message)" = "$(operator_message "$(gate_defers_line later)")" ]
+  [ "$(jq -c '{outcome, approved}' "$(log_file)")" = '{"outcome":"to-operator","approved":""}' ]
+}
+
+@test "a settling that cannot be logged is never given: the question goes to the operator, saying why" {
+  switch_kinds
+  kind step-timing accept
+  answer_for reader "$(asking "Which step first?" "step 3" "step 4")"
+  answer_for sorter "$(sorted step-timing)"
+  mkdir -p "$history/log"
+  chmod a-w "$history/log"
+  run_gate
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  why="$(gate_settle_unlogged_line "step 3")"$'\n'"$(gate_log_failed_line "$(refuse_log_unwritable_note "$history/log")")"
+  [ "$(message)" = "$(gate_operator_note "Which step first?" "$why")" ]
+}
+
+@test "a function's name held after \"are you sure?\" is asked nothing more: on trial it reaches the operator as held twice" {
+  kind inner-naming light
+  answer_for sorter "$(sorted inner-naming)"
+  run_gate
+  [ "$(reason)" = "$(gate_challenge_note "$are_you_sure")" ]
+  [ "$(jq -r '.ladder.route' "$record_file")" = light ]
+  answer_for matcher "$(item five)"
+  rm "$FAKE_CALLS"
+  run_gate true "Yes, five."
+  [ "$(reason)" = "$(retelling)" ]
+  [ "$(calls)" = "matcher $MATCHER_MODEL" ]
+  retell
+  [ "$(message)" = "$(printf '%s\n%s' "$(gate_held_note "$plain_question" five 2 "$(gate_trial_line inner-naming)")" "$(story)")" ]
+  [ "$(jq -c '{kind, outcome, approved, ladder}' "$(log_file)")" = \
+    "$(jq -cn --argjson pick "$(item five)" '{kind: "inner-naming", outcome: "would-have-approved", approved: "five",
+      ladder: {first: {options: ["five", "ten"], recommended: "five"}, picks: [$pick]}}')" ]
+}
+
+@test "once through the trial, a function's name held after \"are you sure?\" stands, logged as settled" {
+  switch_kinds
+  kind inner-naming light
+  answer_for sorter "$(sorted inner-naming)"
+  run_gate
+  [ "$(reason)" = "$(gate_challenge_note "$are_you_sure")" ]
+  answer_for matcher "$(item five)"
+  rm "$FAKE_CALLS"
+  run_gate true "Yes, five."
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  [ "$(reason)" = "$(gate_settled_note five)" ]
+  [ "$(calls)" = "matcher $MATCHER_MODEL" ]
+  [ "$(jq -c '{kind, outcome, approved}' "$(log_file)")" = '{"kind":"inner-naming","outcome":"settled","approved":"five"}' ]
+  [ "$(jq -c '[.exchange[] | .from]' "$(log_file)")" = '["agent","stand-in","agent"]' ]
+}
+
+@test "a function's name that moves after \"are you sure?\" reaches the operator, with no bigger look and no cold reading" {
+  switch_kinds
+  kind inner-naming light
+  answer_for sorter "$(sorted inner-naming)"
+  answer_for reading '{"reading":"Either."}'
+  run_gate
+  answer_for matcher "$(item ten)"
+  run_gate true "On reflection, ten."
+  [ "$(reason)" = "$(retelling)" ]
+  retell
+  [ "$(message)" = "$(operator_message "$(gate_moved_line)")" ]
+  [ "$(calls | grep -c '^reading ')" -eq 0 ]
+  [ "$(grep -cxF -- "$(gate_challenge_note "$bigger_look")" "$FAKE_PROMPT.summary")" -eq 0 ]
+  [ "$(jq -c '{outcome, approved}' "$(log_file)")" = '{"outcome":"to-operator","approved":""}' ]
+}
+
+@test "a module's name always reaches the operator, even once through the trial: challenged first, then theirs" {
+  switch_kinds
+  kind new-module ask "Do we really need a new module?"
+  answer_for reader "$(asking "Call the new module mf-pager or mf-pages?" mf-pager mf-pages)"
+  answer_for sorter "$(sorted new-module)"
+  run_gate
+  [ "$(reason)" = "$(gate_challenge_note "Do we really need a new module?")" ]
+  answer_for reader "$(no_question_form keep-all)"
+  run_gate true
+  [ "$(reason)" = "$(retelling)" ]
+  retell
+  [ "$(message)" = "$(operator_message "$(gate_kind_line new-module "The new-module kind.")"$'\n'"$(gate_kept_line)")" ]
+  [ "$(calls | grep -c '^matcher ')" -eq 0 ]
 }

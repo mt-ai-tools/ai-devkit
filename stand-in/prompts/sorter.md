@@ -7,7 +7,7 @@ You are handed the kinds a question can be, the risks an option can carry,
 the reader's form (the question, its options and the recommended option, as
 another reader took them from the reply), and the reply itself.
 
-Answer three things:
+Answer four things:
 
 - kind: the one kind, from the list below, that the question is. Write the
   name exactly as listed. Where the question could be more than one kind, pick
@@ -20,6 +20,10 @@ Answer three things:
   by name exactly as listed. Weigh the option as the reply describes it and
   as you see it; a risk the reply waves away is still carried. None when the
   option carries none, or when no option is recommended.
+- defers: true if the recommended option puts work off rather than doing it
+  now: to later, to a pending line or note, or to another session. False
+  when it does the work now, or when no option is recommended. When in
+  doubt, true.
 
 The kinds, one per line as "name: summary":
 

@@ -189,12 +189,3 @@ to_step_details() {
     ($form | {problems, proof, next_step, next_step_number, next_step_from, next_step_marks})
     + {majors: $sort.majors, unsure: $sort.unsure}'
 }
-
-# True while the kind given is on trial. Every kind is, until the operator
-# switches it, and nothing switches one yet, so a go the stand-in would give
-# still comes to them, marked as such: trust is gained on their yes, never
-# assumed. This is the one place that will learn to tell a switched kind
-# apart, the day one can be.
-is_on_trial() {
-  return 0
-}

@@ -163,6 +163,26 @@ refuse_unknown_label_note() {
   printf 'The sorter labelled a problem "%s", which is no label it was handed.\n' "$1"
 }
 
+refuse_round_and_step_note() {
+  printf 'The reader'\''s form says the reply both closes the round of questions and ends a step.\n'
+}
+
+refuse_bad_decision_note() {
+  printf 'The round reader'\''s answer holds a decision that is not a number and a line.\n'
+}
+
+refuse_decision_outside_note() {
+  printf 'The round reader numbered a decision %s, which is no decision of the round it was handed.\n' "$1"
+}
+
+refuse_decision_twice_note() {
+  printf 'The round reader wrote decision %s more than once.\n' "$1"
+}
+
+refuse_decision_missing_note() {
+  printf 'The round reader left out decision %s.\n' "$1"
+}
+
 # The names the refusals above call the forms by.
 reader_form_words() { printf "reader's form"; }
 sorter_answer_words() { printf "sorter's answer"; }
@@ -171,6 +191,7 @@ reading_answer_words() { printf "cold second reading's answer"; }
 matcher_answer_words() { printf "matcher's answer"; }
 summary_answer_words() { printf "summary's answer"; }
 step_sort_words() { printf "sorter's labelling of the step"; }
+round_answer_words() { printf "round reader's answer"; }
 
 # --- The rules and conventions.
 
@@ -265,6 +286,10 @@ refuse_state_unwritable_note() {
   printf 'The stand-in'\''s record of this session cannot be written in %s.\n' "$1"
 }
 
+refuse_ladder_route_note() {
+  printf 'The question the stand-in holds climbs the route "%s", which neither the ladder nor the light check is.\n' "$1"
+}
+
 refuse_round_twice_note() {
   printf 'The stand-in would have sent the %s round a second time for one question, which it never does.\n' "$1"
 }
@@ -336,6 +361,12 @@ gate_kept_line() {
   printf -- '- The agent kept its proposal through the stand-in'\''s challenge; its reasons are in its reply.\n'
 }
 
+# Why a question whose kind's recommendation stands unchallenged still came
+# to the operator: it puts work off.
+gate_defers_line() {
+  printf -- '- The recommended option, %s, puts work off, which always comes to you.\n' "$1"
+}
+
 gate_unanswered_line() {
   printf -- '- The stand-in challenged the proposal ("%s"), and the reply neither drops it nor keeps it.\n' "$1"
 }
@@ -360,6 +391,25 @@ gate_held_note() {
 
 gate_trial_line() {
   printf -- '- Its kind, %s, is still on trial: until you switch it, every answer the stand-in would approve still comes to you.\n' "$1"
+}
+
+# A question whose kind's recommendation stands with no challenge, brought
+# while the kind is on trial: the decision asked for and what would have
+# stood.
+gate_accepted_note() {
+  printf 'Stand-in: a question for you: %s\nThe stand-in would have accepted this: %s.\nWhy it came to you:\n%s' "$1" "$2" "$3"
+}
+
+# What the agent is told once the stand-in settles its question without the
+# operator, given the option settled on.
+gate_settled_note() {
+  gate_from_note "go with your recommendation, \"$1\"."
+}
+
+# Why a question the stand-in would have settled came to the operator after
+# all: it could not be logged, and nobody could list or reopen it.
+gate_settle_unlogged_line() {
+  printf -- '- The stand-in would have settled it on "%s" without you, but could not log it, so it is yours.\n' "$1"
 }
 
 gate_moved_line() {
@@ -582,6 +632,75 @@ step_broken_check_words() {
   printf 'A check that passed before now fails.'
 }
 
+# --- The round's decisions, laid out when the agent asks to start building.
+
+# The decision the request puts to the operator, as the log keeps it.
+gate_round_question() {
+  printf 'Start building, with every decision of the round as listed?'
+}
+
+# Why it came to them, as the log keeps it.
+gate_round_why_line() {
+  printf -- '- The agent asks to start building, which is always yours to say.\n'
+}
+
+round_heading() {
+  printf 'Stand-in: the agent asks to start building, which is always yours to say. Every decision of this round:\n'
+}
+
+# One decision, by its number in the log, who decided it, and what was decided.
+round_item_line() {
+  printf '%s. %s: %s\n' "$1" "$2" "$3"
+}
+
+# Who decided, as each line names them to the operator.
+round_by_operator_words() {
+  printf 'You'
+}
+
+round_by_stand_in_words() {
+  printf 'Stand-in'
+}
+
+round_empty_line() {
+  printf 'No decision was made in this round.\n'
+}
+
+# The round reader failed: each decision is shown as the log keeps it, under
+# a line saying why.
+round_failed_note() {
+  printf 'The plain list could not be written, so these are the questions as asked. Why:\n%s\n' "$1"
+}
+
+round_answered_words() {
+  printf '%s (you answered: %s)' "$1" "$2"
+}
+
+round_unanswered_words() {
+  printf '%s (no answer of yours was kept)' "$1"
+}
+
+round_settled_words() {
+  printf '%s (settled on: %s)' "$1" "$2"
+}
+
+round_hint() {
+  printf 'Say "go" to start the first step, or "reopen" and a number to bring that decision back as a normal question; building waits until every reopened one is settled again.\n'
+}
+
+# Who decided, as the round reader is handed it.
+round_by_operator_prompt_words() {
+  printf 'Decided by the operator. Their answer: %s' "$1"
+}
+
+round_unanswered_prompt_words() {
+  printf 'It reached the operator, and no answer of theirs was kept.'
+}
+
+round_by_stand_in_prompt_words() {
+  printf 'Decided by the stand-in, without the operator. It settled on: %s' "$1"
+}
+
 # --- The question log.
 
 refuse_log_unwritable_note() {
@@ -670,6 +789,20 @@ reopen_settled_line() {
   printf 'The stand-in settled on: %s\n' "$1"
 }
 
+# A decision of a round the operator made themselves, reopened from the
+# round's list: number, when it reached them, and where.
+reopen_decided_heading() {
+  printf 'Stand-in: question %s, which you decided, is open again.\nIt reached you at %s, %s.\n' "$1" "$2" "$3"
+}
+
+reopen_answered_line() {
+  printf 'You answered: %s\n' "$1"
+}
+
+reopen_unanswered_line() {
+  printf 'No answer of yours was kept.\n'
+}
+
 reopen_exchange_hint() {
   printf 'Ask to see the exchange to read every turn word for word.\n'
 }
@@ -696,15 +829,15 @@ reopen_fixed_heading() {
 }
 
 reopen_usage_note() {
-  printf 'The stand-in reopens a question by the number its settled list shows, as in "reopen 3"; add "exchange" after the number to read every turn word for word.\n'
+  printf 'The stand-in reopens a question by the number its settled list or a round'\''s list shows, as in "reopen 3"; add "exchange" after the number to read every turn word for word.\n'
 }
 
 reopen_nothing_note() {
-  printf 'There is nothing to reopen: nothing was settled without you, since every kind is still on trial.\n'
+  printf 'There is nothing to reopen: nothing was settled without you, since every kind is still on trial, and no round'\''s list was laid out before building.\n'
 }
 
 reopen_unknown_note() {
-  printf 'No question the stand-in settled is numbered %s; its settled list shows the numbers there are.\n' "$1"
+  printf 'No question the stand-in can reopen is numbered %s; its settled list and the round lists show the numbers there are.\n' "$1"
 }
 
 # --- The skill hook's notes to the model, which never sees what the hook
@@ -722,6 +855,19 @@ skill_refusal_shown_note() {
 # and what the stand-in settled on.
 reopen_agent_note() {
   printf 'The stand-in'\''s question %s, which it had settled without the user, has been shown to the user above, in full. It is open again: ask the user it now as a normal question in plain conversation, with its options and your recommendation, and wait for their answer. The question as first asked: %s Its options: %s. The stand-in had settled on: %s.\n' "$1" "$2" "$3" "$4"
+}
+
+# A decision the user made, reopened from a round's list: number, question as
+# first asked, its options joined, and their answer as kept (empty for none).
+reopen_decided_agent_note() {
+  printf 'The stand-in'\''s question %s, which the user had decided, has been shown to the user above, in full. It is open again: ask the user it now as a normal question in plain conversation, with its options and your recommendation, and wait for their answer. The question as first asked: %s Its options: %s. The user had answered: %s\n' "$1" "$2" "$3" "$4"
+}
+
+# Under the note for a decision listed in a round, laid out before building:
+# building waits until every reopened one is settled again (settled
+# 2026-10-06).
+reopen_round_waits_note() {
+  printf 'It is a decision of the round laid out before building, so building waits: do not start building, or go on with it, until it is settled again; then ask the user again whether to start building.\n'
 }
 
 skill_name_unreadable_note() {

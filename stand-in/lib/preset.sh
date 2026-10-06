@@ -24,10 +24,20 @@ PRESET_OPENER_FILE="challenges/opener.md"
 # for the operator's go, the step go. The step go is found by its route and
 # never by its kind's name, so the stand-in knows no kind by name and a
 # project's preset may call it what it likes.
+#
+# Two more (settled 2026-10-06). Accept: the agent's recommendation stands
+# with no challenge, since on how the work is organised the operator takes
+# the agent's word (in 971 of their typed answers the standing test went on
+# how something is built about 207 times and never on how the work is
+# organised). Light: one "are you sure?" alone, for a choice formal and cheap
+# to change, such as a name inside the code. Either still answers to the
+# trial before anything stands without the operator.
 ROUTE_ASK="ask"
 ROUTE_LADDER="ladder"
 ROUTE_GO="go"
-ROUTES=("$ROUTE_ASK" "$ROUTE_LADDER" "$ROUTE_GO")
+ROUTE_ACCEPT="accept"
+ROUTE_LIGHT="light"
+ROUTES=("$ROUTE_ASK" "$ROUTE_LADDER" "$ROUTE_GO" "$ROUTE_ACCEPT" "$ROUTE_LIGHT")
 
 # --- Transforms.
 

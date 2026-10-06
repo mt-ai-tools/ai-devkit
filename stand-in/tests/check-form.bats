@@ -30,13 +30,13 @@ form_without() {
 }
 
 @test "a reply asking nothing passes with an empty form" {
-  form='{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":true,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
+  form='{"asks_operator":false,"question":"","options":[],"recommended":"","claims_done":true,"closes_round":false,"guidance_answer":"","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run refuse_bad_reader_form "$form"
   [ "$status" -eq 0 ]
 }
 
 @test "each missing field is refused by name" {
-  for field in asks_operator question options recommended claims_done guidance_answer \
+  for field in asks_operator question options recommended claims_done closes_round guidance_answer \
     ends_step problems proof next_step next_step_number next_step_from next_step_marks; do
     run --separate-stderr refuse_bad_reader_form "$(form_without "$field")"
     [ "$status" -eq 1 ]
@@ -125,7 +125,7 @@ form_without() {
 }
 
 @test "every problem is named, not only the first" {
-  form='{"asks_operator":true,"question":"Which?","options":["a","b"],"recommended":"c","claims_done":false,"guidance_answer":"maybe","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
+  form='{"asks_operator":true,"question":"Which?","options":["a","b"],"recommended":"c","claims_done":false,"closes_round":false,"guidance_answer":"maybe","ends_step":false,"problems":[],"proof":"","next_step":"","next_step_number":0,"next_step_from":"","next_step_marks":[]}'
   run --separate-stderr refuse_bad_reader_form "$form"
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_recommended_outside_note c)
@@ -145,27 +145,27 @@ $(refuse_guidance_outside_note maybe)" ]
 }
 
 @test "a sorter's answer naming known kinds and risks passes" {
-  answer='{"kind":"defaults","unsure":false,"risks":["workaround"]}'
+  answer='{"kind":"defaults","unsure":false,"risks":["workaround"],"defers":false}'
   run refuse_bad_sorter_answer "$answer" "$kinds" "$risks"
   [ "$status" -eq 0 ]
   [ "$output" = "$answer" ]
 }
 
 @test "an unknown kind is refused, never matched to the nearest" {
-  run --separate-stderr refuse_bad_sorter_answer '{"kind":"default","unsure":false,"risks":[]}' "$kinds" "$risks"
+  run --separate-stderr refuse_bad_sorter_answer '{"kind":"default","unsure":false,"risks":[],"defers":false}' "$kinds" "$risks"
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_unknown_kind_note default)" ]
 }
 
 @test "an unknown risk is refused" {
-  run --separate-stderr refuse_bad_sorter_answer '{"kind":"naming","unsure":false,"risks":["workaround","Security gap"]}' "$kinds" "$risks"
+  run --separate-stderr refuse_bad_sorter_answer '{"kind":"naming","unsure":false,"risks":["workaround","Security gap"],"defers":false}' "$kinds" "$risks"
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_unknown_risk_note "Security gap")" ]
 }
 
 @test "a sorter's answer missing a field or not JSON is refused" {
   label="$(sorter_answer_words)"
-  run --separate-stderr refuse_bad_sorter_answer '{"kind":"naming","risks":[]}' "$kinds" "$risks"
+  run --separate-stderr refuse_bad_sorter_answer '{"kind":"naming","risks":[],"defers":false}' "$kinds" "$risks"
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_missing_field_note "$label" unsure)" ]
   run --separate-stderr refuse_bad_sorter_answer 'naming' "$kinds" "$risks"
@@ -299,4 +299,36 @@ $(refuse_guidance_outside_note maybe)" ]
   run --separate-stderr refuse_bad_step_sort '{"majors":[]}' "$labels"
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_missing_field_note "$(step_sort_words)" unsure)" ]
+}
+
+@test "a form both closing the round of questions and ending a step is refused; a question beside either is not" {
+  step="$(jq -c '.asks_operator = false | .question = "" | .options = [] | .recommended = ""
+    | .ends_step = true | .proof = "passed"' <<<"$(whole_form)")"
+  run --separate-stderr refuse_bad_reader_form "$(jq -c '.closes_round = true' <<<"$step")"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_round_and_step_note)" ]
+  run refuse_bad_reader_form "$(jq -c '.closes_round = true' <<<"$(whole_form)")"
+  [ "$status" -eq 0 ]
+}
+
+@test "the round reader's answer passes with every decision handed once, and is refused otherwise" {
+  numbers='[3,5]'
+  answer='{"decisions":[{"number":5,"decision":"Ten tries."},{"number":3,"decision":"Five seconds."}]}'
+  run refuse_bad_round_answer "$answer" "$numbers"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$answer" ]
+  run --separate-stderr refuse_bad_round_answer '{"decisions":[{"number":3,"decision":"Five seconds."}]}' "$numbers"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_decision_missing_note 5)" ]
+  run --separate-stderr refuse_bad_round_answer \
+    '{"decisions":[{"number":3,"decision":"A."},{"number":3,"decision":"B."},{"number":5,"decision":"C."},{"number":4,"decision":"D."}]}' "$numbers"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_decision_outside_note 4; refuse_decision_twice_note 3)" ]
+  for item in '{"number":5,"decision":" "}' '{"number":"5","decision":"C."}' '{"number":5}' '"five"'; do
+    run --separate-stderr refuse_bad_round_answer "{\"decisions\":[{\"number\":3,\"decision\":\"A.\"},$item]}" "$numbers"
+    [ "$status" -eq 1 ]
+    [[ "$stderr" == "$(refuse_bad_decision_note)"* ]]
+  done
+  run --separate-stderr refuse_bad_round_answer '{"decisions":[]}' '[]'
+  [ "$status" -eq 0 ]
 }

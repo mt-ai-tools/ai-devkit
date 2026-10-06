@@ -34,6 +34,12 @@ MATCHER_MODEL="claude-sonnet-5-5"
 # summarising its own case.
 SUMMARY_MODEL="claude-sonnet-5-5"
 
+# The round reader lays out, in everyday words, every decision of a round of
+# questions when the agent asks to start building: a fresh model, never the
+# working agent, which would make its own choices read better; the summary
+# reader's model, since it retells as that one does.
+ROUND_MODEL="claude-sonnet-5-5"
+
 # The cold second reading of a question whose answer moved on the ladder:
 # the advisor's own command, the operator's own last rung, which they reach
 # for when an answer will not settle. A stronger model than any reader, since
@@ -57,6 +63,7 @@ CHECKER_SECONDS=60
 SORTER_SECONDS=40
 MATCHER_SECONDS=40
 SUMMARY_SECONDS=40
+ROUND_SECONDS=40
 # The reading reads code with tools, turn after turn, so it is given what its
 # stop has left beside the matcher. Measured 2026-10-05: 55 to 95 s.
 READING_SECONDS=120
@@ -108,14 +115,30 @@ derive_stop_seconds() {
 # operator as the agent wrote it, in front of them already, so nothing is
 # asked of a model to tell it again. Its stop stays below the question's
 # first, which runs the checker beside the same reader and sorter.
+#
+# A question settled without the operator, once its kind is through the
+# trial (settled 2026-10-06), is logged in the stop that settles it, since the
+# agent is told to go on there and nothing later would write the line: a kind
+# accepted as it stands, on the question's first stop, beside the reader, the
+# checker and the sorter; an answer that held, on its last rung's stop, beside
+# the matcher alone. Each adds one wait at the log's lock and no model.
+#
+# A request to start building makes one stop of its own (settled 2026-10-06,
+# the round's decisions laid out): the reader, then the round reader writing
+# every decision of the round from the question log, then the request's own
+# line. The log is read before the line is written, each under its own hold
+# of the lock, so the stop may wait at the lock twice. It runs in the stop
+# that read the request, since the list must reach the operator with it, and
+# no other stop knows the round is over.
 derive_jobs_seconds() {
   local stop longest=0
   for stop in \
-    "$(derive_stop_seconds "$READER_SECONDS" "$CHECKER_SECONDS" "$SORTER_SECONDS")" \
-    "$(derive_stop_seconds "$MATCHER_SECONDS")" \
+    "$(($(derive_stop_seconds "$READER_SECONDS" "$CHECKER_SECONDS" "$SORTER_SECONDS") + LOG_LOCK_SECONDS))" \
+    "$(($(derive_stop_seconds "$MATCHER_SECONDS") + LOG_LOCK_SECONDS))" \
     "$(derive_stop_seconds "$MATCHER_SECONDS" "$READING_SECONDS")" \
     "$(($(derive_stop_seconds "$READER_SECONDS" "$SUMMARY_SECONDS") + LOG_LOCK_SECONDS))" \
-    "$(($(derive_stop_seconds "$READER_SECONDS" "$SORTER_SECONDS") + LOG_LOCK_SECONDS))"; do
+    "$(($(derive_stop_seconds "$READER_SECONDS" "$SORTER_SECONDS") + LOG_LOCK_SECONDS))" \
+    "$(($(derive_stop_seconds "$READER_SECONDS" "$ROUND_SECONDS") + 2 * LOG_LOCK_SECONDS))"; do
     [ "$stop" -le "$longest" ] || longest="$stop"
   done
   printf '%s\n' "$longest"

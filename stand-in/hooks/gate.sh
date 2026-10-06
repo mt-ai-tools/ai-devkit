@@ -3,11 +3,14 @@
 # of every reply in a session the stand-in is switched on for, the reply is
 # read into a form; a question to the operator is checked against the
 # project's rules and conventions, sorted, challenged where its kind carries
-# a challenge, and routed — back to the agent, on to the operator, or up the
-# challenge ladder. A reply that reports a step finished and asks nothing is
-# weighed for the operator's go to the next step: the go said, the agent sent
-# back to fix what is left, or the report brought to the operator with why.
-# In every other session it does nothing at all.
+# a challenge, and routed — back to the agent, on to the operator, up the
+# challenge ladder, through the light check's one "are you sure?", or
+# accepted as it stands. A reply that reports a step finished and asks nothing
+# is weighed for the operator's go to the next step: the go said, the agent
+# sent back to fix what is left, or the report brought to the operator with
+# why. A reply that closes the round of questions and asks to start building
+# reaches the operator with every decision of the round laid out. In every
+# other session it does nothing at all.
 #
 # The order is the point: the rules and conventions check runs before any
 # route, so a question that breaks one never reaches the operator; the
@@ -105,6 +108,8 @@ tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/checker.sh"
 . "$tool_root/lib/sorter.sh"
 . "$tool_root/lib/step-go.sh"
+. "$tool_root/lib/trial.sh"
+. "$tool_root/lib/round.sh"
 . "$tool_root/lib/challenge.sh"
 . "$tool_root/lib/routes.sh"
 . "$tool_root/lib/ladder.sh"
@@ -210,16 +215,40 @@ current_answers() {
 
 # Bring the operator a question, given the question as asked, why it came to
 # them, the label the stand-in would have approved (empty for none), the
-# cold reading's part (empty where none ran) and its own words (empty where
-# none were written). Every route to the operator
+# cold reading's part (empty where none ran), its own words (empty where
+# none were written), and how many times the approved label held (empty
+# where it would have stood with no challenge). Every route to the operator
 # ends here, the loop guard's included: the message is kept in parts and the
 # agent is sent the plain retelling, whose reply finishes it.
 bring_operator() {
-  local question="$1" why="$2" approved="${3:-}" reading="${4:-}" reading_text="${5:-}" answers parts
+  local question="$1" why="$2" approved="${3:-}" reading="${4:-}" reading_text="${5:-}" held="${6:-}" answers parts
   answers="$(current_answers)"
-  parts="$(to_operator_message_parts "$question" "$approved" "$why" "$reading" "$answers" "$reading_text")"
+  parts="$(to_operator_message_parts "$question" "$approved" "$why" "$reading" "$answers" "$reading_text" "$held")"
   record="$(with_operator "$record" "$parts")"
   send_round "$LADDER_PLAIN_RETELLING"
+}
+
+# Settle a question without the operator, its kind through the trial, given
+# the question as asked and the option settled on: logged as settled, so it
+# is listed and can be reopened, and the agent told to go on with it. Never
+# brought to the operator, so it is sent no plain retelling and given no
+# summary. A settling that cannot be logged is never given, since nobody
+# could list or reopen it: the question goes to the operator instead, at once
+# and as it stands, as a broken gate's does.
+settle_question() {
+  local question="$1" approved="$2" parts logged settled
+  parts="$(to_operator_message_parts "$question" "$approved" "" "" "" "")"
+  settled="$(jq -cn --arg outcome "$OUTCOME_SETTLED" '{outcome: $outcome}')"
+  record="$(with_turn "$record" "$EXCHANGE_AGENT" "$reply")"
+  logged="$(log_let_go "$parts" "" "" "" "$settled")"
+  record="$(with_chain_reset "$record")"
+  keep_record
+  if [ -n "$logged" ]; then
+    to_operator_answer "$(gate_operator_note "$question" "$(gate_settle_unlogged_line "$approved")"$'\n'"$logged")"
+    exit 0
+  fi
+  to_block_answer "$(gate_settled_note "$approved")"
+  exit 0
 }
 
 # Write the question the record holds to the log as it is let go, given the
@@ -304,31 +333,64 @@ answer_retold() {
   exit 0
 }
 
-# Put a question on the ladder: its first rung is the form in hand, and the
-# agent is sent the first challenge. The lines given are shown to the
-# operator beside whatever the ladder brings them.
+# Put a question on the ladder, or on the light check, as the route given
+# says: its first rung is the form in hand, and the agent is sent its route's
+# first challenge. The lines given are shown to the operator beside whatever
+# the climb brings them.
 start_ladder() {
-  local form="$1" kind="$2" lines="$3" question first ladder name words
+  local form="$1" kind="$2" route="$3" lines="$4" question first ladder name words
   question="$(jq -r '.question' <<<"$form")"
   first="$(to_first_answer "$form")"
-  record="$(with_ladder "$record" "$question" "$kind" "$lines" "$first")"
+  record="$(with_ladder "$record" "$question" "$kind" "$route" "$lines" "$first")"
   ladder="$(to_ladder "$record")"
   name="$(to_rung_message_name "$ladder")"
   words="$(ladder_message "$name")"
   send_back "$(gate_challenge_note "$words")" "$question"
 }
 
-# An answer that held on every rung. Every kind is on trial until the
-# operator switches it, and nothing switches one yet, so a held answer still
-# comes to them, marked with what the stand-in would have approved: trust is
-# gained on their yes, never assumed. This is the one place a switched kind
-# would instead let the reply stop silently.
+# An answer that held on every rung of its climb, the ladder's or the light
+# check's. While its kind is on trial, which every kind is, it still comes to
+# the operator, marked with what the stand-in would have approved and how
+# many times it held, and is counted toward the trial; once switched, it is
+# settled without them.
 answer_held() {
-  local ladder="$1" question recommended why
+  local ladder="$1" question recommended why held
   question="$(jq -r '.question' <<<"$ladder")"
   recommended="$(jq -r '.first.recommended' <<<"$ladder")"
-  why="$(to_held_why "$ladder")"
-  bring_operator "$question" "$why" "$recommended"
+  if is_on_trial "$(jq -r '.kind' <<<"$ladder")"; then
+    why="$(to_held_why "$ladder")"
+    held="$(to_ladder_rungs "$ladder")"
+    bring_operator "$question" "$why" "$recommended" "" "" "$held"
+  fi
+  settle_question "$question" "$recommended"
+}
+
+# An answer that moved under the light check's one challenge: to the
+# operator, told it did not hold. No bigger look around and no cold reading,
+# which are the ladder's: a name inside the code is cheap to change, and the
+# operator answers it at a glance (settled 2026-10-06).
+answer_light_moved() {
+  local ladder="$1" question why
+  question="$(jq -r '.question' <<<"$ladder")"
+  why="$(to_changed_why "$ladder")"
+  bring_operator "$question" "$why"
+}
+
+# A question whose kind's recommendation stands with no challenge, given the
+# reader's form, the kind's entry and any lines the operator would be shown
+# beside it. While the kind is on trial, which every kind is, it comes to the
+# operator, marked with what the stand-in would have accepted, and is counted
+# toward the trial; once switched, it is settled without them.
+answer_accepted() {
+  local form="$1" entry="$2" lines="$3" question recommended name why
+  question="$(jq -r '.question' <<<"$form")"
+  recommended="$(jq -r '.recommended' <<<"$form")"
+  name="$(jq -r '.name' <<<"$entry")"
+  if is_on_trial "$name"; then
+    why="$(gate_trial_line "$name")"$'\n'"$lines"
+    bring_operator "$question" "$why" "$recommended"
+  fi
+  settle_question "$question" "$recommended"
 }
 
 # An answer that moved on the rungs: the bigger look around, once. Whatever
@@ -399,7 +461,12 @@ climb_ladder() {
       send_back "$(gate_challenge_note "$words")" "$question"
       ;;
     "$LADDER_HELD") answer_held "$ladder" ;;
-    *) answer_changed ;;
+    *)
+      if [ "$(jq -r '.route' <<<"$ladder")" = "$ROUTE_LIGHT" ]; then
+        answer_light_moved "$ladder"
+      fi
+      answer_changed
+      ;;
   esac
 }
 
@@ -482,7 +549,7 @@ answer_go() {
   local form="$1" sort="$2" entry="$3" question fixed why logged
   question="$(to_step_question "$form")"
   fixed="$(derive_fixed_lines "$form")"
-  if is_on_trial "$entry"; then
+  if is_on_trial "$(jq -r '.name' <<<"$entry")"; then
     why="$(gate_trial_line "$(jq -r '.name' <<<"$entry")")"
     logged="$(log_step "$form" "$sort" "$entry" "$question" "$(step_go_words)" "$why" "$OUTCOME_WOULD_HAVE_APPROVED")"
     let_step_stop "$(to_go_message "$question" "$why" "$fixed")" "$logged"
@@ -518,17 +585,61 @@ answer_step() {
   esac
 }
 
+# A reply that closes the round of questions and asks to start building: a
+# request that is always the operator's, brought to them with every decision
+# of the round laid out, numbered and saying who decided it (settled
+# 2026-10-06). The request is in front of them as the agent wrote it, so it is
+# sent no plain retelling, as a step's report is not. Its line in the log is
+# where the session's next round begins, and the operator's answer — "go", or
+# "reopen" and a number — is kept on it. The round reader never holds the
+# request up: where it fails, each decision is shown as the log keeps it,
+# saying why.
+answer_round() {
+  local lines decisions answer="" failed="" why shown message parts details logged
+  lines="$(list_log_lines "$(to_log_dir "$history")")"
+  decisions="$(derive_round_decisions "$lines" "$session")"
+  if [ "$(jq 'length' <<<"$decisions")" -gt 0 ]; then
+    why="$(mktemp)"
+    if ! answer="$(get_round_answer "$decisions" 2>"$why")"; then
+      answer=""
+      failed="$(cat "$why")"
+    fi
+    rm -f "$why"
+  fi
+  shown="$(to_round_shown "$decisions" "$answer")"
+  message="$(format_round_message "$shown" "$failed")"
+  why="$(gate_round_why_line)"
+  parts="$(to_operator_message_parts "$(gate_round_question)" "" "$why" "" "")"
+  details="$(jq -cn --arg outcome "$OUTCOME_TO_OPERATOR" --argjson round "$shown" '{outcome: $outcome, round: $round}')"
+  record="$(with_turn "$record" "$EXCHANGE_AGENT" "$reply")"
+  logged="$(log_let_go "$parts" "" "$why" "" "$details")"
+  [ -z "$logged" ] || message+=$'\n'"$logged"
+  record="$(with_chain_reset "$record")"
+  keep_record
+  to_operator_answer "$message"
+  exit 0
+}
+
 # Take the route the question's forms decide.
 route_question() {
-  local form="$1" sort="$2" entry="$3" kept="$4" risks route words question
+  local form="$1" sort="$2" entry="$3" kept="$4" risks route words question name
   question="$(jq -r '.question' <<<"$form")"
+  name="$(jq -r '.name' <<<"$entry")"
   risks="$(list_risks "$preset")"
   route="$(derive_route "$form" "$sort" "$entry" "$risks" "$kept")"
   words="$(jq -r '.words' <<<"$route")"
   case "$(jq -r '.route' <<<"$route")" in
     agent) send_back "$words" "$question" ;;
     operator) bring_operator "$question" "$words" ;;
-    ladder) start_ladder "$form" "$(jq -r '.name' <<<"$entry")" "$words" ;;
+    "$ROUTE_LADDER") start_ladder "$form" "$name" "$ROUTE_LADDER" "$words" ;;
+    "$ROUTE_LIGHT") start_ladder "$form" "$name" "$ROUTE_LIGHT" "$words" ;;
+    "$ROUTE_ACCEPT") answer_accepted "$form" "$entry" "$words" ;;
+    # A route no case takes would let the reply stop unjudged and unseen, so
+    # it is refused, which brings the reply to the operator with why.
+    *)
+      refuse_kind_route_note "$name" "$(jq -r '.route' <<<"$route")" "$(to_routes_line)" >&2
+      exit 1
+      ;;
   esac
 }
 
@@ -581,9 +692,13 @@ if [ -n "$challenge" ]; then
   esac
 fi
 
-# A reply asking nothing stops as it is, unless it reports a step finished:
-# that one waits for a go, which the step go weighs.
+# A reply asking nothing stops as it is, unless it closes the round of
+# questions and asks to start building, which reaches the operator with the
+# round laid out, or reports a step finished, which waits for a go the step go
+# weighs. A reply still asking a question is taken as a question first, even
+# where it also asks to go on: nothing is ready to go on while it is open.
 if ! jq -e '.asks_operator' >/dev/null <<<"$form"; then
+  if jq -e '.closes_round' >/dev/null <<<"$form"; then answer_round; fi
   if jq -e '.ends_step' >/dev/null <<<"$form"; then answer_step "$form"; fi
   let_stop
 fi

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Claude Code after-tool hook for the Skill tool — the thin orchestrator that
 # shows the user what the stand-in's two skills ask for: the list of the
-# questions it settled without them, or one of those brought back in full.
+# questions it settled without them, or one of those, or a decision a round's
+# list laid out before building, brought back in full.
 # Silent for every other skill. One hook for both, as the organizer has one
 # for its skill: each skill is told apart by the name its own file declares.
 #
@@ -56,14 +57,15 @@ answer_refused() {
   exit 0
 }
 
-# The settled lines of the log, left in settled; or the refusal shown. Run in
-# the hook's own shell, never in a command substitution, where a refusal's
-# exit would end only the substitution and its answer be taken for lines.
+# Every line of the log, left in logged, and the settled ones, left in
+# settled; or the refusal shown. Run in the hook's own shell, never in a
+# command substitution, where a refusal's exit would end only the
+# substitution and its answer be taken for lines.
 read_settled() {
-  local history lines
+  local history
   history="$(get_config_path AIDK_STAND_IN_HISTORY 2>"$why")" || answer_refused "$why"
-  lines="$(list_log_lines "$(to_log_dir "$history")" 2>"$why")" || answer_refused "$why"
-  settled="$(to_settled_lines "$lines")"
+  logged="$(list_log_lines "$(to_log_dir "$history")" 2>"$why")" || answer_refused "$why"
+  settled="$(to_settled_lines "$logged")"
 }
 
 show_settled() {
@@ -79,15 +81,19 @@ show_settled() {
 }
 
 # The words are read before the log, so a request it cannot understand is
-# refused as such, whatever the log holds.
+# refused as such, whatever the log holds. What may be reopened is what the
+# operator was shown as a decision: a settled question, or one a round's list
+# laid out before building.
 show_reopened() {
-  local request line shown
+  local request number line listed=false shown
   request="$(to_reopen_request "$args" 2>"$why")" || answer_refused "$why"
+  number="$(jq -r '.number' <<<"$request")"
   read_settled
-  line="$(to_reopened_line "$settled" "$(jq -r '.number' <<<"$request")" 2>"$why")" || answer_refused "$why"
+  line="$(to_reopened_line "$(to_reopenable_lines "$logged")" "$number" 2>"$why")" || answer_refused "$why"
+  ! is_round_listed "$logged" "$number" || listed=true
   shown="$(format_reopened "$line" "$(jq -r '.exchange' <<<"$request")"; printf x)"
   shown="${shown%x}"
-  to_skill_answer "$shown" "$(format_reopened_agent_note "$line")"
+  to_skill_answer "$shown" "$(format_reopened_agent_note "$line" "$listed")"
 }
 
 event="$(cat)"
@@ -97,6 +103,7 @@ settled_name="$(own_name "$settled_skill")"
 reopen_name="$(own_name "$reopen_skill")"
 args="$(to_skill_args "$event")"
 settled=""
+logged=""
 why="$(mktemp)"
 trap 'rm -f "$why"' EXIT
 

@@ -21,14 +21,16 @@
 # asked; the label the stand-in would have approved, empty where it would not;
 # the lines saying why it came to them, each ending its line; the cold second
 # reading's part, empty where none ran; the answers as given, heading and
-# lines, shown in place of a summary that failed; and the reading's own words,
+# lines, shown in place of a summary that failed; the reading's own words,
 # empty where none was written, kept for the question log apart from the part
-# around them.
+# around them; and how many times the approved label held under challenge,
+# empty where it would have stood with no challenge at all, as a kind whose
+# recommendation is accepted does.
 to_operator_message_parts() {
   jq -cn --arg question "$1" --arg approved "$2" --arg why "$3" --arg reading "$4" --arg answers "$5" \
-    --arg reading_text "${6:-}" \
+    --arg reading_text "${6:-}" --arg held "${7:-}" \
     '{question: $question, approved: $approved, why: $why, reading: $reading, answers: $answers,
-      reading_text: $reading_text}'
+      reading_text: $reading_text, held: $held}'
 }
 
 # The summary reader's parts, each under its heading, in the operator's order,
@@ -65,12 +67,15 @@ to_operator_story() {
 # line to add to why it came to them (empty for none), and what follows: the
 # story, as to_operator_story makes it.
 to_operator_message() {
-  local parts="$1" question="$2" extra="$3" story="$4" approved why
+  local parts="$1" question="$2" extra="$3" story="$4" approved held why
   approved="$(jq -r '.approved' <<<"$parts")"
+  held="$(jq -r '.held' <<<"$parts")"
   why="$(jq -r '.why' <<<"$parts")"
   [ -z "$extra" ] || why="${why:+$why$'\n'}$extra"
-  if [ -n "$approved" ]; then
-    printf '%s\n' "$(gate_held_note "$question" "$approved" "$LADDER_RUNGS" "$why")"
+  if [ -n "$approved" ] && [ -n "$held" ]; then
+    printf '%s\n' "$(gate_held_note "$question" "$approved" "$held" "$why")"
+  elif [ -n "$approved" ]; then
+    printf '%s\n' "$(gate_accepted_note "$question" "$approved" "$why")"
   else
     printf '%s\n' "$(gate_operator_note "$question" "$why")"
   fi

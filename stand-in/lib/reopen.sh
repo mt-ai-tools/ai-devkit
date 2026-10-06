@@ -6,6 +6,14 @@
 # ask again as a normal question. Every function here is a transform.
 # Sourced, never executed.
 #
+# A decision laid out in a round's list before building is brought back the
+# same way, whoever decided it (settled 2026-10-06): the list shows the
+# operator's own decisions beside the stand-in's, so that one wrong beside the
+# others can be reopened, and building waits until it is settled again. The
+# numbers reopen takes are the ones the operator was shown as decisions: the
+# settled list's and the round lists'. A question that reached them and was
+# never laid out is not one, so its number is refused as before.
+#
 # Shown from the line alone, never written again: the summary and the
 # exchange are those the question was settled with, so the operator reads
 # what the stand-in read, not a fresh account of it, and the parts in the
@@ -38,9 +46,25 @@ to_reopen_request() {
   jq -cn --argjson number "$number" --argjson exchange "$exchange" '{number: $number, exchange: $exchange}'
 }
 
-# The settled line numbered so, from the settled lines given; a refusal on
-# stderr and a non-zero status where there is none: nothing settled at all,
-# or no settled question of that number.
+# The lines that may be reopened among the log's lines given, one per line,
+# in log order: those settled, and those any round's list laid out.
+to_reopenable_lines() {
+  [ -n "$1" ] || return 0
+  jq -cs --arg settled "$OUTCOME_SETTLED" '
+    [.[] | (.round // [])[] | .number] as $listed
+    | .[] | select(.outcome == $settled or (.number as $n | any($listed[]; . == $n)))' <<<"$1"
+}
+
+# True if a round's list among the log's lines given laid out the decision
+# numbered so.
+is_round_listed() {
+  [ -n "$1" ] || return 1
+  jq -se --argjson number "$2" 'any(.[] | (.round // [])[]; .number == $number)' >/dev/null <<<"$1"
+}
+
+# The reopenable line numbered so, from the reopenable lines given; a refusal
+# on stderr and a non-zero status where there is none: nothing reopenable at
+# all, or none of that number.
 to_reopened_line() {
   local lines="$1" number="$2" line
   if [ -z "$lines" ]; then
@@ -83,14 +107,21 @@ format_reopened_fixed() {
 # answers as given stand in its place, as they do in the gate's message; a
 # go shows the problems fixed before it.
 format_reopened() {
-  local line="$1" exchange="$2" number when session briefs ladder summary reading
+  local line="$1" exchange="$2" number when session briefs ladder summary reading answer
   number="$(jq -r '.number' <<<"$line")"
   when="$(jq -r --arg format "$SETTLED_DAY_TIME_FORMAT" '.when | fromdateiso8601 | strflocaltime($format)' <<<"$line")"
   session="$(jq -r '.session' <<<"$line")"
   briefs="$(jq -r '(.briefs // []) | join(", ")' <<<"$line")"
-  reopen_heading "$number" "$when" "$(format_settled_where "$session" "$briefs")"
-  reopen_question_line "$(jq -r '.retold // .question' <<<"$line")"
-  reopen_settled_line "$(jq -r '.approved' <<<"$line")"
+  if is_settled_line "$line"; then
+    reopen_heading "$number" "$when" "$(format_settled_where "$session" "$briefs")"
+    reopen_question_line "$(jq -r '.retold // .question' <<<"$line")"
+    reopen_settled_line "$(jq -r '.approved' <<<"$line")"
+  else
+    reopen_decided_heading "$number" "$when" "$(format_settled_where "$session" "$briefs")"
+    reopen_question_line "$(jq -r '.retold // .question' <<<"$line")"
+    answer="$(jq -r '.answer' <<<"$line")"
+    if [ -n "$answer" ]; then reopen_answered_line "$answer"; else reopen_unanswered_line; fi
+  fi
   summary="$(jq -c '.summary // empty' <<<"$line")"
   ladder="$(jq -c '.ladder // empty' <<<"$line")"
   reading="$(jq -r '.reading // empty' <<<"$line")"
@@ -112,17 +143,30 @@ format_reopened() {
   fi
 }
 
-# The note the session's agent is handed: the question open again, in its
-# own first words, with the options and what was settled on, to ask as any
-# other question. A go is asked as whether to go on, since it had no options:
-# the agent is told not to start the step until the operator says.
+# True if the line was settled without the operator.
+is_settled_line() {
+  jq -e --arg settled "$OUTCOME_SETTLED" '.outcome == $settled' >/dev/null <<<"$1"
+}
+
+# The note the session's agent is handed, given the line and whether a
+# round's list laid it out: the question open again, in its own first words,
+# with the options and what was settled on or answered, to ask as any other
+# question. A go is asked as whether to go on, since it had no options: the
+# agent is told not to start the step until the operator says. A decision of a
+# round adds that building waits until it is settled again.
 format_reopened_agent_note() {
-  local line="$1"
+  local line="$1" listed="${2:-false}" number question options
+  number="$(jq -r '.number' <<<"$line")"
+  question="$(jq -r '.question' <<<"$line")"
   if jq -e '.step != null' >/dev/null <<<"$line"; then
-    reopen_go_agent_note "$(jq -r '.number' <<<"$line")" "$(jq -r '.question' <<<"$line")"
+    reopen_go_agent_note "$number" "$question"
     return 0
   fi
-  reopen_agent_note "$(jq -r '.number' <<<"$line")" "$(jq -r '.question' <<<"$line")" \
-    "$(jq -r --arg separator "$LADDER_OPTION_SEPARATOR" '(.ladder.first.options // []) | join($separator)' <<<"$line")" \
-    "$(jq -r '.approved' <<<"$line")"
+  options="$(jq -r --arg separator "$LADDER_OPTION_SEPARATOR" '(.ladder.first.options // []) | join($separator)' <<<"$line")"
+  if is_settled_line "$line"; then
+    reopen_agent_note "$number" "$question" "$options" "$(jq -r '.approved' <<<"$line")"
+  else
+    reopen_decided_agent_note "$number" "$question" "$options" "$(jq -r '.answer' <<<"$line")"
+  fi
+  [ "$listed" != true ] || reopen_round_waits_note
 }

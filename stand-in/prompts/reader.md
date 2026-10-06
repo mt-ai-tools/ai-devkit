@@ -26,6 +26,11 @@ Fill in the form from what the reply says, in its own terms:
   recommends something that is not one of its options.
 - claims_done: true if the reply says the brief, or the work it was given, is
   finished.
+- closes_round: true if the reply says the questions about the work are all
+  settled and asks the operator whether to start building ("that was the
+  last question; shall I start building?"). Not a step's report waiting for
+  the go to the next step, which is ends_step below, and not a reply that
+  still asks a question about the work.
 - guidance_answer: only when the reply answers a challenge from the stand-in
   about the agent's own proposal to add written guidance (a rule, a
   convention, a note, any text agents or people will read and follow):

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The fixed forms the stand-in's agents fill — the reader's, the sorter's and
 # its labelling of a step's report, the checker's, the matcher's, the
-# reading's and the summary's — in one place:
+# reading's, the summary's and the round reader's — in one place:
 # every field and its JSON type, from which both the schema a model answers
 # to and the check in code are drawn, so the two can never disagree on what a
 # form holds. What each field means is the prompts' to say. Sourced, never
@@ -11,6 +11,9 @@
 # that waits for their answer. question: that question in one sentence.
 # options: the option labels the reply names, in its order. recommended: the
 # label it recommends. claims_done: it says the work is finished.
+# closes_round: it says the round of questions is over and asks the operator
+# whether to start building, whose answer is always theirs and reaches them
+# with every decision of the round laid out (settled 2026-10-06).
 # guidance_answer: its answer to a challenge about proposed guidance.
 #
 # And, for a reply that reports a step of the work finished (settled
@@ -28,6 +31,7 @@ READER_FORM_FIELDS='{
   "options": "array",
   "recommended": "string",
   "claims_done": "boolean",
+  "closes_round": "boolean",
   "guidance_answer": "string",
   "ends_step": "boolean",
   "problems": "array",
@@ -98,11 +102,16 @@ GUIDANCE_ANSWERS="[\"$GUIDANCE_DROP\", \"$GUIDANCE_KEEP_PART\", \"$GUIDANCE_KEEP
 
 # The sorter's answer. kind: one kind of question from the preset. unsure:
 # the sorter could not tell. risks: the preset's risks the recommended option
-# carries.
+# carries. defers: the recommended option puts work off — to later, to a
+# pending line, or to another session — which a kind whose recommendation
+# stands unchallenged still brings to the operator (settled 2026-10-06: their
+# own habit is to push toward doing it now). The sorter's to say rather than
+# the reader's, since it weighs the recommended option already, for its risks.
 SORTER_ANSWER_FIELDS='{
   "kind": "string",
   "unsure": "boolean",
-  "risks": "array"
+  "risks": "array",
+  "defers": "boolean"
 }'
 
 # The checker's answer. breaks: the entries an option or the recommendation
@@ -160,6 +169,19 @@ SUMMARY_ANSWER_FIELDS='{
   "recommends_now": "string",
   "operators_call": "string"
 }'
+
+# The round reader's answer, for a reply that closes a round of questions and
+# asks to build: decisions, one {number, decision} for every decision of the
+# round it was handed, the number as handed and the decision in one short
+# everyday line. Numbered rather than listed in order, so a line dropped,
+# repeated or moved is a refused form, never a decision shown under another's
+# number. Never decided from: it is shown, and only checked to be whole.
+ROUND_ANSWER_FIELDS='{
+  "decisions": "array"
+}'
+
+# The fields of one decision of the round's list.
+ROUND_DECISION_FIELDS='["number", "decision"]'
 
 # The fields of one item of each of the checker's lists, every one a string.
 CHECKER_BREAK_FIELDS='["entry", "why"]'
@@ -252,4 +274,13 @@ matcher_answer_schema() {
 # The schema the summary reader answers to.
 summary_answer_schema() {
   to_form_schema "$SUMMARY_ANSWER_FIELDS" '{}'
+}
+
+# The schema the round reader answers to, given the decisions' numbers as a
+# JSON array: a number is one of them, or not at all.
+round_answer_schema() {
+  local decision
+  decision="$(to_item_schema "$ROUND_DECISION_FIELDS" "$(jq -cn --argjson numbers "$1" \
+    '{number: {type: "integer", enum: $numbers}}')")"
+  to_form_schema "$ROUND_ANSWER_FIELDS" "$(jq -cn --argjson decision "$decision" '{decisions: {items: $decision}}')"
 }

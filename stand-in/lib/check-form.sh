@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # The form check: whether a reader's form, or a sorter's, checker's, reading's,
-# matcher's or summary's answer, or the sorter's labelling of a step's report,
-# is whole and means one thing, decided in code and never by a model. Every
-# function here is a transform. Sourced, never executed.
+# matcher's, summary's or round reader's answer, or the sorter's labelling of
+# a step's report, is whole and means one thing, decided in code and never by
+# a model. Every function here is a transform. Sourced, never executed.
 #
 # A form that fails is refused with every reason found, never repaired or
 # guessed at: a guessed field is a decision taken by nobody, and a refused
@@ -67,6 +67,12 @@ CHECK_ITEM_DEF='
 # from, a mark on it — are each one of their own, never the nearest: the step
 # go is decided from them, and a word read as the nearest one is a decision
 # nobody took.
+#
+# A form saying the reply both closes a round of questions and ends a step
+# contradicts itself: one asks for the go to start building, the other for
+# the go to the next step, and the two are weighed apart. A question asked
+# beside either is no contradiction: an open question means nothing is ready
+# to go on, so the question is taken first.
 CHECK_READER_RULES="$CHECK_ITEM_DEF"'
   (select(any(.options[]; type != "string" or test("^\\s*$"))) | ["bad-option"]),
   (.options[] | strings | select(test("recommend"; "i")) | ["marked-option", .]),
@@ -92,7 +98,8 @@ CHECK_READER_RULES="$CHECK_ITEM_DEF"'
   (select((.ends_step | not)
       and (.problems != [] or .proof != "" or .next_step != "" or .next_step_number != 0
         or .next_step_from != "" or .next_step_marks != []))
-    | ["no-step-but"])
+    | ["no-step-but"]),
+  (select(.closes_round and .ends_step) | ["round-and-step"])
   | join($us)'
 
 # What is wrong with a sorter's answer whose shape is right: a kind or a risk
@@ -150,6 +157,22 @@ CHECK_MATCHER_RULES='
 # no words, which would show the operator a heading over nothing.
 CHECK_SUMMARY_RULES='
   (to_entries[] | select(.value | test("^\\s*$")) | ["summary-part-empty", .key])
+  | join($us)'
+
+# What is wrong with the round reader's answer whose shape is right: a
+# decision that is not a number and words, a number it was not handed, one
+# written twice, and one handed but left out. Every decision of the round must
+# be there once under its own number: the list is the operator's one look at
+# the whole round, and a decision missing from it is one they never see.
+CHECK_ROUND_RULES='
+  (.decisions[]
+    | select(type != "object" or ((keys - $fields) != []) or (($fields - keys) != [])
+      or (.number | type != "number") or (.decision | type != "string" or test("^\\s*$")))
+    | ["bad-decision"]),
+  ([.decisions[] | objects | .number | numbers] as $given
+    | ($given[] | select(. as $n | any($numbers[]; . == $n) | not) | ["decision-outside", tostring]),
+      ($given | group_by(.)[] | select(length > 1) | ["decision-twice", (.[0] | tostring)]),
+      ($numbers[] | select(. as $n | any($given[]; . == $n) | not) | ["decision-missing", tostring]))
   | join($us)'
 
 # The input as one compact JSON value; a non-zero status where it is not
@@ -257,6 +280,19 @@ derive_summary_answer_problems() {
   jq -r --arg us "$CHECK_US" "$CHECK_SUMMARY_RULES" <<<"$1"
 }
 
+# Every problem of the round reader's answer, one row each, given the
+# decisions' numbers it was handed as a JSON array.
+derive_round_answer_problems() {
+  local shape
+  shape="$(derive_shape_problems "$1" "$ROUND_ANSWER_FIELDS")"
+  if [ -n "$shape" ]; then
+    printf '%s\n' "$shape"
+    return 0
+  fi
+  jq -r --argjson numbers "$2" --argjson fields "$ROUND_DECISION_FIELDS" --arg us "$CHECK_US" \
+    "$CHECK_ROUND_RULES" <<<"$1"
+}
+
 # The words for each problem row, the form called by the label given.
 to_problem_notes() {
   local label="$1" code arg type
@@ -290,6 +326,11 @@ to_problem_notes() {
       mark-outside) refuse_mark_outside_note "$arg" ;;
       bad-step-number) refuse_bad_step_number_note "$arg" ;;
       no-step-but) refuse_no_step_but_note ;;
+      round-and-step) refuse_round_and_step_note ;;
+      bad-decision) refuse_bad_decision_note ;;
+      decision-outside) refuse_decision_outside_note "$arg" ;;
+      decision-twice) refuse_decision_twice_note "$arg" ;;
+      decision-missing) refuse_decision_missing_note "$arg" ;;
       bad-major) refuse_bad_major_note ;;
       unknown-label) refuse_unknown_label_note "$arg" ;;
     esac
@@ -411,6 +452,24 @@ refuse_bad_summary_answer() {
     return 1
   fi
   problems="$(derive_summary_answer_problems "$answer")"
+  if [ -n "$problems" ]; then
+    to_problem_notes "$label" <<<"$problems" >&2
+    return 1
+  fi
+  printf '%s\n' "$answer"
+}
+
+# The round reader's answer, compact, where it is whole and holds every
+# number given once; every reason it is not on stderr and a non-zero status
+# otherwise.
+refuse_bad_round_answer() {
+  local answer problems label
+  label="$(round_answer_words)"
+  if ! answer="$(to_one_json_value "$1")"; then
+    refuse_not_json_note "$label" >&2
+    return 1
+  fi
+  problems="$(derive_round_answer_problems "$answer" "$2")"
   if [ -n "$problems" ]; then
     to_problem_notes "$label" <<<"$problems" >&2
     return 1
