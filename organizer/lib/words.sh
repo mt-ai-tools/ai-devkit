@@ -96,6 +96,10 @@ refuse_no_brief_note() {
   printf 'There is no brief named %s.\n' "$1"
 }
 
+refuse_waiting_note() {
+  printf '%s waits on: %s; it cannot be taken until those are done.\n' "$1" "$2"
+}
+
 refuse_no_briefs_folder_note() {
   printf 'There is no briefs folder at %s.\n' "$1"
 }

@@ -43,6 +43,22 @@ setup() {
   [ "$(cat "$marks/file-trash")" = "garbage" ]
 }
 
+@test "a brief that waits on another is refused, naming what it waits on, and nothing is marked" {
+  brief stand-in-loops "Loops." "[file-trash, frozen-account]" "[aidk-plans]" "[]"
+  run --separate-stderr organizer take stand-in-loops session-1
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_waiting_note stand-in-loops "file-trash, frozen-account")" ]
+  [ ! -e "$marks/stand-in-loops" ]
+}
+
+@test "a brief whose after list cannot be read is refused, never taken as ready" {
+  brief half-written "Half." "file-trash" "[aidk-plans]" "[]"
+  run --separate-stderr organizer take half-written session-1
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_header_unreadable_note half-written)" ]
+  [ ! -e "$marks/half-written" ]
+}
+
 @test "a missing brief, a name that is no name, and a bad session are refused" {
   run --separate-stderr organizer take no-such-brief session-1
   [ "$status" -eq 1 ]

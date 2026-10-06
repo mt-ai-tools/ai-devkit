@@ -61,7 +61,7 @@ held() {
 }
 
 @test "bare: the organizer's list shown whole, nothing taken and nothing switched on" {
-  "$organizer" take incidents session-2
+  "$organizer" take file-trash session-2
   expected="$("$organizer" list; printf x)"
   expected="${expected%x}"
   run_hook "$(turn_event session-1 "/devkit-stand-in")"

@@ -5,7 +5,7 @@
 #
 #   list                      the check's problems, then ready, waiting, taken
 #   check                     the check's problems alone
-#   take <brief> <session>    mark a brief taken by a session
+#   take <brief> <session>    mark a ready brief taken by a session
 #   free <session>            free every brief a session holds
 #   held <session>            the briefs a session holds and for how long,
 #                             one "<brief><TAB><age>" line each
@@ -67,6 +67,7 @@ case "$command" in
   take)
     [ "$#" -eq 2 ] || usage
     refuse_unknown_brief "$plans" "$1" || exit 1
+    refuse_waiting_brief "$plans" "$1" || exit 1
     now="$(get_now)"
     take_brief "$marks" "$1" "$2" "$now"
     ;;

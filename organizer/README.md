@@ -11,7 +11,8 @@ either. It ranks nothing — which ready brief comes first is the operator's
 pick. It is asked in plain words, through a skill whose hook shows the user
 the list exactly as printed. A brief its header check cannot vouch for is shown as a
 problem and never offered as work; a name it cannot find is an error, never
-read as finished.
+read as finished. Only a ready brief can be taken: one still waiting is
+refused, naming what it waits on.
 
 It changes only its own marks, and, when a brief is finished, that brief and
 the after lists naming it; its writer adds only the one new brief, and the

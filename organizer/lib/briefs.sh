@@ -4,6 +4,7 @@
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/collection.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/header.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/names.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/flow-list.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 
 # The header fields every brief carries, in the order a row holds them. All
@@ -41,4 +42,20 @@ refuse_unknown_brief() {
   local dir="$1" name="$2"
   is_brief_name "$name" || { refuse_bad_name_note "$name" >&2; return 1; }
   [ -f "$(brief_file "$dir" "$name")" ] || { refuse_no_brief_note "$name" >&2; return 1; }
+}
+
+# Nothing where the brief waits on no other; a refusal naming what it waits on
+# on stderr and a non-zero status otherwise. A brief taken early builds on
+# ground that is not there yet, or will still change under it; starting one
+# early is a deliberate edit of its header, never a take. An after list that
+# cannot be read is refused too, since a half-written list must not make a
+# brief look ready. The name must already have passed refuse_unknown_brief.
+refuse_waiting_brief() {
+  local dir="$1" name="$2" after items
+  after="$(read_header_fields "$(brief_file "$dir" "$name")" after)"
+  if ! items="$(parse_flow_list "$after")"; then
+    refuse_header_unreadable_note "$name" >&2
+    return 1
+  fi
+  [ -z "$items" ] || { refuse_waiting_note "$name" "${items//,/, }" >&2; return 1; }
 }
