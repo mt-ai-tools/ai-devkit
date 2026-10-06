@@ -3,6 +3,10 @@
 # session, and which briefs a session holds. The stand-in asks all of it of
 # the organizer's own command, and never reads or writes its marks. Sourced,
 # never executed.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_BRIEFS:-}" ] || return 0
+STAND_IN_LOADED_BRIEFS=1
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/config.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 

@@ -7,6 +7,10 @@
 # form holds. What each field means is the prompts' to say. Sourced, never
 # executed.
 
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_FORMS:-}" ] || return 0
+STAND_IN_LOADED_FORMS=1
+
 # The reader's form. asks_operator: the reply puts a question to the operator
 # that waits for their answer. question: that question in one sentence.
 # options: the option labels the reply names, in its order. recommended: the

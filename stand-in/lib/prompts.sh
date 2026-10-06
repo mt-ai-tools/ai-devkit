@@ -6,6 +6,10 @@
 # The prose holds no kind and no risk: they come from the preset each time, so
 # a project's own preset is what its sorter is handed, and no copy in a prompt
 # can drift from it.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_PROMPTS:-}" ] || return 0
+STAND_IN_LOADED_PROMPTS=1
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 
 # The prompts' folder, beside this one.

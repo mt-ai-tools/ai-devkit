@@ -3,6 +3,10 @@
 # the stand-in's reads one off its event, and each names files with it.
 # Sourced, never executed.
 
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_SESSION_ID:-}" ] || return 0
+STAND_IN_LOADED_SESSION_ID=1
+
 # True if the value is a session id as Claude Code hands it out: letters,
 # digits and hyphens. The id names the session's switch and its record, so
 # nothing else may reach a path: a slash or a dot could address a file outside

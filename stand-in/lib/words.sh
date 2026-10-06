@@ -6,6 +6,12 @@
 # A refusal here is a reason the gate marks a question with when it sends it
 # to the operator, so each says what was wrong in words a person reads cold.
 
+# Loaded once, however many of the stand-in's parts source it: each load
+# reads the file again, and one stop loaded this file 54 times, the loads
+# together about a second of every stop (measured 2026-10-06).
+[ -z "${STAND_IN_LOADED_WORDS:-}" ] || return 0
+STAND_IN_LOADED_WORDS=1
+
 # --- Asking a model.
 
 refuse_model_timeout_note() {

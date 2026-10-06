@@ -3,6 +3,10 @@
 # event: the session it belongs to, and nothing else. Needs jq, for the reason
 # the gate's event reader gives. Every function here is a transform. Sourced,
 # never executed.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_END_EVENT:-}" ] || return 0
+STAND_IN_LOADED_END_EVENT=1
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/session-id.sh"
 

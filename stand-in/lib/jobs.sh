@@ -6,6 +6,10 @@
 # change is measured on the real past cases the stand-in keeps; nothing else
 # names a model. Full names, not the CLI's aliases: an alias moves to the next
 # release on its own, and a job's model changes only when someone says so.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_JOBS:-}" ] || return 0
+STAND_IN_LOADED_JOBS=1
 . "$(dirname "${BASH_SOURCE[0]}")/ask-model.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/question-log.sh"
 

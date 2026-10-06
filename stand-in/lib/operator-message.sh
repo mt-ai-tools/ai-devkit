@@ -14,6 +14,10 @@
 # worded; the question as first asked stays in the parts, for the record, and
 # is never shown in its place. The agent's own retelling never tells the
 # story: it would tell its own wavering, so the parts are a fresh reader's.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_OPERATOR_MESSAGE:-}" ] || return 0
+STAND_IN_LOADED_OPERATOR_MESSAGE=1
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/ladder.sh"
 

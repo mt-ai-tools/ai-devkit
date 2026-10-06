@@ -12,6 +12,10 @@
 # exchange, whole, beside the parts written from it, so a reopened question
 # shows the same parts and the same full version, never a second summary of
 # something else.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_SUMMARY:-}" ] || return 0
+STAND_IN_LOADED_SUMMARY=1
 . "$(dirname "${BASH_SOURCE[0]}")/jobs.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/forms.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/prompts.sh"

@@ -7,6 +7,10 @@
 # The switch is the stand-in's own fact, never read off which brief a session
 # has taken: the stand-in may be on for a session holding no brief, and a
 # brief may be taken with the stand-in off.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_SWITCH:-}" ] || return 0
+STAND_IN_LOADED_SWITCH=1
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 
 # The switches' folder inside the stand-in's working folder.

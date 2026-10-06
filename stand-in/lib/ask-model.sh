@@ -4,6 +4,10 @@
 #
 # Needs the claude CLI on the path; the stand-in reaches a model through
 # nothing else.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_ASK_MODEL:-}" ] || return 0
+STAND_IN_LOADED_ASK_MODEL=1
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 
 # The settings each call runs with. Hooks off is what stops a reader, started

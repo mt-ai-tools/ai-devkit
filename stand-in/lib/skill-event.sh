@@ -3,6 +3,10 @@
 # it gives back. Needs jq, for the reason the gate's event reader gives. Every
 # function here is a transform. Sourced, never executed.
 
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_SKILL_EVENT:-}" ] || return 0
+STAND_IN_LOADED_SKILL_EVENT=1
+
 # The name of the skill the event loaded; nothing where the event is not a
 # skill loading, or not JSON at all.
 to_skill_loaded() {

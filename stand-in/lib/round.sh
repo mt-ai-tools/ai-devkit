@@ -12,6 +12,10 @@
 # never the model's to say. Each line carries the decision's number in the
 # log, never its place in this list, so "reopen" takes it unchanged, as it
 # takes the settled list's.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_ROUND:-}" ] || return 0
+STAND_IN_LOADED_ROUND=1
 . "$(dirname "${BASH_SOURCE[0]}")/jobs.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/forms.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/prompts.sh"

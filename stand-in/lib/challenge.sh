@@ -8,6 +8,10 @@
 # all or part of it earns the second challenge where the entry has one, and
 # otherwise goes on to the routes; keeping part counts as keeping. A reply
 # that answers neither way is not guessed at.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_CHALLENGE:-}" ] || return 0
+STAND_IN_LOADED_CHALLENGE=1
 . "$(dirname "${BASH_SOURCE[0]}")/forms.sh"
 
 # What follows the reply to a challenge, given the challenge the record holds

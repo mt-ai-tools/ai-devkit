@@ -17,6 +17,10 @@
 # with no bigger look around and no cold reading, which are the ladder's own.
 # One climb for both, so how an answer is matched and compared is never
 # written twice; a question's ladder holds which route it climbs.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_LADDER:-}" ] || return 0
+STAND_IN_LOADED_LADDER=1
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/forms.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/preset.sh"

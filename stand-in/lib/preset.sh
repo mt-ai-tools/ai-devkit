@@ -3,6 +3,10 @@
 # risks an option can carry. It knows no kind and no risk by name — whatever
 # the preset holds is what a sorter is handed and what its answer is checked
 # against. Sourced, never executed.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_PRESET:-}" ] || return 0
+STAND_IN_LOADED_PRESET=1
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/collection.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/header.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"

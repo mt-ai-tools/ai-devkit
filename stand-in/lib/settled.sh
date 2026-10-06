@@ -7,6 +7,10 @@
 #
 # The numbers are the log's own, never a position in this list: a number seen
 # today still reopens the same question tomorrow, whatever was settled since.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_SETTLED:-}" ] || return 0
+STAND_IN_LOADED_SETTLED=1
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/question-log.sh"
 

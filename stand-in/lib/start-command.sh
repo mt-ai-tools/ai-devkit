@@ -4,6 +4,10 @@
 # is the entry skill's own name after a slash, handed in by the caller, so the
 # name Claude Code offers the command by and the name recognised here cannot
 # drift apart. Every function here is a transform. Sourced, never executed.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_START_COMMAND:-}" ] || return 0
+STAND_IN_LOADED_START_COMMAND=1
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 
 # The three forms, as the request names them: bare, the organizer's list to

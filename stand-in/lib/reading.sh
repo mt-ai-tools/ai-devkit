@@ -14,6 +14,10 @@
 # took them for one: measured 2026-10-06, every reading opened "Anchored"
 # though no pick had reached it. The command stays as it is, since sessions
 # hand it their own proposals and the warning is right there.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_READING:-}" ] || return 0
+STAND_IN_LOADED_READING=1
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/config.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/jobs.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/forms.sh"

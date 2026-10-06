@@ -9,6 +9,10 @@
 # form is one the gate sends to the operator. The schema a model answers to
 # is drawn from the same fields, but Claude Code's check of it is not this
 # one's to rely on: what the stand-in decides from is checked here.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_CHECK_FORM:-}" ] || return 0
+STAND_IN_LOADED_CHECK_FORM=1
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/forms.sh"
 

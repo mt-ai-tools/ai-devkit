@@ -13,6 +13,10 @@
 # so does a recommendation to put work off, where the kind's recommendation
 # would otherwise stand unchallenged. What is left takes its kind's own route:
 # up the ladder, the light check's one challenge, or accepted as it stands.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_ROUTES:-}" ] || return 0
+STAND_IN_LOADED_ROUTES=1
 . "$(dirname "${BASH_SOURCE[0]}")/preset.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 

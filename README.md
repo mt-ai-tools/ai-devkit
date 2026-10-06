@@ -83,3 +83,7 @@ hook a session's switch outlives it.
 pnpm install
 pnpm test
 ```
+
+The test command takes test files or folders to run only those. It runs
+tests in parallel where GNU parallel is installed, and one at a time
+where it is not.

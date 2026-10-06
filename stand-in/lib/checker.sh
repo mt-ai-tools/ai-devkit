@@ -9,6 +9,10 @@
 # no special case is made for any entry. A summary would let the checker miss
 # what only an entry's body says, and a copy in the prompt would drift from the
 # entry.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_CHECKER:-}" ] || return 0
+STAND_IN_LOADED_CHECKER=1
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/collection.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/jobs.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/forms.sh"

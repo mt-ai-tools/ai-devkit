@@ -18,6 +18,10 @@
 # the next step and the operator is never handed a report the agent could
 # still have finished. Only a report with nothing left to fix is weighed for
 # what is always the operator's, and only one with none of that earns the go.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_STEP_GO:-}" ] || return 0
+STAND_IN_LOADED_STEP_GO=1
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/forms.sh"
 

@@ -18,6 +18,10 @@
 # exchange are those the question was settled with, so the operator reads
 # what the stand-in read, not a fresh account of it, and the parts in the
 # order the gate's own message shows them.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_REOPEN:-}" ] || return 0
+STAND_IN_LOADED_REOPEN=1
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/question-log.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/settled.sh"

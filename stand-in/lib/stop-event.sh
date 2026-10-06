@@ -4,6 +4,10 @@
 # is JSON written by Claude Code, and parsing it by hand is how an escaped
 # character slips through. Every function here is a transform. Sourced, never
 # executed.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_STOP_EVENT:-}" ] || return 0
+STAND_IN_LOADED_STOP_EVENT=1
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/session-id.sh"
 

@@ -30,6 +30,10 @@
 # sort and the answers is the log line's source until then, and is gone after.
 # The checks and the sort are kept for that line alone: the gate decides from
 # them in the stop they arrive in, and never reads them back.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_RECORD:-}" ] || return 0
+STAND_IN_LOADED_RECORD=1
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 
 # The records' folder inside the stand-in's working folder.

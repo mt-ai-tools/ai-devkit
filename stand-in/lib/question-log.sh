@@ -38,6 +38,10 @@
 # moving a new file over the log, and a writer waiting on the old file's lock
 # would then append to a file nobody reads. Readers take it shared, so none
 # reads a line half-written.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_QUESTION_LOG:-}" ] || return 0
+STAND_IN_LOADED_QUESTION_LOG=1
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 
 # The log's folder inside the stand-in's working folder, its file, and its

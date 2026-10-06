@@ -5,6 +5,10 @@
 # major problems labelled, against the preset's risks and the two labels the
 # step go adds to them. Either answer is checked before anything is decided
 # from it. Sourced, never executed.
+
+# Loaded once, however many of the stand-in's parts source it, as words.sh is.
+[ -z "${STAND_IN_LOADED_SORTER:-}" ] || return 0
+STAND_IN_LOADED_SORTER=1
 . "$(dirname "${BASH_SOURCE[0]}")/jobs.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/forms.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/prompts.sh"
