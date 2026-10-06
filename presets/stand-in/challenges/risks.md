@@ -23,6 +23,9 @@ Each risk opens with its short name, the one a sorter answers with.
   wrong way, a special case.
 - `cheap-now-costly-later` — Cheap today, costly later: work saved now
   that tomorrow pays for twice.
+- `foundation` — Touches what the project rests on: what an app needs
+  to run, or a decision much later work builds on and that is hard to
+  undo.
 
 Each option's risks are named out loud, in these words, before a
 recommendation is made.

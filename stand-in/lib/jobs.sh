@@ -14,8 +14,11 @@ STAND_IN_LOADED_JOBS=1
 . "$(dirname "${BASH_SOURCE[0]}")/question-log.sh"
 
 # The reader turns a finished reply into the fixed form: reading only, so the
-# smallest model that reads it right.
-READER_MODEL="claude-haiku-4-5"
+# smallest model that reads it right. Moved up from Haiku 4.5 on 2026-10-06:
+# it read a question that mentioned building a step as a step's report, and
+# ran out of time on others; Sonnet read the same replies right six times of
+# six, in about five seconds each.
+READER_MODEL="claude-sonnet-5-5"
 
 # The sorter names a question's kind and its option's risks: a judgement
 # against the preset's own words, a step up from reading.
