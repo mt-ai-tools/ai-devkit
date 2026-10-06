@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# The fixed forms the stand-in's agents fill — the reader's, the sorter's and
-# the checker's — in one place: every field and its JSON type, from which both
-# the schema a model answers to and the check in code are drawn, so the two
-# can never disagree on what a form holds. What each field means is the prompts'
-# to say. Sourced, never executed.
+# The fixed forms the stand-in's agents fill — the reader's, the sorter's, the
+# checker's, the matcher's, the reading's and the summary's — in one place:
+# every field and its JSON type, from which both the schema a model answers
+# to and the check in code are drawn, so the two can never disagree on what a
+# form holds. What each field means is the prompts' to say. Sourced, never
+# executed.
 
 # The reader's form. asks_operator: the reply puts a question to the operator
 # that waits for their answer. question: that question in one sentence.
@@ -52,6 +53,32 @@ CHECKER_ANSWER_FIELDS='{
 # ladder's answers, and only checked to be there.
 READING_ANSWER_FIELDS='{
   "reading": "string"
+}'
+
+# The matcher's answer, for a reply on a ladder rung after the first. pick:
+# what the reply now recommends, against the first rung's option list — an
+# item of that list, a new choice, or no longer asking the question. item: the
+# item, exactly as listed, where pick says it is one; empty otherwise. Two
+# fields rather than one word that is either an item or a verdict: an option
+# a reply happens to call "new" would otherwise read as a verdict.
+MATCHER_ANSWER_FIELDS='{
+  "pick": "string",
+  "item": "string"
+}'
+
+# The words pick may be. A choice whose substance changed, or an option added
+# to the list or dropped from it, is new: the same choice in other words is
+# the same item, and only a model reading both can tell which a rewording is.
+MATCH_ITEM="item"
+MATCH_NEW="new"
+MATCH_NOT_ASKING="not-asking"
+MATCH_PICKS="[\"$MATCH_ITEM\", \"$MATCH_NEW\", \"$MATCH_NOT_ASKING\"]"
+
+# The summary reader's answer. summary: the exchange between the stand-in and
+# the agent over one question, told short and plain for the operator. Never
+# decided from: it is shown, and only checked to be there.
+SUMMARY_ANSWER_FIELDS='{
+  "summary": "string"
 }'
 
 # The fields of one item of each of the checker's lists, every one a string.
@@ -117,4 +144,17 @@ checker_answer_schema() {
 # The schema the cold second reading answers to.
 reading_answer_schema() {
   to_form_schema "$READING_ANSWER_FIELDS" '{}'
+}
+
+# The schema the matcher answers to, given the first rung's option labels as a
+# JSON array: an item is one of them as listed, or empty. Each value once, as
+# a schema's list of allowed values must be, whatever the reply repeated.
+matcher_answer_schema() {
+  to_form_schema "$MATCHER_ANSWER_FIELDS" "$(jq -cn --argjson picks "$MATCH_PICKS" --argjson options "$1" \
+    '{pick: {enum: $picks}, item: {enum: ($options + [""] | unique)}}')"
+}
+
+# The schema the summary reader answers to.
+summary_answer_schema() {
+  to_form_schema "$SUMMARY_ANSWER_FIELDS" '{}'
 }

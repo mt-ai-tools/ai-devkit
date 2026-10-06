@@ -99,11 +99,29 @@ refuse_reading_empty_note() {
   printf 'The cold second reading came back with no words.\n'
 }
 
-# The names the refusals above call the three forms by.
+refuse_pick_outside_note() {
+  printf 'The matcher answered "%s", which is neither an item of the first options, a new choice, nor no longer asking.\n' "$1"
+}
+
+refuse_item_outside_note() {
+  printf 'The matcher picked "%s", which is not one of the first options as listed.\n' "$1"
+}
+
+refuse_item_unasked_note() {
+  printf 'The matcher named the item "%s" while saying the reply picks none.\n' "$1"
+}
+
+refuse_summary_empty_note() {
+  printf 'The summary came back with no words.\n'
+}
+
+# The names the refusals above call the forms by.
 reader_form_words() { printf "reader's form"; }
 sorter_answer_words() { printf "sorter's answer"; }
 checker_answer_words() { printf "checker's answer"; }
 reading_answer_words() { printf "cold second reading's answer"; }
+matcher_answer_words() { printf "matcher's answer"; }
+summary_answer_words() { printf "summary's answer"; }
 
 # --- The rules and conventions.
 
@@ -145,8 +163,16 @@ refuse_second_challenge_alone_note() {
   printf 'The kind of question %s has a second challenge but no first.\n' "$1"
 }
 
-refuse_ladder_challenges_note() {
-  printf '%s: the ladder needs %s challenges, each the quote under its rung; it holds %s.\n' "$1" "$2" "$3"
+refuse_unnamed_message_note() {
+  printf '%s, line %s: a quote that does not follow a line opening with its short name in backticks.\n' "$1" "$2"
+}
+
+refuse_message_twice_note() {
+  printf '%s: the message %s is named twice.\n' "$1" "$2"
+}
+
+refuse_ladder_message_missing_note() {
+  printf '%s holds no words for the message %s, quoted under its short name.\n' "$1" "$2"
 }
 
 refuse_unknown_placeholder_note() {
@@ -183,6 +209,10 @@ refuse_state_unreadable_note() {
 
 refuse_state_unwritable_note() {
   printf 'The stand-in'\''s record of this session cannot be written in %s.\n' "$1"
+}
+
+refuse_round_twice_note() {
+  printf 'The stand-in would have sent the %s round a second time for one question, which it never does.\n' "$1"
 }
 
 # --- What the gate sends back to the agent. Every message to an agent opens
@@ -228,7 +258,8 @@ gate_explains_code_line() {
 }
 
 # --- What the gate brings the operator. It opens with the decision asked
-# for, then why it came to them, one line per reason.
+# for, as the agent retold it plainly, then why it came to them, one line per
+# reason; then how it got there; then the cold second reading where one ran.
 
 gate_operator_note() {
   printf 'Stand-in: a question for you: %s\nWhy it came to you:\n%s' "$1" "$2"
@@ -260,8 +291,7 @@ gate_loop_line() {
 
 # --- What the ladder brings the operator. A held answer opens with the
 # decision asked for and what the stand-in would have approved; a changed one
-# with the decision asked for, then every answer in order, then the cold
-# second reading or why there is none.
+# with the decision asked for and that it did not hold.
 
 gate_held_note() {
   printf 'Stand-in: a question for you: %s\nThe stand-in would have approved: %s (held %s times).\nWhy it came to you:\n%s' "$1" "$2" "$3" "$4"
@@ -276,11 +306,11 @@ gate_moved_line() {
 }
 
 gate_answers_heading() {
-  printf 'Its %s answers, in order:\n' "$1"
+  printf 'The agent'\''s answers, in order:\n'
 }
 
-# One rung's answer, by its number: the label recommended, and the list it
-# was chosen from, its labels already joined into one line.
+# The first answer, by its number: the label recommended, and the list it was
+# chosen from, its labels already joined into one line.
 gate_answer_line() {
   printf '%s. %s, from: %s\n' "$1" "$2" "$3"
 }
@@ -289,8 +319,39 @@ gate_answer_none_line() {
   printf '%s. No recommendation, from: %s\n' "$1" "$2"
 }
 
+# A later answer, by its number, as the matcher picked it against the first
+# list: the item it recommends, a new choice, or the question let go.
+gate_pick_line() {
+  printf '%s. %s\n' "$1" "$2"
+}
+
+gate_pick_new_line() {
+  printf '%s. A new choice, none of the first options as they stood.\n' "$1"
+}
+
 gate_answer_gone_line() {
   printf '%s. The reply no longer asks the question.\n' "$1"
+}
+
+# The number of the answer given to the bigger look around.
+gate_looked_number() {
+  printf '%s (after the bigger look around)' "$1"
+}
+
+# How the question got to the operator, as the summary reader tells it.
+gate_summary_note() {
+  printf 'How it got to you:\n%s\n' "$1"
+}
+
+gate_summary_failed_note() {
+  printf 'The summary of how it got to you failed, so here are the answers as given. Why:\n%s\n' "$1"
+}
+
+# The agent's plain retelling could not be read as a question: the question
+# shown is the one first asked, and why, where a part said.
+gate_retelling_unread_line() {
+  printf -- '- The agent'\''s plain retelling could not be read as a question, so this is the question as first asked.\n'
+  [ -z "$1" ] || printf '%s\n' "$1"
 }
 
 # The reading stands as the model wrote it, under a line saying what it is:

@@ -20,6 +20,19 @@ SORTER_MODEL="claude-sonnet-5-5"
 # a judgement against the project's own words, as the sorter's is.
 CHECKER_MODEL="claude-sonnet-5-5"
 
+# The matcher tells, on each ladder rung after the first, which of the first
+# rung's options a reply now recommends, or that it chose something new or
+# stopped asking. Rare, since only a ladder reaches it, and it is the read
+# that will one day let a question pass without the operator: a step up from
+# the every-reply reader, whose relabelled options and missed restatements
+# kept live ladders from ever holding (measured 2026-10-05).
+MATCHER_MODEL="claude-sonnet-5-5"
+
+# The summary reader tells the operator, in everyday words, how a question
+# reached them: a fresh model, never the working agent, which would be
+# summarising its own case.
+SUMMARY_MODEL="claude-sonnet-5-5"
+
 # The cold second reading of a question whose answer moved on the ladder:
 # the advisor's own command, the operator's own last rung, which they reach
 # for when an answer will not settle. A stronger model than any reader, since
@@ -41,8 +54,10 @@ READING_TOOLS="Read,Grep,Glob"
 READER_SECONDS=30
 CHECKER_SECONDS=60
 SORTER_SECONDS=40
-# The reading reads code with tools, turn after turn, so it is given what the
-# last rung's stop has left beside the reader.
+MATCHER_SECONDS=40
+SUMMARY_SECONDS=40
+# The reading reads code with tools, turn after turn, so it is given what its
+# stop has left beside the matcher. Measured 2026-10-05: 55 to 95 s.
 READING_SECONDS=120
 
 # The time limit, in seconds, a project registers the gate with. It must
@@ -64,14 +79,27 @@ derive_stop_seconds() {
   printf '%s\n' "$total"
 }
 
-# The longest any one stop's jobs can take together, in seconds. A question's
-# first stop runs the reader, the checker and the sorter; each later rung of
-# the ladder is a stop of its own that runs the reader alone, and only the
-# last adds the reading. The reading never shares a stop with the checker or
-# the sorter, so the budget is the longer of the two stops, not their sum.
+# The longest any one stop's jobs can take together, in seconds: the longest
+# of the stops a question can make, never their sum, since each is a hook run
+# of its own. A question's first stop runs the reader, the checker and the
+# sorter. Each ladder rung after the first runs the matcher alone, the reader
+# no longer needed there. The bigger look around's reply runs the matcher and
+# the cold reading; the plain retelling's reply, always the last stop before
+# the operator, runs the reader for the retold question and the summary.
+#
+# The three jobs of a changed answer's message — matcher, reading and
+# summary — cannot share one stop: at their limits they take 215 s, past the
+# hook's 180. Each rides a stop the question makes anyway, so no stop is
+# added and no limit raised. Moving any of them onto another job's stop is a
+# change to this budget first.
 derive_jobs_seconds() {
-  local first last
-  first="$(derive_stop_seconds "$READER_SECONDS" "$CHECKER_SECONDS" "$SORTER_SECONDS")"
-  last="$(derive_stop_seconds "$READER_SECONDS" "$READING_SECONDS")"
-  printf '%s\n' "$((first > last ? first : last))"
+  local stop longest=0
+  for stop in \
+    "$(derive_stop_seconds "$READER_SECONDS" "$CHECKER_SECONDS" "$SORTER_SECONDS")" \
+    "$(derive_stop_seconds "$MATCHER_SECONDS")" \
+    "$(derive_stop_seconds "$MATCHER_SECONDS" "$READING_SECONDS")" \
+    "$(derive_stop_seconds "$READER_SECONDS" "$SUMMARY_SECONDS")"; do
+    [ "$stop" -le "$longest" ] || longest="$stop"
+  done
+  printf '%s\n' "$longest"
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# The form check: whether a reader's form, a sorter's answer or a checker's
-# answer is whole and means one thing, decided in code and never by a model.
+# The form check: whether a reader's form, or a sorter's, checker's, reading's,
+# matcher's or summary's answer, is whole and means one thing, decided in code
+# and never by a model.
 # Every function here is a transform. Sourced, never executed.
 #
 # A form that fails is refused with every reason found, never repaired or
@@ -90,6 +91,27 @@ CHECK_READING_RULES='
   (select(.reading | test("^\\s*$")) | ["reading-empty"])
   | join($us)'
 
+# What is wrong with a matcher's answer whose shape is right: a pick that is
+# none of its words, an item that is not one of the first rung's options as
+# listed, or an item given with a pick that names none. An item the list does
+# not hold is never matched to the nearest one it has: telling a rewording
+# from a new choice is the matcher's whole job, and code nearing it would be
+# a second, unchecked guess.
+CHECK_MATCHER_RULES='
+  (.pick as $p | select(any($picks[]; . == $p) | not) | ["pick-outside", $p]),
+  (select(.pick == $item_pick)
+    | .item as $i
+    | select(any($options[]; . == $i) | not)
+    | ["item-outside", $i]),
+  (select(.pick != $item_pick and .item != "") | ["item-unasked", .item])
+  | join($us)'
+
+# What is wrong with a summary's answer whose shape is right: a summary with
+# no words, which would show the operator a heading over nothing.
+CHECK_SUMMARY_RULES='
+  (select(.summary | test("^\\s*$")) | ["summary-empty"])
+  | join($us)'
+
 # The input as one compact JSON value; a non-zero status where it is not
 # exactly one. Two values one after the other are refused like none: which of
 # them is the form would be a guess.
@@ -157,6 +179,30 @@ derive_reading_answer_problems() {
   jq -r --arg us "$CHECK_US" "$CHECK_READING_RULES" <<<"$1"
 }
 
+# Every problem of a matcher's answer, one row each, given the first rung's
+# option labels as a JSON array.
+derive_matcher_answer_problems() {
+  local shape
+  shape="$(derive_shape_problems "$1" "$MATCHER_ANSWER_FIELDS")"
+  if [ -n "$shape" ]; then
+    printf '%s\n' "$shape"
+    return 0
+  fi
+  jq -r --argjson picks "$MATCH_PICKS" --arg item_pick "$MATCH_ITEM" --argjson options "$2" \
+    --arg us "$CHECK_US" "$CHECK_MATCHER_RULES" <<<"$1"
+}
+
+# Every problem of a summary's answer, one row each.
+derive_summary_answer_problems() {
+  local shape
+  shape="$(derive_shape_problems "$1" "$SUMMARY_ANSWER_FIELDS")"
+  if [ -n "$shape" ]; then
+    printf '%s\n' "$shape"
+    return 0
+  fi
+  jq -r --arg us "$CHECK_US" "$CHECK_SUMMARY_RULES" <<<"$1"
+}
+
 # The words for each problem row, the form called by the label given.
 to_problem_notes() {
   local label="$1" code arg type
@@ -178,6 +224,10 @@ to_problem_notes() {
       unknown-entry) refuse_unknown_entry_note "$arg" ;;
       bad-miscalled) refuse_bad_miscalled_note ;;
       reading-empty) refuse_reading_empty_note ;;
+      pick-outside) refuse_pick_outside_note "$arg" ;;
+      item-outside) refuse_item_outside_note "$arg" ;;
+      item-unasked) refuse_item_unasked_note "$arg" ;;
+      summary-empty) refuse_summary_empty_note ;;
     esac
   done
 }
@@ -244,6 +294,41 @@ refuse_bad_reading_answer() {
     return 1
   fi
   problems="$(derive_reading_answer_problems "$answer")"
+  if [ -n "$problems" ]; then
+    to_problem_notes "$label" <<<"$problems" >&2
+    return 1
+  fi
+  printf '%s\n' "$answer"
+}
+
+# The matcher's answer, compact, where it is whole and names only an item of
+# the options given; every reason it is not on stderr and a non-zero status
+# otherwise.
+refuse_bad_matcher_answer() {
+  local answer problems label
+  label="$(matcher_answer_words)"
+  if ! answer="$(to_one_json_value "$1")"; then
+    refuse_not_json_note "$label" >&2
+    return 1
+  fi
+  problems="$(derive_matcher_answer_problems "$answer" "$2")"
+  if [ -n "$problems" ]; then
+    to_problem_notes "$label" <<<"$problems" >&2
+    return 1
+  fi
+  printf '%s\n' "$answer"
+}
+
+# The summary's answer, compact, where it is whole and holds words; every
+# reason it is not on stderr and a non-zero status otherwise.
+refuse_bad_summary_answer() {
+  local answer problems label
+  label="$(summary_answer_words)"
+  if ! answer="$(to_one_json_value "$1")"; then
+    refuse_not_json_note "$label" >&2
+    return 1
+  fi
+  problems="$(derive_summary_answer_problems "$answer")"
   if [ -n "$problems" ]; then
     to_problem_notes "$label" <<<"$problems" >&2
     return 1

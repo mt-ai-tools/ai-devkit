@@ -11,8 +11,8 @@
 # risks as one list the operator reads in a single file.
 PRESET_KINDS_FOLDER="questions"
 PRESET_RISKS_FILE="challenges/risks.md"
-# The operator's challenge ladder, whose quotes are the words each rung after
-# the first sends: read from the file the operator reads, never copied into
+# The operator's challenge ladder, whose named quotes are the words the
+# stand-in sends: read from the file the operator reads, never copied into
 # code or a prompt, so the words a project swaps in are the words sent.
 PRESET_LADDER_FILE="challenges/challenge-ladder.md"
 
@@ -75,23 +75,66 @@ parse_risks() {
   done <<<"$rows" | jq -cs .
 }
 
-# A ladder file's quotes, in the order written, as a JSON array of strings:
-# each run of lines opening with ">" is one quote, its lines joined by a
-# space. Nothing else in the file is read, so its prose stays the operator's
-# to word as they like.
-derive_ladder_quotes() {
+# A ladder file's text as rows, one per quote, in the order written:
+# "message<US><name><US><words>" for a quote that directly follows a line
+# opening with a short name in backticks, as a risk opens ("2. `name` — …" or
+# "- `name` — …"), or the indented lines that line runs on over;
+# "unnamed<US><line number>" for a quote that follows anything else. Each run
+# of lines opening with ">" is one quote, its lines joined by a space. Nothing
+# else in the file is read, so its prose stays the operator's to word as they
+# like.
+derive_message_rows() {
   awk '
-    function flush() { if (open) print quote; open = 0; quote = "" }
+    function flush() {
+      if (open) {
+        if (name != "") printf "message\037%s\037%s\n", name, quote
+        else printf "unnamed\037%s\n", start
+      }
+      open = 0; quote = ""; name = ""
+    }
     /^[[:space:]]*>/ {
+      if (!open) { open = 1; start = NR; name = pending }
+      pending = ""
       line = $0
       sub(/^[[:space:]]*>[[:space:]]*/, "", line)
       if (line != "") quote = (quote == "" ? line : quote " " line)
-      open = 1
       next
     }
-    { flush() }
+    {
+      flush()
+      if (pending != "" && $0 ~ /^[[:space:]]+[^[:space:]]/) next
+      pending = ""
+      if (match($0, /^[[:space:]]*([0-9]+\.|-) +`[a-z0-9]+(-[a-z0-9]+)*` +— /)) {
+        pending = substr($0, index($0, "`") + 1)
+        sub(/`.*/, "", pending)
+      }
+    }
     END { flush() }
-  ' <<<"$1" | jq -Rnc '[inputs]'
+  ' <<<"$1"
+}
+
+# A ladder file's messages, as one JSON object of name to words; a refusal on
+# stderr and a non-zero status otherwise. The file's path is only for the
+# refusal. A quote with no name is refused, not skipped: words the operator
+# wrote to be sent would otherwise never be, unseen. A name written twice is
+# refused, since which of its two quotes is meant is a guess.
+parse_messages() {
+  local file="$1" rows kind name words twice
+  rows="$(derive_message_rows "$2")"
+  while IFS=$'\037' read -r kind name words; do
+    [ "$kind" = unnamed ] || continue
+    refuse_unnamed_message_note "$file" "$name" >&2
+    return 1
+  done <<<"$rows"
+  twice="$(cut -d $'\037' -f 2 <<<"$rows" | sed '/^$/d' | sort | uniq -d | head -n 1)"
+  if [ -n "$twice" ]; then
+    refuse_message_twice_note "$file" "$twice" >&2
+    return 1
+  fi
+  while IFS=$'\037' read -r kind name words; do
+    [ -n "$name" ] || continue
+    jq -cn --arg name "$name" --arg words "$words" '{($name): $words}'
+  done <<<"$rows" | jq -cs 'add // {}'
 }
 
 # The names alone, out of a JSON array of {name, ...}, as a JSON array.
@@ -152,25 +195,28 @@ get_kind_entry() {
     '{name: $name, summary: $summary, route: $route, challenge: $challenge, second_challenge: $second}'
 }
 
-# The challenges a preset's ladder sends, in rung order, as a JSON array of
-# strings; a refusal on stderr and a non-zero status where the file cannot be
-# read or does not hold exactly the count given, an empty quote counting
-# against it. A ladder short of a challenge would approve after fewer rungs
-# than the operator climbs, and one with a challenge too many would send
-# words the operator never meant as a rung.
-get_ladder_challenges() {
-  local file="$1/$PRESET_LADDER_FILE" count="$2" text quotes found
+# The messages a preset's ladder holds under the names given, as one JSON
+# object of name to words; a refusal on stderr and a non-zero status where the
+# file cannot be read, or lacks any of them or holds one with no words. Every
+# name the caller sends is asked for each time, whichever one it needs now: a
+# message is sent by its name, never by its place in the file, where a
+# reordering would silently send the wrong words, and a preset missing one is
+# found on the first question rather than half-way up a ladder.
+get_ladder_messages() {
+  local file="$1/$PRESET_LADDER_FILE" text messages name
+  shift
   if ! text="$(cat "$file" 2>/dev/null)"; then
     refuse_unreadable_file_note "$file" >&2
     return 1
   fi
-  quotes="$(derive_ladder_quotes "$text")"
-  found="$(jq 'map(select(test("\\S"))) | length' <<<"$quotes")"
-  if [ "$(jq 'length' <<<"$quotes")" -ne "$count" ] || [ "$found" -ne "$count" ]; then
-    refuse_ladder_challenges_note "$file" "$count" "$found" >&2
-    return 1
-  fi
-  printf '%s\n' "$quotes"
+  messages="$(parse_messages "$file" "$text")" || return 1
+  for name in "$@"; do
+    if ! jq -e --arg name "$name" '.[$name] // "" | test("\\S")' >/dev/null <<<"$messages"; then
+      refuse_ladder_message_missing_note "$file" "$name" >&2
+      return 1
+    fi
+  done
+  jq -c --args '. as $all | reduce $ARGS.positional[] as $name ({}; .[$name] = $all[$name])' "$@" <<<"$messages"
 }
 
 # The risks in a preset, as parse_risks hands them back.

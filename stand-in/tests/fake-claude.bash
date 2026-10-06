@@ -37,6 +37,8 @@ case "$(jq -r '.required[0] // empty' <<<"$schema" 2>/dev/null)" in
   breaks) job=checker ;;
   kind) job=sorter ;;
   reading) job=reading ;;
+  pick) job=matcher ;;
+  summary) job=summary ;;
   *) job=other ;;
 esac
 printf '%s %s\n' "$job" "$model" >>"$FAKE_CALLS"
@@ -62,7 +64,7 @@ FAKE
 }
 
 # The answer the fake gives when the job named is asked: reader, checker,
-# sorter or reading.
+# sorter, reading, matcher or summary.
 answer_for() {
   printf '%s' "$2" >"$FAKE_ANSWERS/$1"
 }
@@ -81,8 +83,8 @@ calls() {
 # A preset of the suite's own, with the kinds and risks given, so no suite
 # leans on the kit's own preset: the stand-in must hand over whatever a
 # project's preset holds. Kinds as "name:summary" words, a summary of one
-# word; risks as names. Its ladder sends the two challenges in
-# ladder_challenges, in order.
+# word; risks as names. Its ladder file holds the four messages below, each
+# under the short name the stand-in asks for it by.
 preset() {
   local kinds="$1" risks="$2" kind name
   preset_dir="$BATS_TEST_TMPDIR/preset"
@@ -95,13 +97,26 @@ preset() {
     printf -- '---\nsummary: Risks.\n---\n\n# Risks\n\n'
     for name in $risks; do printf -- '- `%s` — The %s risk.\n' "$name" "$name"; done
   } >"$preset_dir/challenges/risks.md"
-  printf -- '---\nsummary: Ladder.\n---\n\n# Ladder\n\n1. First.\n2. Then:\n   > %s\n3. Then:\n   > %s\n' \
-    "${ladder_challenges[0]}" "${ladder_challenges[1]}" >"$preset_dir/challenges/challenge-ladder.md"
+  ladder_file "$standing_test" "$are_you_sure" "$bigger_look" "$plain_retelling" \
+    >"$preset_dir/challenges/challenge-ladder.md"
   printf 'AIDK_STAND_IN=%s\n' "$preset_dir" >"$project/aidk-config.env"
 }
 
-# The challenges the suite's preset ladder sends.
-ladder_challenges=("Is it the clean way?" "Sure?")
+# A ladder file's text holding the four messages given, in the order the
+# kit's own file holds them, each quoted under its short name.
+ladder_file() {
+  printf -- '---\nsummary: Ladder.\n---\n\n# Ladder\n\n1. First.\n'
+  printf -- '2. `standing-test` — the test:\n   > %s\n' "$1"
+  printf -- '3. `are-you-sure` — then:\n   > %s\n\n' "$2"
+  printf -- '- `bigger-look` — when it moved:\n  > %s\n' "$3"
+  printf -- '- `plain-retelling` — last:\n  > %s\n' "$4"
+}
+
+# The messages the suite's preset ladder sends.
+standing_test="Is it the clean way?"
+are_you_sure="Sure?"
+bigger_look="Look around more."
+plain_retelling="Say it plainly."
 
 # A whole reader's form asking which of two options, recommending the first.
 whole_form() {

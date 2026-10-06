@@ -99,30 +99,53 @@ setup() {
   done
 }
 
-@test "the ladder's challenges are its quotes in order, each joined over its lines" {
-  preset "alpha:First." "one"
-  printf -- '---\nsummary: Ladder.\n---\n\n1. First.\n2. The test:\n   > Is it clean?\n   > Is it consistent?\n\nProse.\n\n3. Then:\n   > Sure?\n' \
-    >"$preset_dir/challenges/challenge-ladder.md"
-  run get_ladder_challenges "$preset_dir" 2
+@test "the ladder's messages are its quotes by the name each follows, joined over their lines" {
+  text=$'1. First.\n2. `standing-test` — the test:\n   > Is it clean?\n   > Is it consistent?\n\nProse.\n\n- `plain-retelling` — the last,\n  running on:\n  > Plainly.\n'
+  run parse_messages ladder.md "$text"
   [ "$status" -eq 0 ]
-  [ "$output" = '["Is it clean? Is it consistent?","Sure?"]' ]
+  [ "$output" = '{"standing-test":"Is it clean? Is it consistent?","plain-retelling":"Plainly."}' ]
 }
 
-@test "a ladder with a challenge too few, too many or empty is refused" {
+@test "a quote with no name before it, or a name written twice, is refused" {
+  run --separate-stderr parse_messages ladder.md $'- `one` — A:\n  > One.\n\n  > Stray.\n'
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_unnamed_message_note ladder.md 4)" ]
+  run --separate-stderr parse_messages ladder.md $'- `one` — A:\n  > One.\n- `one` — B:\n  > Two.\n'
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_message_twice_note ladder.md one)" ]
+}
+
+@test "the messages asked for are handed back by name, whatever order the file holds them in" {
+  preset "alpha:First." "one"
+  printf -- '- `are-you-sure` — first here:\n  > Sure?\n- `standing-test` — then:\n  > Clean?\n' \
+    >"$preset_dir/challenges/challenge-ladder.md"
+  run get_ladder_messages "$preset_dir" are-you-sure standing-test
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"are-you-sure":"Sure?","standing-test":"Clean?"}' ]
+}
+
+@test "a ladder file lacking a message asked for, or holding it empty, is refused" {
   preset "alpha:First." "one"
   file="$preset_dir/challenges/challenge-ladder.md"
-  for body in '> One.' $'> One.\n\n> Two.\n\n> Three.' $'> One.\n\n>'; do
-    printf '%s\n' "$body" >"$file"
-    run --separate-stderr get_ladder_challenges "$preset_dir" 2
-    [ "$status" -eq 1 ]
-    [[ "$stderr" == "$file: the ladder needs 2 challenges"* ]]
-  done
-  [ "$stderr" = "$(refuse_ladder_challenges_note "$file" 2 1)" ]
+  run --separate-stderr get_ladder_messages "$preset_dir" standing-test nonesuch
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_ladder_message_missing_note "$file" nonesuch)" ]
+  printf -- '- `standing-test` — empty:\n  >\n' >"$file"
+  run --separate-stderr get_ladder_messages "$preset_dir" standing-test
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_ladder_message_missing_note "$file" standing-test)" ]
+  rm "$file"
+  run --separate-stderr get_ladder_messages "$preset_dir" standing-test
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_unreadable_file_note "$file")" ]
 }
 
-@test "the kit's own preset ladder sends the standing test, then are you sure" {
-  run get_ladder_challenges "$BATS_TEST_DIRNAME/../../presets/stand-in" 2
+@test "the kit's own preset ladder holds the operator's four messages" {
+  run get_ladder_messages "$BATS_TEST_DIRNAME/../../presets/stand-in" \
+    standing-test are-you-sure bigger-look plain-retelling
   [ "$status" -eq 0 ]
-  [[ "$(jq -r '.[0]' <<<"$output")" == "What is the clean way? "*"cheaper than tomorrow's." ]]
-  [ "$(jq -r '.[1]' <<<"$output")" = "Are you sure?" ]
+  [[ "$(jq -r '."standing-test"' <<<"$output")" == "What is the clean way? "*"cheaper than tomorrow's." ]]
+  [ "$(jq -r '."are-you-sure"' <<<"$output")" = "Are you sure?" ]
+  [[ "$(jq -r '."bigger-look"' <<<"$output")" == "Since you are not sure, take a bigger look around. "*"and ask questions if needed." ]]
+  [ "$(jq -r '."plain-retelling"' <<<"$output")" = "Explain it much more plainly. Use everyday words. Call things by their names." ]
 }

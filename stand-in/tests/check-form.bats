@@ -170,3 +170,43 @@ $(refuse_guidance_outside_note maybe)" ]
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_wrong_type_note "$(reading_answer_words)" reading string)" ]
 }
+
+@test "a matcher's answer picking an item as listed, a new choice, or no longer asking passes" {
+  for answer in '{"pick":"item","item":"five"}' '{"pick":"new","item":""}' '{"pick":"not-asking","item":""}'; do
+    run refuse_bad_matcher_answer "$answer" '["five","ten"]'
+    [ "$status" -eq 0 ]
+    [ "$output" = "$answer" ]
+  done
+}
+
+@test "a matcher's answer with an unknown pick, an item off the list, or an item with no pick is refused" {
+  run --separate-stderr refuse_bad_matcher_answer '{"pick":"same","item":""}' '["five","ten"]'
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_pick_outside_note same)" ]
+  run --separate-stderr refuse_bad_matcher_answer '{"pick":"item","item":"5 attempts"}' '["five","ten"]'
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_item_outside_note "5 attempts")" ]
+  run --separate-stderr refuse_bad_matcher_answer '{"pick":"new","item":"ten"}' '["five","ten"]'
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_item_unasked_note ten)" ]
+  run --separate-stderr refuse_bad_matcher_answer '{"pick":"item"}' '["five","ten"]'
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_missing_field_note "$(matcher_answer_words)" item)" ]
+}
+
+@test "an option a reply calls new is an item, never the verdict" {
+  run refuse_bad_matcher_answer '{"pick":"item","item":"new"}' '["new","old"]'
+  [ "$status" -eq 0 ]
+}
+
+@test "a summary's answer with words passes, and one with none, or not its shape, is refused" {
+  run refuse_bad_summary_answer '{"summary": "It held."}'
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"summary":"It held."}' ]
+  run --separate-stderr refuse_bad_summary_answer '{"summary":"  "}'
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_summary_empty_note)" ]
+  run --separate-stderr refuse_bad_summary_answer '{"summary":"It held.","verdict":"held"}'
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_unknown_field_note "$(summary_answer_words)" verdict)" ]
+}
