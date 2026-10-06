@@ -1,5 +1,5 @@
 ---
-summary: What a session is told when it starts under the stand-in, before it does anything else.
+summary: What a session started on a brief under the stand-in is told, before it does anything else.
 ---
 
 # The opener

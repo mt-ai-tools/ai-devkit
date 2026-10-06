@@ -30,10 +30,11 @@ PRESET_OPENER_FILE="challenges/opener.md"
 # project's preset may call it what it likes.
 #
 # Two more (settled 2026-10-06). Accept: the agent's recommendation stands
-# with no challenge, since on how the work is organised the operator takes
-# the agent's word (in 971 of their typed answers the standing test went on
-# how something is built about 207 times and never on how the work is
-# organised). Light: one "are you sure?" alone, for a choice formal and cheap
+# with no challenge, for when to do a step, where the operator takes the
+# agent's word in their own account (in 971 of their typed answers the
+# standing test went on how something is built about 207 times and on now
+# or later about 13); putting work off and a new brief still reach them.
+# Light: one "are you sure?" alone, for a choice formal and cheap
 # to change, such as a name inside the code. Either still answers to the
 # trial before anything stands without the operator.
 ROUTE_ASK="ask"
