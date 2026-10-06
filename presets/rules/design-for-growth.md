@@ -13,3 +13,4 @@ Assume every project, feature, file, and function will grow, and that something 
 - Prefer the structure that stays clean as it grows — split, extend, name for a future reader.
 - Assume reuse. Write every piece as if a project you have not met will depend on it: no assumptions about its surroundings, nothing baked in that only makes sense here.
 - "It's only small / one caller / one use case right now" is not a reason to cut corners. It's the reason to set the shape correctly now, while it's cheap.
+- Build for the scale the project declares, done fully: every security hole closed, every case a user or an attacker can reach handled. Never build past that scale before something real grows there.
