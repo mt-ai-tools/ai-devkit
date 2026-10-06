@@ -7,6 +7,7 @@
 # names a model. Full names, not the CLI's aliases: an alias moves to the next
 # release on its own, and a job's model changes only when someone says so.
 . "$(dirname "${BASH_SOURCE[0]}")/ask-model.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/question-log.sh"
 
 # The reader turns a finished reply into the fixed form: reading only, so the
 # smallest model that reads it right.
@@ -85,7 +86,8 @@ derive_stop_seconds() {
 # sorter. Each ladder rung after the first runs the matcher alone, the reader
 # no longer needed there. The bigger look around's reply runs the matcher and
 # the cold reading; the plain retelling's reply, always the last stop before
-# the operator, runs the reader for the retold question and the summary.
+# the operator, runs the reader for the retold question and the summary, and
+# writes the question log's line, which may wait its turn at the log's lock.
 #
 # The three jobs of a changed answer's message — matcher, reading and
 # summary — cannot share one stop: at their limits they take 215 s, past the
@@ -98,7 +100,7 @@ derive_jobs_seconds() {
     "$(derive_stop_seconds "$READER_SECONDS" "$CHECKER_SECONDS" "$SORTER_SECONDS")" \
     "$(derive_stop_seconds "$MATCHER_SECONDS")" \
     "$(derive_stop_seconds "$MATCHER_SECONDS" "$READING_SECONDS")" \
-    "$(derive_stop_seconds "$READER_SECONDS" "$SUMMARY_SECONDS")"; do
+    "$(($(derive_stop_seconds "$READER_SECONDS" "$SUMMARY_SECONDS") + LOG_LOCK_SECONDS))"; do
     [ "$stop" -le "$longest" ] || longest="$stop"
   done
   printf '%s\n' "$longest"

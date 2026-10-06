@@ -27,6 +27,16 @@ summarises the whole exchange between the stand-in and the agent, then the
 second reading where one ran. The exchange is kept in the session's record
 while the question is held.
 
+Every question it lets go leaves one whole line in a log of its own: when,
+in which session and brief, the question as asked and as retold, how it was
+sorted and checked, every answer on the ladder, the whole exchange, how it
+ended and why, the summary and the second reading. Lines from sessions
+writing at once never interleave. The first thing the operator types after a
+question reached them is kept as their answer to it. Asked in plain words,
+it shows the operator the questions it settled without them, and brings any
+of them back in full, word for word on request, for the agent to ask again;
+both are shown through a hook, exactly as written, never retold by a model.
+
 Models read; code decides. A form counts only once a check in code has
 passed it: every field there and of its type, the recommendation among the
 options, every kind, risk and entry one it was handed. A form that fails is
@@ -42,8 +52,8 @@ stop with the reason shown to them, and asks the agent nothing more. It never
 holds one question past a small number of send-backs asking the agent to
 rethink, the ladder's challenges among them; the bigger look around and the
 plain retelling are fixed rounds outside that count, each sent at most once
-for a question. A second reading or a summary that fails never holds a
-question up: the operator is told why there is none. Where it is off for a
+for a question. A second reading, a summary or a log line that fails never
+holds a question up: the operator is told why there is none. Where it is off for a
 session it does nothing, and asks no model.
 
 Needs a preset: a folder of kinds of question, each with a one-line summary
@@ -53,8 +63,11 @@ challenges, the bigger look around and the plain retelling — quoted under
 the short name it is asked for by. Needs the rules, and the conventions
 where a project keeps them, and the kit's advisor, whose command a second
 reading runs. Needs a working folder of its own, holding a switch per
-session it is on for and its record of each, worth nothing beyond one
-machine. Needs registering for Claude Code's end-of-reply event, with a
-time limit no shorter than the one it declares, and the Claude Code
-command-line tool, signed in, to ask models through; and `bash`, `awk` and
-`jq`.
+session it is on for, its record of each and its log, worth nothing beyond
+one machine. Needs the kit's work organizer, to say which brief a session
+holds. Needs registering for Claude Code's end-of-reply event, with a time
+limit no shorter than the one it declares; for its turn-start event, to keep
+the operator's answers; and for its after-tool event of the Skill tool,
+beside its two skills, to show what they ask for. Needs the Claude Code
+command-line tool, signed in, to ask models through; and `bash`, `awk`,
+`jq` and util-linux's `flock`.

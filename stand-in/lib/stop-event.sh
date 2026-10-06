@@ -5,6 +5,7 @@
 # character slips through. Every function here is a transform. Sourced, never
 # executed.
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/session-id.sh"
 
 # --- Reading the event.
 
@@ -17,15 +18,6 @@ refuse_unreadable_event() {
     return 1
   fi
   printf '%s\n' "$event"
-}
-
-# True if the value is a session id as Claude Code hands it out: letters,
-# digits and hyphens. The id names the session's switch and its record, so
-# nothing else may reach a path: a slash or a dot could address a file outside
-# the stand-in's folders. The organizer checks its own ids the same way, for
-# its own paths; neither tool reads the other's.
-is_session_id() {
-  [[ "$1" =~ ^[A-Za-z0-9-]+$ ]]
 }
 
 # The session id the event carries; a refusal on stderr and a non-zero status

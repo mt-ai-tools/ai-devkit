@@ -5,9 +5,10 @@
 # nothing: what it writes is shown, never routed on. Sourced, never executed.
 #
 # A fresh model, never the working agent: the agent would be summarising its
-# own case. Handed the exchange as the gate keeps it in the session's record;
-# once the question log exists, the log is what it reads, so that a reopened
-# question shows the same summary.
+# own case. Handed the exchange as the gate keeps it in the session's record.
+# The question's log line keeps that same exchange, whole, beside the summary
+# written from it, so a reopened question shows the same summary and the same
+# full version, never a second summary of something else.
 . "$(dirname "${BASH_SOURCE[0]}")/jobs.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/forms.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/prompts.sh"

@@ -35,6 +35,12 @@
 # the operator's. A systemMessage shows the operator its words whole and is
 # never seen by the model. Printing nothing lets the reply stop as it is.
 #
+# Every question let go to the operator leaves one line in the question log,
+# with what the gate knew of it, so it can be answered, counted and reopened
+# later; a broken gate holding a question logs it too, marked with why. The
+# log never holds a question up: where its line cannot be written, the
+# operator is told so under the question.
+#
 # Fails toward the operator, never toward the agent: a part that will not
 # load, an event, form, preset or record that cannot be read, a model call
 # refused or out of time — every refusal ends this script, and the trap below
@@ -42,6 +48,9 @@
 # on its own failure could hold the agent forever, unseen.
 set -euo pipefail
 
+# The file every part's refusal is gathered in, read by the trap below. No
+# function may declare a local of this name: the trap runs inside whichever
+# function called exit, and would read that local instead.
 reasons=""
 
 # Armed before anything is loaded, as the organizer's hooks are and for the
@@ -56,8 +65,16 @@ answer_unjudged() {
     rm -f "$reasons"
   fi
   [ "$status" -eq 0 ] && return
+  # Nothing below may end the trap before the operator is answered.
+  set +e
   if declare -F gate_broken_note >/dev/null && declare -F to_operator_answer >/dev/null; then
-    to_operator_answer "$(gate_broken_note "$why")"
+    local message logged
+    message="$(gate_broken_note "$why")"
+    if declare -F log_broken >/dev/null; then
+      logged="$(log_broken "$message" 2>/dev/null)"
+      [ -z "$logged" ] || message+=$'\n'"$logged"
+    fi
+    to_operator_answer "$message"
   else
     jq -cn --arg why "$why" \
       '{systemMessage: ("Stand-in: a part of the gate could not be loaded, so this reply was not judged.\n" + $why)}' 2>/dev/null \
@@ -90,6 +107,8 @@ tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/reading.sh"
 . "$tool_root/lib/summary.sh"
 . "$tool_root/lib/operator-message.sh"
+. "$tool_root/lib/question-log.sh"
+. "$tool_root/lib/briefs.sh"
 
 # Every value below is resolved into a variable before use, never inline as
 # an argument: a failing command substitution inside an argument does not end
@@ -184,16 +203,57 @@ current_answers() {
 }
 
 # Bring the operator a question, given the question as asked, why it came to
-# them, the label the stand-in would have approved (empty for none) and the
-# cold reading's part (empty where none ran). Every route to the operator
+# them, the label the stand-in would have approved (empty for none), the
+# cold reading's part (empty where none ran) and its own words (empty where
+# none were written). Every route to the operator
 # ends here, the loop guard's included: the message is kept in parts and the
 # agent is sent the plain retelling, whose reply finishes it.
 bring_operator() {
-  local question="$1" why="$2" approved="${3:-}" reading="${4:-}" answers parts
+  local question="$1" why="$2" approved="${3:-}" reading="${4:-}" reading_text="${5:-}" answers parts
   answers="$(current_answers)"
-  parts="$(to_operator_message_parts "$question" "$approved" "$why" "$reading" "$answers")"
+  parts="$(to_operator_message_parts "$question" "$approved" "$why" "$reading" "$answers" "$reading_text")"
   record="$(with_operator "$record" "$parts")"
   send_round "$LADDER_PLAIN_RETELLING"
+}
+
+# Write the question the record holds to the log as it is let go, given the
+# message's parts, the question as retold (empty where it could not be read),
+# why it came to the operator, one reason a line, and the summary (empty where
+# it failed). Prints nothing where the line was written, and otherwise the
+# line telling the operator it was not, with why. The briefs the session holds
+# are logged as unknown where the organizer cannot say, rather than the line
+# lost: a project may run the stand-in with no briefs folder at all.
+log_let_go() {
+  local parts="$1" retold="$2" why_lines="$3" summary="$4" briefs id when details line why
+  why="$(mktemp)"
+  briefs="$(get_held_briefs "$session" 2>/dev/null)" || briefs=null
+  id="$(mint_log_id)"
+  when="$(get_log_now)"
+  details="$(jq -cn --arg id "$id" --arg when "$when" --arg session "$session" --argjson briefs "$briefs" \
+    --arg retold "$retold" --arg reasons "$why_lines" --arg summary "$summary" \
+    '{id: $id, when: $when, session: $session, briefs: $briefs, retold: $retold, reasons: $reasons,
+      summary: $summary}')"
+  if ! line="$(to_log_line "$record" "$parts" "$details" 2>"$why")" \
+    || ! append_log_line "$(to_log_dir "$history")" "$line" 2>"$why"; then
+    gate_log_failed_line "$(cat "$why")"
+  fi
+  rm -f "$why"
+}
+
+# A broken gate's question to the log, given the message the operator is
+# shown, which is why it came to them: the message's parts where the gate had
+# made them, the question as last read otherwise. Nothing where the gate held
+# no question: a reply it could not read may have asked nothing.
+log_broken() {
+  local message="$1" parts asked
+  [ -n "${history:-}" ] && [ -n "${session:-}" ] && [ -n "${record:-}" ] || return 0
+  parts="$(to_operator_parts "$record")"
+  if [ -z "$parts" ]; then
+    asked="$(to_asked "$record")"
+    [ -n "$asked" ] || return 0
+    parts="$(jq -c '{question, approved: ""}' <<<"$asked")"
+  fi
+  log_let_go "$parts" "" "$message" ""
 }
 
 # The reply to the plain retelling: the operator's message made and shown,
@@ -202,7 +262,7 @@ bring_operator() {
 # summary never holds the question up either: where it fails, the operator
 # is told why and shown the answers as given.
 answer_retold() {
-  local parts question extra="" why form exchange summary story message
+  local parts question retold="" extra="" why form exchange summary="" story message why_lines logged
   parts="$(to_operator_parts "$record")"
   if [ -z "$parts" ]; then
     refuse_state_unreadable_note "$record_file" >&2
@@ -212,6 +272,7 @@ answer_retold() {
   why="$(mktemp)"
   if form="$(get_reader_form "$reply" 2>"$why")" && jq -e '.asks_operator' >/dev/null <<<"$form"; then
     question="$(jq -r '.question' <<<"$form")"
+    retold="$question"
   else
     extra="$(gate_retelling_unread_line "$(cat "$why")")"
   fi
@@ -220,10 +281,15 @@ answer_retold() {
   if summary="$(get_summary "$exchange" 2>"$why")"; then
     story="$(gate_summary_note "$summary")"
   else
+    summary=""
     story="$(gate_summary_failed_note "$(cat "$why")")"$'\n'"$(jq -r '.answers' <<<"$parts")"
   fi
   rm -f "$why"
   message="$(to_operator_message "$parts" "$question" "$extra" "$story")"
+  why_lines="$(jq -r '.why' <<<"$parts")"
+  [ -z "$extra" ] || why_lines+=$'\n'"$extra"
+  logged="$(log_let_go "$parts" "$retold" "$why_lines" "$summary")"
+  [ -z "$logged" ] || message+=$'\n'"$logged"
   record="$(with_chain_reset "$record")"
   keep_record
   to_operator_answer "$message"
@@ -271,11 +337,12 @@ answer_changed() {
   if reading="$(get_cold_reading "$question" "$options" "$rules" "$conventions" "$history" 2>"$why")"; then
     part="$(gate_reading_note "$reading")"
   else
+    reading=""
     part="$(gate_reading_failed_line "$(cat "$why")")"
   fi
   rm -f "$why"
   why="$(to_changed_why "$ladder")"
-  bring_operator "$question" "$why" "" "$part"
+  bring_operator "$question" "$why" "" "$part" "$reading"
 }
 
 # The matcher's pick of this reply against the ladder's first list, kept on
@@ -380,10 +447,12 @@ record="$(with_asked "$record" "$form")"
 
 entries="$(list_check_entries "$rules" "$conventions")"
 checked="$(get_checker_answer "$form" "$reply" "$entries")"
+record="$(with_check "$record" "$checked")"
 sendback="$(derive_checker_sendback "$checked" "$entries")"
 [ -z "$sendback" ] || send_back "$sendback" "$question"
 
 sort="$(get_sorter_answer "$form" "$reply" "$preset")"
+record="$(with_sort "$record" "$sort")"
 entry="$(get_kind_entry "$preset" "$(jq -r '.kind' <<<"$sort")")"
 first="$(jq -r '.challenge' <<<"$entry")"
 if [ -n "$first" ]; then

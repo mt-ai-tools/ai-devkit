@@ -705,3 +705,69 @@ all_three() {
 @test "the jobs together fit inside the time limit the gate is registered with" {
   [ "$(derive_jobs_seconds)" -lt "$GATE_HOOK_SECONDS" ]
 }
+
+# The question log's lines, one JSON object a line.
+log_file() { printf '%s/log/questions.jsonl' "$history"; }
+
+@test "a question let go leaves one whole log line: as asked and retold, why, its sort and checks, the exchange and the summary" {
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
+  run_gate
+  retell
+  [ "$(wc -l <"$(log_file)")" -eq 1 ]
+  line="$(cat "$(log_file)")"
+  [ "$(jq -c '{number, session, briefs, question, retold, kind, unsure, risks, checks, ladder, outcome, reasons, approved, summary, reading, answer}' <<<"$line")" = \
+    "$(jq -cn --arg session "$session" --arg retold "$plain_question" --arg why "$(gate_kind_line naming "The naming kind.")" \
+      --arg summary "$summary_words" --argjson check "$(clean_check)" \
+      '{number: 1, session: $session, briefs: null, question: "Five retries or ten?", retold: $retold, kind: "naming",
+        unsure: false, risks: [], checks: [$check], ladder: null, outcome: "to-operator", reasons: [$why], approved: "",
+        summary: $summary, reading: null, answer: ""}')" ]
+  [ "$(jq -c '[.exchange[] | .text]' <<<"$line")" = "$(jq -cn --arg a "$reply" --arg b "$(retelling)" '[$a, $b, $a]')" ]
+  jq -e '.id | test("^[0-9a-f]{16}$")' <<<"$line"
+  jq -e '.when | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")' <<<"$line"
+}
+
+@test "an answer that held is logged as would have been approved, with every rung's pick, and the brief the session holds" {
+  mkdir -p "$project/aidk-plans" "$project/aidk-organizer/taken"
+  printf -- '---\nsummary: Trash.\nafter: []\ntouches: [aidk-plans]\ncreates: []\n---\n\n# file-trash\n' >"$project/aidk-plans/file-trash.md"
+  printf 'session: %s\nsince: 2026-10-06T09:00:00Z\n' "$session" >"$project/aidk-organizer/taken/file-trash"
+  climb "$(item five)" "$(item five)"
+  retell
+  line="$(cat "$(log_file)")"
+  [ "$(jq -c '{briefs, kind, outcome, approved, ladder}' <<<"$line")" = \
+    "$(jq -cn --argjson pick "$(item five)" '{briefs: ["file-trash"], kind: "defaults", outcome: "would-have-approved",
+      approved: "five", ladder: {first: {options: ["five", "ten"], recommended: "five"}, picks: [$pick, $pick]}}')" ]
+}
+
+@test "the cold reading is logged in its own words" {
+  answer_for reading '{"reading":"Ten is safer."}'
+  climb "$(item ten)" "$(item five)" "$(item five)"
+  retell
+  [ "$(jq -r '.reading' "$(log_file)")" = "Ten is safer." ]
+}
+
+@test "a log that cannot be written never holds the question up: the operator is told under it" {
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
+  mkdir -p "$history/log"
+  chmod a-w "$history/log"
+  run_gate
+  retell
+  [ "$status" -eq 0 ]
+  [ "$(message)" = "$(operator_message "$(gate_kind_line naming "The naming kind.")")"$'\n'"$(gate_log_failed_line "$(refuse_log_unwritable_note "$history/log")")" ]
+}
+
+@test "a broken gate holding a question logs it, marked with why" {
+  run_gate
+  status_for matcher 124
+  run_gate true
+  broken="$(gate_broken_note "$(refuse_model_timeout_note "$MATCHER_MODEL" "$MATCHER_SECONDS")")"
+  [ "$(message)" = "$broken" ]
+  [ "$(jq -c '{question, outcome, reasons, summary}' "$(log_file)")" = \
+    "$(jq -cn --arg broken "$broken" '{question: "Five retries or ten?", outcome: "to-operator", reasons: ($broken | split("\n") | map(select(. != ""))), summary: null}')" ]
+}
+
+@test "a broken gate holding no question logs nothing" {
+  status_for reader 124
+  run_gate
+  [ "$(message)" = "$(gate_broken_note "$(refuse_model_timeout_note "$READER_MODEL" "$READER_SECONDS")")" ]
+  [ ! -e "$(log_file)" ]
+}

@@ -16,11 +16,15 @@
 # The parts of a message for the operator, as JSON: the question as first
 # asked; the label the stand-in would have approved, empty where it would not;
 # the lines saying why it came to them, each ending its line; the cold second
-# reading's part, empty where none ran; and the answers as given, heading and
-# lines, shown in place of a summary that failed.
+# reading's part, empty where none ran; the answers as given, heading and
+# lines, shown in place of a summary that failed; and the reading's own words,
+# empty where none was written, kept for the question log apart from the part
+# around them.
 to_operator_message_parts() {
   jq -cn --arg question "$1" --arg approved "$2" --arg why "$3" --arg reading "$4" --arg answers "$5" \
-    '{question: $question, approved: $approved, why: $why, reading: $reading, answers: $answers}'
+    --arg reading_text "${6:-}" \
+    '{question: $question, approved: $approved, why: $why, reading: $reading, answers: $answers,
+      reading_text: $reading_text}'
 }
 
 # The operator's message, given its parts, the question to open it with, a

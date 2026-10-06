@@ -17,14 +17,18 @@
 # as the reader last read it, its options and recommendation, or null.
 # operator: the message waiting for the agent's plain retelling, in parts, or
 # null. exchange: every reply the gate held and every message it sent the
-# agent over the question, in order, each {from, text}, whole.
+# agent over the question, in order, each {from, text}, whole. checks: the
+# checker's answer each time the question was checked, in order. sort: the
+# sorter's answer the question was routed on, or null.
 #
 # And, across questions: dropped, every proposal the agent dropped under a
 # challenge, {question, kind}, kept for the session's end report.
 #
-# The question log is written from this record, just before a question is let
-# go: everything it holds of the exchange, the question as asked and the
-# answers is its source until then, and is gone after.
+# The question log is written from this record as a question is let go:
+# everything it holds of the exchange, the question as asked, its checks, its
+# sort and the answers is the log line's source until then, and is gone after.
+# The checks and the sort are kept for that line alone: the gate decides from
+# them in the stop they arrive in, and never reads them back.
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 
 # The records' folder inside the stand-in's working folder.
@@ -42,7 +46,7 @@ EXCHANGE_AGENT="agent"
 EXCHANGE_STAND_IN="stand-in"
 
 # The record of a session the gate has not held anything for.
-EMPTY_RECORD='{"sent_back":0,"challenge":null,"ladder":null,"round":null,"rounds_sent":[],"asked":null,"operator":null,"exchange":[],"dropped":[]}'
+EMPTY_RECORD='{"sent_back":0,"challenge":null,"ladder":null,"round":null,"rounds_sent":[],"asked":null,"operator":null,"exchange":[],"checks":[],"sort":null,"dropped":[]}'
 
 # What a record must be to be read: anything else was not written by the gate,
 # or not whole, and is refused rather than repaired.
@@ -57,6 +61,8 @@ RECORD_SHAPE='
   and (.asked | type == "null" or type == "object")
   and (.operator | type == "null" or type == "object")
   and (.exchange | type == "array")
+  and (.checks | type == "array")
+  and (.sort | type == "null" or type == "object")
   and (.dropped | type == "array")'
 
 # --- Transforms.
@@ -73,7 +79,7 @@ to_record_path() {
 # to something else. What was dropped stays.
 with_chain_reset() {
   jq -c '.sent_back = 0 | .challenge = null | .ladder = null | .round = null | .rounds_sent = []
-    | .asked = null | .operator = null | .exchange = []' <<<"$1"
+    | .asked = null | .operator = null | .exchange = [] | .checks = [] | .sort = null' <<<"$1"
 }
 
 # The record with one more send-back counted.
@@ -125,6 +131,16 @@ with_asked() {
 # is none.
 to_asked() {
   jq -c '.asked // empty' <<<"$1"
+}
+
+# The record with one more checker's answer for the question it holds.
+with_check() {
+  jq -c --argjson check "$2" '.checks += [$check]' <<<"$1"
+}
+
+# The record holding the sorter's answer the question is routed on.
+with_sort() {
+  jq -c --argjson sort "$2" '.sort = $sort' <<<"$1"
 }
 
 # The record holding the operator's message in parts, waiting for the agent's

@@ -375,3 +375,144 @@ gate_broken_note() {
   [ -n "$why" ] || why='No part of the stand-in said why.'
   printf 'Stand-in: this reply was not judged, so it is yours to read.\nWhy:\n%s\n' "$why"
 }
+
+# --- The question log.
+
+refuse_log_unwritable_note() {
+  printf 'The stand-in'\''s question log cannot be written in %s.\n' "$1"
+}
+
+refuse_log_busy_note() {
+  printf 'The stand-in'\''s question log in %s was held by another session for more than %s seconds.\n' "$1" "$2"
+}
+
+refuse_log_unreadable_note() {
+  printf 'The stand-in'\''s question log, %s, holds a line that is not a whole question.\n' "$1"
+}
+
+# Under the operator's message, where its question could not be logged.
+gate_log_failed_line() {
+  printf 'This question could not be written to the stand-in'\''s log, so it cannot be counted or reopened. Why:\n%s\n' "$1"
+}
+
+# --- The operator's answer. The note goes into the model's context, one line,
+# where the answer could not be kept.
+
+refuse_prompt_session_note() {
+  printf 'The turn'\''s event carries no session id the stand-in can use.\n'
+}
+
+refuse_prompt_text_note() {
+  printf 'The turn'\''s event carries no prompt.\n'
+}
+
+answer_unrecorded_note() {
+  printf 'The stand-in could not keep the user'\''s reply as the answer to its last question, so its log will not show it: %s\n' "$1"
+}
+
+# --- The settled list, as the operator reads it.
+
+settled_today_heading() {
+  printf 'Stand-in: the questions it settled without you today:\n'
+}
+
+settled_all_heading() {
+  printf 'Stand-in: every question it settled without you:\n'
+}
+
+# One question: its number, and the question as the agent retold it.
+settled_item_line() {
+  printf '%s. %s\n' "$1" "$2"
+}
+
+# Under it: the option settled on, when, and where.
+settled_detail_line() {
+  printf '   Settled on: %s, at %s, %s.\n' "$1" "$2" "$3"
+}
+
+settled_where_session_words() {
+  printf 'in session %s' "$1"
+}
+
+settled_where_brief_words() {
+  printf 'in session %s, working on %s' "$1" "$2"
+}
+
+settled_reopen_hint() {
+  printf 'Say "reopen" and a number to bring that question back as a normal one.\n'
+}
+
+settled_empty_note() {
+  printf 'Nothing was settled without you: every kind is still on trial.\n'
+}
+
+settled_usage_note() {
+  printf 'The stand-in lists the questions it settled today, or every one it ever settled when asked for "all".\n'
+}
+
+# --- A reopened question, as the operator reads it.
+
+reopen_heading() {
+  printf 'Stand-in: question %s, which it settled without you, is open again.\nIt was settled at %s, %s.\n' "$1" "$2" "$3"
+}
+
+reopen_question_line() {
+  printf 'The question: %s\n' "$1"
+}
+
+reopen_settled_line() {
+  printf 'The stand-in settled on: %s\n' "$1"
+}
+
+reopen_summary_note() {
+  printf 'How it was settled:\n%s\n' "$1"
+}
+
+reopen_exchange_hint() {
+  printf 'Ask to see the exchange to read every turn word for word.\n'
+}
+
+reopen_exchange_heading() {
+  printf 'The exchange between the stand-in and the agent, word for word:\n'
+}
+
+reopen_agent_turn_heading() {
+  printf -- '--- The agent wrote:\n'
+}
+
+reopen_stand_in_turn_heading() {
+  printf -- '--- The stand-in wrote:\n'
+}
+
+reopen_usage_note() {
+  printf 'The stand-in reopens a question by the number its settled list shows, as in "reopen 3"; add "exchange" after the number to read every turn word for word.\n'
+}
+
+reopen_nothing_note() {
+  printf 'There is nothing to reopen: nothing was settled without you, since every kind is still on trial.\n'
+}
+
+reopen_unknown_note() {
+  printf 'No question the stand-in settled is numbered %s; its settled list shows the numbers there are.\n' "$1"
+}
+
+# --- The skill hook's notes to the model, which never sees what the hook
+# showed the user, so each says what was shown rather than repeating it.
+
+skill_settled_shown_note() {
+  printf 'The stand-in'\''s list of settled questions (%s lines) has been shown to the user above, exactly as printed.\n' "$1"
+}
+
+skill_refusal_shown_note() {
+  printf 'The stand-in could not do what was asked, and why has been shown to the user above.\n'
+}
+
+# The question reopened: number, question as first asked, its options joined,
+# and what the stand-in settled on.
+reopen_agent_note() {
+  printf 'The stand-in'\''s question %s, which it had settled without the user, has been shown to the user above, in full. It is open again: ask the user it now as a normal question in plain conversation, with its options and your recommendation, and wait for their answer. The question as first asked: %s Its options: %s. The stand-in had settled on: %s.\n' "$1" "$2" "$3" "$4"
+}
+
+skill_name_unreadable_note() {
+  printf 'The stand-in'\''s skill hook cannot read the skill'\''s name from %s.\n' "$1"
+}

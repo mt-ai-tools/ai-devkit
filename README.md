@@ -40,8 +40,9 @@ learns their names.
 - `aidk-stand-in` is the stand-in's working folder. Its `answers` holds
   real past cases, worth keeping in version control. Its `on` (which
   sessions the stand-in is switched on for), `sessions` (where the gate
-  stands with each) and `log` are this machine's alone and worth
-  ignoring; the last two may hold raw agent text. The config file can move
+  stands with each) and `log` (every question it let go, with the
+  operator's answer) are this machine's alone and worth ignoring; the last
+  two may hold raw agent text. The config file can move
   it.
 
 ## Mounting
@@ -63,7 +64,13 @@ a brief stays taken after its session has ended. For the stand-in, it
 registers the stand-in's gate for the end-of-reply event, with a time
 limit no shorter than the one the gate declares: without the gate no
 question is caught, and a gate stopped by its time limit lets a reply
-pass unjudged and unsaid.
+pass unjudged and unsaid. Beside it, the project registers the
+stand-in's answer hook for the turn-start event, without which the log
+never learns what the operator answered, and exposes the stand-in's two
+skills where Claude Code looks for a project's skills, with its skill
+hook registered for the after-tool event of the Skill tool: as with the
+organizer's, the hook is what shows the settled questions and a
+reopened one, and the skills alone only say that they could not.
 
 ## Develop
 
