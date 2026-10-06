@@ -1,5 +1,5 @@
 ---
-summary: Which outside library to adopt for a job.
+summary: Which outside library, program or tool to adopt, or anything set to run by itself.
 route: ask
 ---
 

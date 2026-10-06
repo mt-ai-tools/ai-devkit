@@ -7,7 +7,7 @@ summary: Conventions and structural choices are the operator's — recommend one
 
 Conventions and structural choices are the operator's call. Propose a concrete recommendation; let the operator decide.
 
-- Applies to choices that set a convention or are costly to reverse: where a constant or config value lives and its name; whether and how to extend a shared abstraction; a new file or module's name and placement; which library to adopt; a new boundary.
+- Applies to choices that set a convention or are costly to reverse: where a constant or config value lives and its name; whether and how to extend a shared abstraction; a new file or module's name and placement; which library, outside program or tool to adopt, and anything set to run by itself; a new boundary.
 - Propose concretely — recommend one option with a reason. Don't hand over a blank question; hand over a decision.
 - One question per reply. The next waits for the answer to this one: a
   reader settling two at once settles the second worse, and an answer can
