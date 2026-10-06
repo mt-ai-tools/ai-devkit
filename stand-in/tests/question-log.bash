@@ -4,8 +4,8 @@
 # alone.
 
 # A log line, given its number, outcome, session, when (UTC), and the answer
-# approved; the question, its retelling, the summary and the reading are
-# derived from the number, so each line is told apart by them.
+# approved; the question, its retelling and the summary's problem are derived
+# from the number, so each line is told apart by them.
 log_line() {
   jq -cn --argjson number "$1" --arg outcome "$2" --arg session "$3" --arg when "$4" --arg approved "${5:-five}" \
     --argjson briefs "${6:-[]}" '{
@@ -15,7 +15,9 @@ log_line() {
       ladder: {first: {options: ["five", "ten"], recommended: "five"}, picks: [{pick: "item", item: "five"}, {pick: "item", item: "five"}]},
       exchange: [{from: "agent", text: "Five or ten? I recommend five. (\($number))"}, {from: "stand-in", text: "From the stand-in: Sure?"}, {from: "agent", text: "Five."}],
       outcome: $outcome, reasons: [], approved: $approved,
-      summary: "The agent kept five through both challenges. (\($number))", reading: null, answer: ""
+      summary: {problem: "A call fails now and then. (\($number))", first_recommendation: "Five tries.",
+        what_moved_it: "Nothing.", recommends_now: "Five tries.", operators_call: "Five or ten; no risk was named."},
+      reading: null, answer: ""
     }'
 }
 

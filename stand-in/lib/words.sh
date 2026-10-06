@@ -115,8 +115,8 @@ refuse_item_unasked_note() {
   printf 'The matcher named the item "%s" while saying the reply picks none.\n' "$1"
 }
 
-refuse_summary_empty_note() {
-  printf 'The summary came back with no words.\n'
+refuse_summary_part_empty_note() {
+  printf 'The summary'\''s %s came back with no words.\n' "$1"
 }
 
 # The names the refusals above call the forms by.
@@ -263,7 +263,8 @@ gate_explains_code_line() {
 
 # --- What the gate brings the operator. It opens with the decision asked
 # for, as the agent retold it plainly, then why it came to them, one line per
-# reason; then how it got there; then the cold second reading where one ran.
+# reason; then the summary's parts, the cold second reading where one ran
+# standing before the operator's call.
 
 gate_operator_note() {
   printf 'Stand-in: a question for you: %s\nWhy it came to you:\n%s' "$1" "$2"
@@ -309,6 +310,10 @@ gate_moved_line() {
   printf -- '- The agent'\''s answer did not hold under the stand-in'\''s challenges.\n'
 }
 
+gate_moved_then_held_line() {
+  printf -- '- The agent'\''s answer did not hold under the stand-in'\''s challenges; after a bigger look around, asked again whether it was sure, it held.\n'
+}
+
 gate_answers_heading() {
   printf 'The agent'\''s answers, in order:\n'
 }
@@ -342,9 +347,31 @@ gate_looked_number() {
   printf '%s (after the bigger look around)' "$1"
 }
 
-# How the question got to the operator, as the summary reader tells it.
-gate_summary_note() {
-  printf 'How it got to you:\n%s\n' "$1"
+# The number of the answer given to "are you sure?" asked once more.
+gate_sure_again_number() {
+  printf '%s (asked again whether it was sure)' "$1"
+}
+
+# The summary's fixed parts, each under its heading, as the summary reader
+# wrote them from the whole exchange.
+gate_problem_part() {
+  printf 'The problem:\n%s\n' "$1"
+}
+
+gate_first_recommendation_part() {
+  printf 'What the agent first recommended:\n%s\n' "$1"
+}
+
+gate_what_moved_part() {
+  printf 'What moved it, and why:\n%s\n' "$1"
+}
+
+gate_recommends_now_part() {
+  printf 'What it recommends now:\n%s\n' "$1"
+}
+
+gate_operator_call_part() {
+  printf 'Your call:\n%s\n' "$1"
 }
 
 gate_summary_failed_note() {
@@ -462,10 +489,6 @@ reopen_question_line() {
 
 reopen_settled_line() {
   printf 'The stand-in settled on: %s\n' "$1"
-}
-
-reopen_summary_note() {
-  printf 'How it was settled:\n%s\n' "$1"
 }
 
 reopen_exchange_hint() {

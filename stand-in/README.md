@@ -15,22 +15,29 @@ the ladder the agent is challenged twice more in the preset's own words; each
 reply is matched by another model against the first answer's options, and
 the answer holds only where every reply picks the option first recommended,
 however it is worded. One that moves is sent a bigger look around once, then
-reaches the operator with a cold second reading of the question by another
-model, which decides nothing. While a kind is on trial, which every kind is,
-an answer that held reaches the operator too, marked with what would have
-been approved.
+asked once more whether it is sure. Where it moves again, it reaches the
+operator with a cold second reading of the question by another model, which
+decides nothing; where it holds, it reaches them told it moved and then held.
+Either way it never counts as held: an answer that moved once is never one
+that would be approved. While a kind is on trial, which every kind is, an
+answer that held reaches the operator too, marked with what would have been
+approved.
 
 Before any question reaches the operator, whatever its route, the agent is
 asked once to retell it plainly, and its retelling is what the operator reads
-first; then why it came to them, then how it got there, as a fresh model
-summarises the whole exchange between the stand-in and the agent, then the
-second reading where one ran. The exchange is kept in the session's record
+first; then why it came to them; then fixed parts a fresh model writes from
+the whole exchange between the stand-in and the agent, in everyday words —
+the problem with an everyday example, the first recommendation, what moved
+it and why in the agent's own reasons, what it recommends now — then the
+second reading where one ran, and last the operator's call, each option with
+its risk. The fresh model retells and never judges or recommends; a part it
+leaves empty is a refused form. The exchange is kept in the session's record
 while the question is held.
 
 Every question it lets go leaves one whole line in a log of its own: when,
 in which session and brief, the question as asked and as retold, how it was
 sorted and checked, every answer on the ladder, the whole exchange, how it
-ended and why, the summary and the second reading. Lines from sessions
+ended and why, the summary's parts and the second reading. Lines from sessions
 writing at once never interleave. The first thing the operator types after a
 question reached them is kept as their answer to it. Asked in plain words,
 it shows the operator the questions it settled without them, and brings any
@@ -50,11 +57,12 @@ answers are checked against.
 It fails toward the operator: whatever it cannot read or judge lets the reply
 stop with the reason shown to them, and asks the agent nothing more. It never
 holds one question past a small number of send-backs asking the agent to
-rethink, the ladder's challenges among them; the bigger look around and the
-plain retelling are fixed rounds outside that count, each sent at most once
-for a question. A second reading, a summary or a log line that fails never
-holds a question up: the operator is told why there is none. Where it is off for a
-session it does nothing, and asks no model.
+rethink, the ladder's challenges among them; the bigger look around, the
+second "are you sure?" after it and the plain retelling are fixed rounds
+outside that count, each sent at most once for a question. A second
+reading, a summary or a log line that fails never holds a question up: the
+operator is told why there is none. Where it is off for a session it does
+nothing, and asks no model.
 
 Needs a preset: a folder of kinds of question, each with a one-line summary
 and its route, a list of risks, each opening with its short name, and a

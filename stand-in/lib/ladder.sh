@@ -23,6 +23,13 @@ LADDER_ARE_YOU_SURE="are-you-sure"
 LADDER_BIGGER_LOOK="bigger-look"
 LADDER_PLAIN_RETELLING="plain-retelling"
 
+# The fixed round after the bigger look around: "are you sure?" once more, in
+# the ladder's own words (settled 2026-10-06, the operator's own sequence). A
+# round of its own name rather than the rung's, since the rung is a challenge
+# counted toward the send-back limit and this is a fixed round sent at most
+# once; one name for both would make either look already sent.
+LADDER_SURE_AGAIN="are-you-sure-again"
+
 # Every message the ladder file must hold, all asked for whichever is sent.
 LADDER_MESSAGES=("$LADDER_STANDING_TEST" "$LADDER_ARE_YOU_SURE" "$LADDER_BIGGER_LOOK" "$LADDER_PLAIN_RETELLING")
 
@@ -62,19 +69,44 @@ to_asked_ladder() {
   jq -c '{first: {options, recommended}, picks: []}' <<<"$1"
 }
 
+# The message a fixed round sends, by the round's name: its own message, but
+# for "are you sure?" sent again, which sends the rung's words unchanged.
+to_round_message_name() {
+  case "$1" in
+    "$LADDER_SURE_AGAIN") printf '%s\n' "$LADDER_ARE_YOU_SURE" ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
+
 # True if the ladder's answers held: every rung after the first matched to an
 # item of the first rung's list, and that item the first rung's
 # recommendation, which is not none. The same choice in other words is the
 # same item, as the matcher reads it; a choice whose substance changed, an
 # option added or dropped, or a reply that no longer asks the question is not
-# the item, and has not held. Only the rungs are compared: a pick made after
-# them, in the bigger look around, is shown and never decides.
+# the item, and has not held. Only the rungs are compared: the picks made
+# after them, to the bigger look around and to "are you sure?" once more, are
+# shown and never decide. An answer that moved once was unsure, and must never
+# earn silence when its kind leaves the trial, however it held afterwards.
 is_ladder_held() {
   jq -e --argjson rungs "$((LADDER_RUNGS - 1))" --arg item "$MATCH_ITEM" '
     .first.recommended as $r
     | (.picks | length) >= $rungs
       and $r != ""
       and all(.picks[:$rungs][]; .pick == $item and .item == $r)' >/dev/null <<<"$1"
+}
+
+# True if the answer given to the bigger look around held when "are you
+# sure?" was asked once more: both picks an item of the first list, and the
+# same one, compared in code as the rungs are. Two new choices are never the
+# same: the matcher reads each only against the first list, so nothing says
+# the two are one. Never read for approval: see is_ladder_held.
+is_look_held() {
+  jq -e --argjson look "$((LADDER_RUNGS - 1))" --arg item "$MATCH_ITEM" '
+    .picks[$look] as $looked
+    | .picks[$look + 1] as $again
+    | $looked != null and $again != null
+      and $looked.pick == $item and $again.pick == $item
+      and $looked.item == $again.item' >/dev/null <<<"$1"
 }
 
 # What follows the answers the ladder holds: climb, while a rung is left to
@@ -119,9 +151,16 @@ to_changed_why() {
   to_why_lines "$(gate_moved_line)" "$1"
 }
 
+# Why answers that moved, then held after the bigger look around, came to the
+# operator.
+to_looked_held_why() {
+  to_why_lines "$(gate_moved_then_held_line)" "$1"
+}
+
 # Each answer as the operator reads it, one line each, in order: the first
 # rung's recommendation and its list, then each later reply as the matcher
-# picked it, the last marked where it answered the bigger look around.
+# picked it, those after the rungs marked as the answer to the bigger look
+# around and to "are you sure?" once more.
 derive_answer_lines() {
   local ladder="$1" recommended options n number pick item
   recommended="$(jq -r '.first.recommended' <<<"$ladder")"
@@ -136,7 +175,11 @@ derive_answer_lines() {
     [ -n "$pick" ] || continue
     n=$((n + 1))
     number="$n"
-    [ "$n" -le "$LADDER_RUNGS" ] || number="$(gate_looked_number "$n")"
+    if [ "$n" -eq "$((LADDER_RUNGS + 1))" ]; then
+      number="$(gate_looked_number "$n")"
+    elif [ "$n" -gt "$((LADDER_RUNGS + 1))" ]; then
+      number="$(gate_sure_again_number "$n")"
+    fi
     case "$pick" in
       "$MATCH_ITEM") gate_pick_line "$number" "$item" ;;
       "$MATCH_NEW") gate_pick_new_line "$number" ;;

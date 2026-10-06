@@ -27,6 +27,18 @@ setup() {
   answer="$BATS_TEST_TMPDIR/answer.json"
 }
 
+# The summary's parts of the log line numbered so, as the suite's log lines
+# hold them, spelled in the operator's order, the reading's part given
+# standing before the call: the same parts the gate's message showed.
+reopened_parts() {
+  gate_problem_part "A call fails now and then. ($1)"
+  gate_first_recommendation_part "Five tries."
+  gate_what_moved_part "Nothing."
+  gate_recommends_now_part "Five tries."
+  [ -z "${2:-}" ] || gate_reading_note "$2"
+  gate_operator_call_part "Five or ten; no risk was named."
+}
+
 # A skill-loading event, as Claude Code hands it to an after-tool hook.
 skill_event() {
   jq -cn --arg skill "$1" --arg args "${2:-}" '{tool_name: "Skill", tool_input: ({skill: $skill} + (if $args == "" then {} else {args: $args} end))}'
@@ -98,7 +110,7 @@ three_lines() {
   expected="$(reopen_heading 3 "2026-10-06 14:05" "$(settled_where_brief_words session-2 file-trash)"
     reopen_question_line "Should a call be tried five or ten times? (3)"
     reopen_settled_line five
-    reopen_summary_note "The agent kept five through both challenges. (3)"
+    reopened_parts 3
     reopen_exchange_hint)"
   [ "$(shown)" = "$expected" ]
   [ "$(note)" = "$(reopen_agent_note 3 "Five retries or ten? (3)" "five${LADDER_OPTION_SEPARATOR}ten" five)" ]
@@ -110,12 +122,26 @@ three_lines() {
   expected="$(reopen_heading 3 "2026-10-06 14:05" "$(settled_where_session_words session-2)"
     reopen_question_line "Should a call be tried five or ten times? (3)"
     reopen_settled_line five
-    reopen_summary_note "The agent kept five through both challenges. (3)"
-    gate_reading_note "Ten is safer."
+    reopened_parts 3 "Ten is safer."
     reopen_exchange_heading
     reopen_agent_turn_heading; printf 'Five or ten? I recommend five. (3)\n'
     reopen_stand_in_turn_heading; printf 'From the stand-in: Sure?\n'
     reopen_agent_turn_heading; printf 'Five.\n')"
+  [ "$(shown)" = "$expected" ]
+}
+
+@test "a reopened question whose summary failed shows the answers as given, then its reading" {
+  add_log_lines "$history" "$(jq -c '.summary = null | .reading = "Ten is safer."' <<<"$(log_line 3 "$OUTCOME_SETTLED" session-2 2026-10-06T14:05:00Z)")"
+  run_hook devkit-stand-in-reopen 3
+  expected="$(reopen_heading 3 "2026-10-06 14:05" "$(settled_where_session_words session-2)"
+    reopen_question_line "Should a call be tried five or ten times? (3)"
+    reopen_settled_line five
+    gate_answers_heading
+    gate_answer_line 1 five "five${LADDER_OPTION_SEPARATOR}ten"
+    gate_pick_line 2 five
+    gate_pick_line 3 five
+    gate_reading_note "Ten is safer."
+    reopen_exchange_hint)"
   [ "$(shown)" = "$expected" ]
 }
 

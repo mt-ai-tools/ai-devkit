@@ -14,8 +14,9 @@
 # answer and the matcher's picks, or null; exchange, every turn between the
 # stand-in and the agent, whole; outcome; reasons, why it came to the
 # operator, a line each; approved, the option the stand-in approved or would
-# have; summary, and reading, the cold second reading, each null where none
-# was written; answer, the operator's, empty until they give one.
+# have; summary, the summary reader's parts as the operator was shown them,
+# and reading, the cold second reading, each null where none was written;
+# answer, the operator's, empty until they give one.
 #
 # Every write takes one lock, a file of its own beside the log: two sessions
 # letting a question go at once must leave two whole lines, and bash writes a
@@ -62,7 +63,7 @@ to_log_path() {
 # operator's message in parts, as record.sh and operator-message.sh keep them,
 # and the details only the moment of letting it go knows, as JSON: id, when,
 # session, briefs, retold (empty for none), reasons (one per line) and
-# summary (empty for none). Its number is given as the line is written, and
+# summary (the summary's parts, null for none). Its number is given as the line is written, and
 # its answer is empty until the operator gives one. The record reaches jq on
 # stdin, never as an argument: its exchange can outgrow what one may hold.
 to_log_line() {
@@ -87,7 +88,7 @@ to_log_line() {
       outcome: (if ($parts.approved // "") != "" then $held else $operator end),
       reasons: ($details.reasons | split("\n") | map(select(. != ""))),
       approved: ($parts.approved // ""),
-      summary: ($details.summary | text_or_null),
+      summary: $details.summary,
       reading: ($parts.reading_text | text_or_null),
       answer: ""
     }' <<<"$record"

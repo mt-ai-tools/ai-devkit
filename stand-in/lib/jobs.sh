@@ -84,16 +84,21 @@ derive_stop_seconds() {
 # of the stops a question can make, never their sum, since each is a hook run
 # of its own. A question's first stop runs the reader, the checker and the
 # sorter. Each ladder rung after the first runs the matcher alone, the reader
-# no longer needed there. The bigger look around's reply runs the matcher and
-# the cold reading; the plain retelling's reply, always the last stop before
-# the operator, runs the reader for the retold question and the summary, and
-# writes the question log's line, which may wait its turn at the log's lock.
+# no longer needed there, and so does the bigger look around's reply. The
+# reply to "are you sure?" asked once more runs the matcher and, where the
+# answer moved again, the cold reading; the plain retelling's reply, always
+# the last stop before the operator, runs the reader for the retold question
+# and the summary, and writes the question log's line, which may wait its
+# turn at the log's lock.
 #
 # The three jobs of a changed answer's message — matcher, reading and
 # summary — cannot share one stop: at their limits they take 215 s, past the
 # hook's 180. Each rides a stop the question makes anyway, so no stop is
-# added and no limit raised. Moving any of them onto another job's stop is a
-# change to this budget first.
+# added and no limit raised. The reading rides the second "are you sure?"'s
+# stop, the one stop that knows whether the answer moved again, which is the
+# only case a reading is run for (settled 2026-10-06); the bigger look's stop
+# is left the matcher alone, with room it does not need. Moving any of them
+# onto another job's stop is a change to this budget first.
 derive_jobs_seconds() {
   local stop longest=0
   for stop in \

@@ -50,11 +50,38 @@ ladder() {
   [ "$output" = "$LADDER_CHANGED" ]
 }
 
-@test "a pick after the rungs, the bigger look's, never decides" {
-  run is_ladder_held "$(ladder five "$(item five)" "$(item five)" "$(item ten)")"
+@test "the picks after the rungs, to the bigger look and to \"are you sure?\" once more, never decide" {
+  run is_ladder_held "$(ladder five "$(item five)" "$(item five)" "$(item ten)" "$(item ten)")"
   [ "$status" -eq 0 ]
-  run is_ladder_held "$(ladder five "$(item five)" "$(item ten)" "$(item five)")"
+  # An answer that moved once never approves, however it held afterwards.
+  run is_ladder_held "$(ladder five "$(item five)" "$(item ten)" "$(item five)" "$(item five)")"
   [ "$status" -eq 1 ]
+}
+
+@test "the answer to the bigger look holds when \"are you sure?\" once more picks the same item" {
+  run is_look_held "$(ladder five "$(item five)" "$(item ten)" "$(item ten)" "$(item ten)")"
+  [ "$status" -eq 0 ]
+  run is_look_held "$(ladder five "$(item five)" "$(item ten)" "$(item five)" "$(item five)")"
+  [ "$status" -eq 0 ]
+}
+
+@test "the answer to the bigger look moved again where the next pick is another item, a new choice, or none yet" {
+  for again in "$(item five)" "$(new)" "$(gone)"; do
+    run is_look_held "$(ladder five "$(item five)" "$(item ten)" "$(item ten)" "$again")"
+    [ "$status" -eq 1 ]
+  done
+  # Two new choices are never the same: neither is an item of the first list.
+  run is_look_held "$(ladder five "$(item five)" "$(item ten)" "$(new)" "$(new)")"
+  [ "$status" -eq 1 ]
+  run is_look_held "$(ladder five "$(item five)" "$(item ten)" "$(item ten)")"
+  [ "$status" -eq 1 ]
+}
+
+@test "\"are you sure?\" once more sends the rung's own words, and every other round its own" {
+  [ "$(to_round_message_name "$LADDER_SURE_AGAIN")" = are-you-sure ]
+  [ "$LADDER_SURE_AGAIN" != are-you-sure ]
+  [ "$(to_round_message_name bigger-look)" = bigger-look ]
+  [ "$(to_round_message_name plain-retelling)" = plain-retelling ]
 }
 
 @test "each rung after the first sends the next challenge by its name, in order" {
@@ -62,12 +89,13 @@ ladder() {
   [ "$(to_rung_message_name "$(ladder five "$(item five)")")" = are-you-sure ]
 }
 
-@test "the answers read in order, the bigger look's marked as such" {
-  run derive_answer_lines "$(ladder five "$(item ten)" "$(new)" "$(gone)")"
+@test "the answers read in order, the bigger look's and the one after it marked as such" {
+  run derive_answer_lines "$(ladder five "$(item ten)" "$(new)" "$(gone)" "$(item five)")"
   [ "$status" -eq 0 ]
   expected="$(gate_answer_line 1 five "five${LADDER_OPTION_SEPARATOR}ten")"$'\n'
   expected+="$(gate_pick_line 2 ten)"$'\n'
   expected+="$(gate_pick_new_line 3)"$'\n'
-  expected+="$(gate_answer_gone_line "$(gate_looked_number 4)")"
+  expected+="$(gate_answer_gone_line "$(gate_looked_number 4)")"$'\n'
+  expected+="$(gate_pick_line "$(gate_sure_again_number 5)" five)"
   [ "$output" = "$expected" ]
 }

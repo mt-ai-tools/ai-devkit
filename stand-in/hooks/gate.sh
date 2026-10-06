@@ -13,18 +13,19 @@
 # sorted again: the option a held answer names was checked on the first rung,
 # and a moved answer goes to the operator either way.
 #
-# Two fixed rounds come before the operator, sent by code rather than chosen
+# Fixed rounds come before the operator, sent by code rather than chosen
 # (settled 2026-10-05: the operator does not wait the research out, and reads
 # every question plainly worded). An answer that moved on the ladder is sent
-# the bigger look around first, so it arrives better researched; whatever the
-# agent answers, the question still goes on. Then every question bound for
-# the operator, whatever its route, is sent the plain retelling, and the
-# agent's rewrite is what the operator reads first: the agent knows the
-# subject, and is the one to say it plainly. Neither round asks the agent to
-# rethink, so neither counts toward the send-back limit, and each is sent at
-# most once per question: their count is fixed, and the limit guards against
-# a loop, which a fixed round cannot make. A gate failure gets neither: the
-# operator is told at once, and nothing more is asked of the agent.
+# the bigger look around first, so it arrives better researched, then "are
+# you sure?" once more (settled 2026-10-06, the operator's own sequence);
+# whatever the agent answers, the question still goes on. Then every question
+# bound for the operator, whatever its route, is sent the plain retelling,
+# and the agent's rewrite is what the operator reads first: the agent knows
+# the subject, and is the one to say it plainly. No fixed round asks the
+# agent to rethink, so none counts toward the send-back limit, and each is
+# sent at most once per question: their count is fixed, and the limit guards
+# against a loop, which a fixed round cannot make. A gate failure gets none:
+# the operator is told at once, and nothing more is asked of the agent.
 #
 # Hook contract (Claude Code): the event arrives as JSON on stdin and carries
 # the reply as written, which is handed to the reader unread: the gate never
@@ -178,12 +179,13 @@ send_back() {
 # refused rather than sent a second time for one question. A second sending
 # would be the gate looping on its own rounds, which nothing else would stop.
 send_round() {
-  local name="$1" words
+  local name="$1" message words
   if is_round_sent "$record" "$name"; then
     refuse_round_twice_note "$name" >&2
     exit 1
   fi
-  words="$(ladder_message "$name")"
+  message="$(to_round_message_name "$name")"
+  words="$(ladder_message "$message")"
   record="$(with_round "$record" "$name")"
   hold_reply "$(gate_challenge_note "$words")"
 }
@@ -218,9 +220,10 @@ bring_operator() {
 
 # Write the question the record holds to the log as it is let go, given the
 # message's parts, the question as retold (empty where it could not be read),
-# why it came to the operator, one reason a line, and the summary (empty where
-# it failed). Prints nothing where the line was written, and otherwise the
-# line telling the operator it was not, with why. The briefs the session holds
+# why it came to the operator, one reason a line, and the summary's parts as
+# JSON (empty where it failed), kept as the operator was shown them. Prints
+# nothing where the line was written, and otherwise the line telling the
+# operator it was not, with why. The briefs the session holds
 # are logged as unknown where the organizer cannot say, rather than the line
 # lost: a project may run the stand-in with no briefs folder at all.
 log_let_go() {
@@ -230,7 +233,7 @@ log_let_go() {
   id="$(mint_log_id)"
   when="$(get_log_now)"
   details="$(jq -cn --arg id "$id" --arg when "$when" --arg session "$session" --argjson briefs "$briefs" \
-    --arg retold "$retold" --arg reasons "$why_lines" --arg summary "$summary" \
+    --arg retold "$retold" --arg reasons "$why_lines" --argjson summary "${summary:-null}" \
     '{id: $id, when: $when, session: $session, briefs: $briefs, retold: $retold, reasons: $reasons,
       summary: $summary}')"
   if ! line="$(to_log_line "$record" "$parts" "$details" 2>"$why")" \
@@ -262,7 +265,7 @@ log_broken() {
 # summary never holds the question up either: where it fails, the operator
 # is told why and shown the answers as given.
 answer_retold() {
-  local parts question retold="" extra="" why form exchange summary="" story message why_lines logged
+  local parts question retold="" extra="" why form exchange summary="" failed="" story message why_lines logged
   parts="$(to_operator_parts "$record")"
   if [ -z "$parts" ]; then
     refuse_state_unreadable_note "$record_file" >&2
@@ -278,13 +281,12 @@ answer_retold() {
   fi
   record="$(with_turn "$record" "$EXCHANGE_AGENT" "$reply")"
   exchange="$(to_exchange "$record")"
-  if summary="$(get_summary "$exchange" 2>"$why")"; then
-    story="$(gate_summary_note "$summary")"
-  else
+  if ! summary="$(get_summary "$exchange" 2>"$why")"; then
     summary=""
-    story="$(gate_summary_failed_note "$(cat "$why")")"$'\n'"$(jq -r '.answers' <<<"$parts")"
+    failed="$(cat "$why")"
   fi
   rm -f "$why"
+  story="$(to_operator_story "$parts" "$summary" "$failed")"
   message="$(to_operator_message "$parts" "$question" "$extra" "$story")"
   why_lines="$(jq -r '.why' <<<"$parts")"
   [ -z "$extra" ] || why_lines+=$'\n'"$extra"
@@ -323,14 +325,23 @@ answer_held() {
   bring_operator "$question" "$why" "$recommended"
 }
 
-# An answer that moved: first the bigger look around, once; then, on its
-# reply, a cold second reading, and to the operator. The reading rides the
-# bigger look's stop, beside the matcher alone, since no stop has room for it
-# beside the summary too. The reading never holds the question up: where it
-# fails or runs out of time, the operator is told why there is none.
+# An answer that moved on the rungs: the bigger look around, once. Whatever
+# its reply says, "are you sure?" follows it once more, and the question then
+# goes to the operator: an answer that moved is already unsure.
 answer_changed() {
+  send_round "$LADDER_BIGGER_LOOK"
+}
+
+# An answer that moved, then moved again after the bigger look around when
+# asked once more whether it was sure: a cold second reading, run here and
+# only here, and to the operator. Run by the stand-in itself, never asked of
+# the agent: the agent would read it with its own proposal in view, could
+# lead it, and code could not tell whether it ran. The reading rides this
+# stop beside the matcher alone, since no stop has room for it beside the
+# summary too. It never holds the question up: where it fails or runs out of
+# time, the operator is told why there is none.
+answer_moved_again() {
   local ladder="$1" question options why reading part
-  is_round_sent "$record" "$LADDER_BIGGER_LOOK" || send_round "$LADDER_BIGGER_LOOK"
   question="$(jq -r '.question' <<<"$ladder")"
   options="$(jq -c '.first.options' <<<"$ladder")"
   why="$(mktemp)"
@@ -343,6 +354,18 @@ answer_changed() {
   rm -f "$why"
   why="$(to_changed_why "$ladder")"
   bring_operator "$question" "$why" "" "$part" "$reading"
+}
+
+# An answer that moved, then held after the bigger look around when asked
+# once more whether it was sure: no cold reading, and to the operator, told it
+# moved and then held. Never the would-have-approved mark: an answer that
+# moved once was unsure, and must not earn silence when its kind leaves the
+# trial.
+answer_looked_held() {
+  local ladder="$1" question why
+  question="$(jq -r '.question' <<<"$ladder")"
+  why="$(to_looked_held_why "$ladder")"
+  bring_operator "$question" "$why"
 }
 
 # The matcher's pick of this reply against the ladder's first list, kept on
@@ -370,16 +393,26 @@ climb_ladder() {
       send_back "$(gate_challenge_note "$words")" "$question"
       ;;
     "$LADDER_HELD") answer_held "$ladder" ;;
-    *) answer_changed "$ladder" ;;
+    *) answer_changed ;;
   esac
 }
 
 # The reply to the bigger look around: matched like a rung, its answer kept
-# beside the others, and the question on to the operator whatever it says,
-# since an answer that moved is already unsure.
+# beside the others, and "are you sure?" sent once more whatever it says.
 answer_looked() {
   match_reply
-  answer_changed "$ladder"
+  send_round "$LADDER_SURE_AGAIN"
+}
+
+# The reply to "are you sure?" asked once more: matched like a rung, and
+# compared in code with the answer to the bigger look around.
+answer_sure_again() {
+  match_reply
+  if is_look_held "$ladder"; then
+    answer_looked_held "$ladder"
+  else
+    answer_moved_again "$ladder"
+  fi
 }
 
 # Take the route the question's forms decide.
@@ -396,17 +429,21 @@ route_question() {
   esac
 }
 
+# The ladder a round after the rungs answers, left in the variable ladder. A
+# record awaiting such a round with no ladder is one the gate did not write.
+take_ladder() {
+  ladder="$(to_ladder "$record")"
+  [ -n "$ladder" ] || { refuse_state_unreadable_note "$record_file" >&2; exit 1; }
+}
+
 # A fixed round awaiting its reply takes this reply, whatever it says. A
 # round the gate does not know is a record it did not write.
 round="$(to_round "$record")"
 case "$round" in
   "") ;;
   "$LADDER_PLAIN_RETELLING") answer_retold ;;
-  "$LADDER_BIGGER_LOOK")
-    ladder="$(to_ladder "$record")"
-    [ -n "$ladder" ] || { refuse_state_unreadable_note "$record_file" >&2; exit 1; }
-    answer_looked
-    ;;
+  "$LADDER_BIGGER_LOOK") take_ladder; answer_looked ;;
+  "$LADDER_SURE_AGAIN") take_ladder; answer_sure_again ;;
   *)
     refuse_state_unreadable_note "$record_file" >&2
     exit 1

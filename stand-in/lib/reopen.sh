@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
 # A settled question brought back: shown to the operator in full as its log
-# line holds it — the question as retold, what was settled on, the summary of
-# how, the cold reading where one ran, and on request every turn of the
-# exchange word for word — and handed to the session's agent to ask again as
-# a normal question. Every function here is a transform. Sourced, never
-# executed.
+# line holds it — the question as retold, what was settled on, the summary's
+# parts with the cold reading among them where one ran, and on request every
+# turn of the exchange word for word — and handed to the session's agent to
+# ask again as a normal question. Every function here is a transform.
+# Sourced, never executed.
 #
 # Shown from the line alone, never written again: the summary and the
 # exchange are those the question was settled with, so the operator reads
-# what the stand-in read, not a fresh account of it.
+# what the stand-in read, not a fresh account of it, and the parts in the
+# order the gate's own message shows them.
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/question-log.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/settled.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/ladder.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/record.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/operator-message.sh"
 
 # The word that asks for the exchange word for word, after the number.
 REOPEN_EXCHANGE="exchange"
@@ -76,16 +78,19 @@ format_reopened() {
   reopen_heading "$number" "$when" "$(format_settled_where "$session" "$briefs")"
   reopen_question_line "$(jq -r '.retold // .question' <<<"$line")"
   reopen_settled_line "$(jq -r '.approved' <<<"$line")"
-  summary="$(jq -r '.summary // empty' <<<"$line")"
+  summary="$(jq -c '.summary // empty' <<<"$line")"
   ladder="$(jq -c '.ladder // empty' <<<"$line")"
-  if [ -n "$summary" ]; then
-    reopen_summary_note "$summary"
-  elif [ -n "$ladder" ]; then
-    gate_answers_heading
-    derive_answer_lines "$ladder"
-  fi
   reading="$(jq -r '.reading // empty' <<<"$line")"
-  [ -z "$reading" ] || gate_reading_note "$reading"
+  [ -z "$reading" ] || reading="$(gate_reading_note "$reading")"
+  if [ -n "$summary" ]; then
+    format_summary_parts "$summary" "$reading"
+  else
+    if [ -n "$ladder" ]; then
+      gate_answers_heading
+      derive_answer_lines "$ladder"
+    fi
+    [ -z "$reading" ] || printf '%s\n' "$reading"
+  fi
   if [ "$exchange" = true ]; then
     format_reopened_exchange "$line"
   else

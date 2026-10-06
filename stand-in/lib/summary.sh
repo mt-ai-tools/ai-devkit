@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 # The summary reader: the whole exchange between the stand-in and the agent
-# over one question, told short and in everyday words by a fresh model, for
-# the operator to read under the question it brought them. It decides
-# nothing: what it writes is shown, never routed on. Sourced, never executed.
+# over one question, told in everyday words by a fresh model in the fixed
+# parts of the operator's message, for the operator to read under the
+# question it brought them. It decides nothing: what it writes is shown,
+# never routed on, and it neither judges nor recommends. Sourced, never
+# executed.
 #
 # A fresh model, never the working agent: the agent would be summarising its
-# own case. Handed the exchange as the gate keeps it in the session's record.
-# The question's log line keeps that same exchange, whole, beside the summary
-# written from it, so a reopened question shows the same summary and the same
-# full version, never a second summary of something else.
+# own case, and would tell its own wavering. Handed the exchange as the gate
+# keeps it in the session's record. The question's log line keeps that same
+# exchange, whole, beside the parts written from it, so a reopened question
+# shows the same parts and the same full version, never a second summary of
+# something else.
 . "$(dirname "${BASH_SOURCE[0]}")/jobs.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/forms.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/prompts.sh"
@@ -41,16 +44,15 @@ to_summary_prompt() {
 
 # --- Reads.
 
-# The summary of one question's exchange, as the model wrote it, given the
-# exchange as a JSON array of {from, text}; a refusal naming why on stderr and
-# a non-zero status where the prompt cannot be read, the model could not be
-# asked, or its answer does not pass.
+# The summary of one question's exchange, its parts as the model wrote them,
+# as one line of JSON, given the exchange as a JSON array of {from, text}; a
+# refusal naming why on stderr and a non-zero status where the prompt cannot
+# be read, the model could not be asked, or its answer does not pass.
 get_summary() {
   local prose prompt schema answer
   prose="$(read_prompt summary)" || return 1
   prompt="$(to_summary_prompt "$prose" "$1")" || return 1
   schema="$(summary_answer_schema)"
   answer="$(get_model_answer "$SUMMARY_MODEL" "$SUMMARY_SECONDS" "$schema" <<<"$prompt")" || return 1
-  answer="$(refuse_bad_summary_answer "$answer")" || return 1
-  jq -r '.summary' <<<"$answer"
+  refuse_bad_summary_answer "$answer"
 }

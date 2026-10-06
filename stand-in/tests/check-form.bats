@@ -199,14 +199,20 @@ $(refuse_guidance_outside_note maybe)" ]
   [ "$status" -eq 0 ]
 }
 
-@test "a summary's answer with words passes, and one with none, or not its shape, is refused" {
-  run refuse_bad_summary_answer '{"summary": "It held."}'
+@test "a summary's answer with words in every part passes, and one missing a part, with a part of none, or not its shape, is refused" {
+  whole='{"problem":"Calls fail.","first_recommendation":"Five.","what_moved_it":"Nothing.","recommends_now":"Five.","operators_call":"Five or ten."}'
+  run refuse_bad_summary_answer "$whole"
   [ "$status" -eq 0 ]
-  [ "$output" = '{"summary":"It held."}' ]
-  run --separate-stderr refuse_bad_summary_answer '{"summary":"  "}'
-  [ "$status" -eq 1 ]
-  [ "$stderr" = "$(refuse_summary_empty_note)" ]
-  run --separate-stderr refuse_bad_summary_answer '{"summary":"It held.","verdict":"held"}'
+  [ "$output" = "$whole" ]
+  for part in problem first_recommendation what_moved_it recommends_now operators_call; do
+    run --separate-stderr refuse_bad_summary_answer "$(jq -c --arg part "$part" 'del(.[$part])' <<<"$whole")"
+    [ "$status" -eq 1 ]
+    [ "$stderr" = "$(refuse_missing_field_note "$(summary_answer_words)" "$part")" ]
+    run --separate-stderr refuse_bad_summary_answer "$(jq -c --arg part "$part" '.[$part] = "  "' <<<"$whole")"
+    [ "$status" -eq 1 ]
+    [ "$stderr" = "$(refuse_summary_part_empty_note "$part")" ]
+  done
+  run --separate-stderr refuse_bad_summary_answer "$(jq -c '.verdict = "held"' <<<"$whole")"
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_unknown_field_note "$(summary_answer_words)" verdict)" ]
 }

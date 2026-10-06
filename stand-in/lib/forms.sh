@@ -74,11 +74,23 @@ MATCH_NEW="new"
 MATCH_NOT_ASKING="not-asking"
 MATCH_PICKS="[\"$MATCH_ITEM\", \"$MATCH_NEW\", \"$MATCH_NOT_ASKING\"]"
 
-# The summary reader's answer. summary: the exchange between the stand-in and
-# the agent over one question, told short and plain for the operator. Never
-# decided from: it is shown, and only checked to be there.
+# The summary reader's answer: the operator's message in fixed parts, each
+# told plainly from the whole exchange between the stand-in and the agent
+# over one question (settled 2026-10-06). problem: what the question is about,
+# with an everyday example. first_recommendation: what the agent first
+# recommended. what_moved_it: what moved it and why, in the agent's own
+# reasons, or that nothing did. recommends_now: what it recommends at the end.
+# operators_call: the call left to the operator, each option with its risk.
+# Fixed parts rather than one free paragraph, so every question reaches the
+# operator in the same order and a part left out is a refused form, never a
+# gap they would have to notice. Never decided from: it is shown, and only
+# checked to be there.
 SUMMARY_ANSWER_FIELDS='{
-  "summary": "string"
+  "problem": "string",
+  "first_recommendation": "string",
+  "what_moved_it": "string",
+  "recommends_now": "string",
+  "operators_call": "string"
 }'
 
 # The fields of one item of each of the checker's lists, every one a string.

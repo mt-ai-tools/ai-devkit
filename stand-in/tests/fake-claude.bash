@@ -38,7 +38,7 @@ case "$(jq -r '.required[0] // empty' <<<"$schema" 2>/dev/null)" in
   kind) job=sorter ;;
   reading) job=reading ;;
   pick) job=matcher ;;
-  summary) job=summary ;;
+  problem) job=summary ;;
   *) job=other ;;
 esac
 printf '%s %s\n' "$job" "$model" >>"$FAKE_CALLS"
@@ -117,6 +117,11 @@ standing_test="Is it the clean way?"
 are_you_sure="Sure?"
 bigger_look="Look around more."
 plain_retelling="Say it plainly."
+
+# A whole summary's answer, each part told apart by its words.
+summary_form() {
+  printf '%s' '{"problem":"A call fails now and then. Like redialling a busy number.","first_recommendation":"Five tries.","what_moved_it":"Nothing.","recommends_now":"Five tries.","operators_call":"Five or ten; no risk was named for either."}'
+}
 
 # A whole reader's form asking which of two options, recommending the first.
 whole_form() {

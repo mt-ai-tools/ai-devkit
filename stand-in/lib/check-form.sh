@@ -106,10 +106,10 @@ CHECK_MATCHER_RULES='
   (select(.pick != $item_pick and .item != "") | ["item-unasked", .item])
   | join($us)'
 
-# What is wrong with a summary's answer whose shape is right: a summary with
+# What is wrong with a summary's answer whose shape is right: any part with
 # no words, which would show the operator a heading over nothing.
 CHECK_SUMMARY_RULES='
-  (select(.summary | test("^\\s*$")) | ["summary-empty"])
+  (to_entries[] | select(.value | test("^\\s*$")) | ["summary-part-empty", .key])
   | join($us)'
 
 # The input as one compact JSON value; a non-zero status where it is not
@@ -227,7 +227,7 @@ to_problem_notes() {
       pick-outside) refuse_pick_outside_note "$arg" ;;
       item-outside) refuse_item_outside_note "$arg" ;;
       item-unasked) refuse_item_unasked_note "$arg" ;;
-      summary-empty) refuse_summary_empty_note ;;
+      summary-part-empty) refuse_summary_part_empty_note "$arg" ;;
     esac
   done
 }
@@ -319,8 +319,8 @@ refuse_bad_matcher_answer() {
   printf '%s\n' "$answer"
 }
 
-# The summary's answer, compact, where it is whole and holds words; every
-# reason it is not on stderr and a non-zero status otherwise.
+# The summary's answer, compact, where it is whole and every part holds
+# words; every reason it is not on stderr and a non-zero status otherwise.
 refuse_bad_summary_answer() {
   local answer problems label
   label="$(summary_answer_words)"

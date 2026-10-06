@@ -2,8 +2,9 @@ bats_require_minimum_version 1.5.0
 
 # Behavior tests for the gate: silent where the stand-in is off, every route a
 # question can take, the challenge and its answers, the ladder, the bigger
-# look around and the cold second reading, the plain retelling before every
-# question reaches the operator and the summary under it, the loop guard, and
+# look around, "are you sure?" once more and the cold second reading, the
+# plain retelling before every question reaches the operator and the
+# summary's parts under it, the loop guard, and
 # every way the gate itself can fail letting the reply stop with a reason.
 # Claude Code is the suite's own fake, answering each model apart.
 
@@ -35,7 +36,7 @@ setup() {
   answer_for reader "$(whole_form)"
   answer_for checker "$(clean_check)"
   answer_for sorter '{"kind":"defaults","unsure":false,"risks":[]}'
-  answer_for summary "$(jq -cn --arg summary "$summary_words" '{summary: $summary}')"
+  answer_for summary "$(summary_form)"
 }
 
 teardown() {
@@ -112,10 +113,21 @@ climb() {
   done
 }
 
-# The question as the agent retells it plainly, and the summary the suite's
-# summary reader writes.
+# The question as the agent retells it plainly.
 plain_question="Should a failed call be tried again five times or ten?"
-summary_words="The agent asked whether to retry five or ten times, and kept five."
+
+# The suite's summary's parts as the operator reads them, spelled here in the
+# operator's order, the reading's part given standing before the call.
+story() {
+  local summary
+  summary="$(summary_form)"
+  gate_problem_part "$(jq -r '.problem' <<<"$summary")"
+  gate_first_recommendation_part "$(jq -r '.first_recommendation' <<<"$summary")"
+  gate_what_moved_part "$(jq -r '.what_moved_it' <<<"$summary")"
+  gate_recommends_now_part "$(jq -r '.recommends_now' <<<"$summary")"
+  [ -z "${1:-}" ] || printf '%s\n' "$1"
+  gate_operator_call_part "$(jq -r '.operators_call' <<<"$summary")"
+}
 
 # The plain retelling, as the gate sends it.
 retelling() { gate_challenge_note "$plain_retelling"; }
@@ -128,15 +140,15 @@ retell() {
 }
 
 # The operator's message for the question retold plainly, given why it came
-# to them, then the summary, then the reading part where one is given.
+# to them, then the summary's parts, the reading part among them where one is
+# given.
 operator_message() {
-  printf '%s\n%s' "$(gate_operator_note "$plain_question" "$1")" "$(gate_summary_note "$summary_words")"
-  [ -z "${2:-}" ] || printf '\n%s' "$2"
+  printf '%s\n%s' "$(gate_operator_note "$plain_question" "$1")" "$(story "${2:-}")"
 }
 
 # The operator's message for answers that held, given why they came.
 held_message() {
-  printf '%s\n%s' "$(gate_held_note "$plain_question" five 3 "$1")" "$(gate_summary_note "$summary_words")"
+  printf '%s\n%s' "$(gate_held_note "$plain_question" five 3 "$1")" "$(story)"
 }
 
 # The calls a whole question is read by, in order, each on its job's model.
@@ -327,7 +339,7 @@ all_three() {
   run_gate
   retell "$(no_question_form)"
   why="$(gate_kind_line naming "The naming kind.")"$'\n'"$(gate_retelling_unread_line "")"
-  expected="$(gate_operator_note "Five retries or ten?" "$why")"$'\n'"$(gate_summary_note "$summary_words")"
+  expected="$(gate_operator_note "Five retries or ten?" "$why")"$'\n'"$(story)"
   [ "$(message)" = "$expected" ]
   answer_for reader "$(whole_form)"
   run_gate
@@ -335,7 +347,7 @@ all_three() {
   status_for reader 124
   run_gate true
   why="$(gate_kind_line naming "The naming kind.")"$'\n'"$(gate_retelling_unread_line "$(refuse_model_timeout_note "$READER_MODEL" "$READER_SECONDS")")"
-  [ "$(message)" = "$(gate_operator_note "Five retries or ten?" "$why")"$'\n'"$(gate_summary_note "$summary_words")" ]
+  [ "$(message)" = "$(gate_operator_note "Five retries or ten?" "$why")"$'\n'"$(story)" ]
 }
 
 @test "a ladder kind with no risk, sorted for certain, is sent the ladder's first challenge" {
@@ -367,7 +379,7 @@ all_three() {
   [ "$(jq -c '.ladder' "$record_file")" = null ]
 }
 
-@test "an answer that moves is sent the bigger look around once, then reaches the operator with the reading" {
+@test "an answer that moves, then moves again after the bigger look, gets the reading, then the retelling, then the operator" {
   answer_for reading '{"reading":"Ten is safer."}'
   climb "$(item ten)"
   rm "$FAKE_CALLS"
@@ -376,28 +388,76 @@ all_three() {
   [ "$(reason)" = "$(gate_challenge_note "$bigger_look")" ]
   [ "$(calls)" = "matcher $MATCHER_MODEL" ]
   [ "$(jq '.sent_back' "$record_file")" -eq 2 ]
+  # The bigger look's reply is matched alone, and "are you sure?" is sent once
+  # more, in the rung's own words, outside the send-back count.
   rm "$FAKE_CALLS"
   answer_for matcher "$(item ten)"
   run_gate true "I looked further: ten."
+  [ "$(reason)" = "$(gate_challenge_note "$are_you_sure")" ]
+  [ "$(calls)" = "matcher $MATCHER_MODEL" ]
+  [ "$(jq '.sent_back' "$record_file")" -eq 2 ]
+  # Moved again: the reading runs on this stop, beside the matcher alone.
+  rm "$FAKE_CALLS"
+  answer_for matcher "$(item five)"
+  run_gate true "On reflection, five."
   [ "$(reason)" = "$(retelling)" ]
   [ "$(calls)" = "matcher $MATCHER_MODEL"$'\n'"reading $READING_MODEL" ]
   [ "$(jq '.sent_back' "$record_file")" -eq 2 ]
-  [ "$(jq -c '.ladder.picks' "$record_file")" = "[$(item ten),$(item five),$(item ten)]" ]
+  [ "$(jq -c '.ladder.picks' "$record_file")" = "[$(item ten),$(item five),$(item ten),$(item five)]" ]
+  rm "$FAKE_CALLS"
   retell
   [ "$status" -eq 0 ]
+  [ "$(calls)" = "reader $READER_MODEL"$'\n'"summary $SUMMARY_MODEL" ]
   [ "$(message)" = "$(operator_message "$(gate_moved_line)" "$(gate_reading_note "Ten is safer.")")" ]
-  # Each fixed round went to the agent once, and the summary was handed the
-  # whole exchange.
+  # Each fixed round went to the agent once, "are you sure?" twice in all, and
+  # the summary was handed the whole exchange.
   [ "$(grep -cxF -- "$(gate_challenge_note "$bigger_look")" "$FAKE_PROMPT.summary")" -eq 1 ]
+  [ "$(grep -cxF -- "$(gate_challenge_note "$are_you_sure")" "$FAKE_PROMPT.summary")" -eq 2 ]
   [ "$(grep -cxF -- "$(retelling)" "$FAKE_PROMPT.summary")" -eq 1 ]
   grep -qxF -- "$(gate_challenge_note "$standing_test")" "$FAKE_PROMPT.summary"
   grep -qxF -- "I looked further: ten." "$FAKE_PROMPT.summary"
+  grep -qxF -- "On reflection, five." "$FAKE_PROMPT.summary"
   [ "$(jq -c '.ladder' "$record_file")" = null ]
+}
+
+@test "an answer that moves, then holds after the bigger look, gets no reading, and reaches the operator told so, never as held" {
+  answer_for reading '{"reading":"Ten is safer."}'
+  climb "$(item ten)" "$(item five)" "$(item ten)"
+  [ "$(reason)" = "$(gate_challenge_note "$are_you_sure")" ]
+  rm "$FAKE_CALLS"
+  answer_for matcher "$(item ten)"
+  run_gate true "Yes, ten."
+  [ "$(reason)" = "$(retelling)" ]
+  [ "$(calls)" = "matcher $MATCHER_MODEL" ]
+  retell
+  [ "$status" -eq 0 ]
+  [ "$(message)" = "$(operator_message "$(gate_moved_then_held_line)")" ]
+  # Held after moving never earns the would-have-approved mark.
+  [ "$(jq -c '{outcome, approved, reading, reasons}' "$(log_file)")" = \
+    "$(jq -cn --arg why "$(gate_moved_then_held_line)" '{outcome: "to-operator", approved: "", reading: null, reasons: [$why]}')" ]
+  [ "$(calls | grep -c '^reading ')" -eq 0 ]
+}
+
+@test "the operator's message shows the retold question, why, then the summary's parts, the reading before the call" {
+  answer_for reading '{"reading":"Ten is safer."}'
+  climb "$(item ten)" "$(item five)" "$(item ten)" "$(item five)"
+  retell
+  summary="$(summary_form)"
+  expected="$(gate_operator_note "$plain_question" "$(gate_moved_line)")"$'\n'
+  expected+="$(gate_problem_part "$(jq -r '.problem' <<<"$summary")")"$'\n'
+  expected+="$(gate_first_recommendation_part "$(jq -r '.first_recommendation' <<<"$summary")")"$'\n'
+  expected+="$(gate_what_moved_part "$(jq -r '.what_moved_it' <<<"$summary")")"$'\n'
+  expected+="$(gate_recommends_now_part "$(jq -r '.recommends_now' <<<"$summary")")"$'\n'
+  expected+="$(gate_reading_note "Ten is safer.")"$'\n'
+  expected+="$(gate_operator_call_part "$(jq -r '.operators_call' <<<"$summary")")"
+  [ "$(message)" = "$expected" ]
+  # The log keeps the parts as the operator was shown them.
+  [ "$(jq -c '.summary' "$(log_file)")" = "$(summary_form)" ]
 }
 
 @test "the cold reading is the advisor's command, handed the question and options alone, reading the project" {
   answer_for reading '{"reading":"Ten is safer."}'
-  climb "$(item ten)" "$(item five)" "$(item five)"
+  climb "$(item ten)" "$(item five)" "$(item five)" "$(item ten)"
   prompt="$FAKE_PROMPT.reading"
   grep -qxF "Answer one claim about the code." "$prompt"
   grep -qxF "Five retries or ten?" "$prompt"
@@ -446,7 +506,7 @@ all_three() {
 
 @test "a reading that fails still brings the operator the question, saying why there is none" {
   status_for reading 124
-  climb "$(item ten)" "$(item five)" "$(item five)"
+  climb "$(item ten)" "$(item five)" "$(item five)" "$(item ten)"
   [ "$(reason)" = "$(retelling)" ]
   retell
   [ "$status" -eq 0 ]
@@ -454,15 +514,15 @@ all_three() {
     "$(gate_reading_failed_line "$(refuse_model_timeout_note "$READING_MODEL" "$READING_SECONDS")")")" ]
   rm "$FAKE_ANSWERS/reading.status"
   answer_for reading '{"reading":"  "}'
-  climb "$(item ten)" "$(item five)" "$(item five)"
+  climb "$(item ten)" "$(item five)" "$(item five)" "$(item ten)"
   retell
-  [[ "$(message)" == *"$(gate_reading_failed_line "$(refuse_reading_empty_note)")" ]]
+  [ "$(message)" = "$(operator_message "$(gate_moved_line)" "$(gate_reading_failed_line "$(refuse_reading_empty_note)")")" ]
 }
 
-@test "a summary that fails after a ladder shows every answer, the bigger look's marked" {
+@test "a summary that fails after a ladder shows every answer, the bigger look's and the one after it marked" {
   answer_for reading '{"reading":"Either."}'
   status_for summary 3
-  climb "$(item ten)" "$(new_pick)" "$(gone_pick)"
+  climb "$(item ten)" "$(new_pick)" "$(gone_pick)" "$(item five)"
   retell
   list="five${LADDER_OPTION_SEPARATOR}ten"
   expected="$(gate_operator_note "$plain_question" "$(gate_moved_line)")"$'\n'
@@ -471,7 +531,8 @@ all_three() {
     gate_answer_line 1 five "$list"
     gate_pick_line 2 ten
     gate_pick_new_line 3
-    gate_answer_gone_line "$(gate_looked_number 4)")"$'\n'
+    gate_answer_gone_line "$(gate_looked_number 4)"
+    gate_pick_line "$(gate_sure_again_number 5)" five)"$'\n'
   expected+="$(gate_reading_note "Either.")"
   [ "$(message)" = "$expected" ]
 }
@@ -550,23 +611,38 @@ all_three() {
   [ "$(reason)" = "$(gate_challenge_note "$bigger_look")" ]
   [ "$(jq '.sent_back' "$record_file")" -eq 3 ]
   run_gate true
+  [ "$(reason)" = "$(gate_challenge_note "$are_you_sure")" ]
+  [ "$(jq '.sent_back' "$record_file")" -eq 3 ]
+  answer_for matcher "$(item five)"
+  run_gate true
   [ "$(reason)" = "$(retelling)" ]
   [ "$(jq '.sent_back' "$record_file")" -eq 3 ]
   retell
   [ "$(message)" = "$(operator_message "$(gate_moved_line)" "$(gate_reading_note "Ten is safer.")")" ]
 }
 
+# The suite's session record changed by the jq filter given.
+edit_record() {
+  jq -c "$1" "$record_file" >"$record_file.new" && mv "$record_file.new" "$record_file"
+}
+
 @test "a fixed round already sent for the question is never sent again" {
-  answer_for reading '{"reading":"Ten is safer."}'
   climb "$(item ten)"
-  jq -c '.rounds_sent = ["bigger-look"]' "$record_file" >"$record_file.new" && mv "$record_file.new" "$record_file"
+  edit_record '.rounds_sent = ["bigger-look"]'
   answer_for matcher "$(item five)"
   run_gate true
-  [ "$(reason)" = "$(retelling)" ]
-  [ "$(calls | tail -n 2)" = "matcher $MATCHER_MODEL"$'\n'"reading $READING_MODEL" ]
+  [ "$(message)" = "$(gate_broken_note "$(refuse_round_twice_note bigger-look)")" ]
+  # "Are you sure?" once more is sent once, whatever the bigger look answered.
+  climb "$(item ten)" "$(item five)"
+  [ "$(reason)" = "$(gate_challenge_note "$bigger_look")" ]
+  edit_record ".rounds_sent += [\"$LADDER_SURE_AGAIN\"]"
+  answer_for matcher "$(item ten)"
+  run_gate true
+  [ "$(message)" = "$(gate_broken_note "$(refuse_round_twice_note "$LADDER_SURE_AGAIN")")" ]
   answer_for sorter '{"kind":"naming","unsure":false,"risks":[]}'
-  jq -c '.round = null | .operator = null | .ladder = null' "$record_file" >"$record_file.new" && mv "$record_file.new" "$record_file"
-  answer_for reader "$(whole_form)"
+  run_gate
+  [ "$(reason)" = "$(retelling)" ]
+  edit_record '.round = null | .operator = null'
   run_gate true
   [ "$(message)" = "$(gate_broken_note "$(refuse_round_twice_note plain-retelling)")" ]
 }
@@ -717,7 +793,7 @@ log_file() { printf '%s/log/questions.jsonl' "$history"; }
   line="$(cat "$(log_file)")"
   [ "$(jq -c '{number, session, briefs, question, retold, kind, unsure, risks, checks, ladder, outcome, reasons, approved, summary, reading, answer}' <<<"$line")" = \
     "$(jq -cn --arg session "$session" --arg retold "$plain_question" --arg why "$(gate_kind_line naming "The naming kind.")" \
-      --arg summary "$summary_words" --argjson check "$(clean_check)" \
+      --argjson summary "$(summary_form)" --argjson check "$(clean_check)" \
       '{number: 1, session: $session, briefs: null, question: "Five retries or ten?", retold: $retold, kind: "naming",
         unsure: false, risks: [], checks: [$check], ladder: null, outcome: "to-operator", reasons: [$why], approved: "",
         summary: $summary, reading: null, answer: ""}')" ]
@@ -740,7 +816,7 @@ log_file() { printf '%s/log/questions.jsonl' "$history"; }
 
 @test "the cold reading is logged in its own words" {
   answer_for reading '{"reading":"Ten is safer."}'
-  climb "$(item ten)" "$(item five)" "$(item five)"
+  climb "$(item ten)" "$(item five)" "$(item five)" "$(item ten)"
   retell
   [ "$(jq -r '.reading' "$(log_file)")" = "Ten is safer." ]
 }
