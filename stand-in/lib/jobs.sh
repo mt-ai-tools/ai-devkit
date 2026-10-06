@@ -62,9 +62,11 @@ READING_TOOLS="Read,Grep,Glob"
 # How long each job may take before it is refused. The jobs of one stop run
 # inside one end-of-reply hook, one after the other, so together they stay
 # inside the hook's own limit; a job stopped here is a refusal the gate can
-# route, where a hook stopped by Claude Code says nothing. Measured
-# 2026-10-05: a fresh reader call answered in under 8 s; the checker, handed
-# every rule and convention entry (about 39 000 tokens), in 9 to 12 s.
+# route, where a hook stopped by Claude Code says nothing. Measured: the
+# Sonnet reader answers in about 5 s (2026-10-06); the checker, handed every
+# rule and convention entry (about 39 000 tokens), took 9 to 12 s before its
+# entries were sent apart to be cached (2026-10-05), and is not measured
+# since.
 READER_SECONDS=30
 CHECKER_SECONDS=60
 SORTER_SECONDS=40

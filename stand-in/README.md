@@ -108,8 +108,8 @@ rethink, the ladder's challenges among them; the bigger look around, the
 second "are you sure?" after it and the plain retelling are fixed rounds
 outside that count, each sent at most once for a question. A second
 reading, a summary, a round's list or a log line that fails never holds a
-question up: the operator is told why there is none. Where it is off for a session it does
-nothing, and asks no model.
+question up: the operator is told why there is none. Where it is off
+for a session it does nothing, and asks no model.
 
 Needs a preset: a folder of kinds of question, each with a one-line summary
 and its route, one of them at most taking the route of a finished step's go,
@@ -127,9 +127,8 @@ Code's end-of-reply event, with a time limit no shorter than the one it
 declares; for its turn-start event, to keep the operator's answers, and
 again, beside the skill that offers the command, to act on the command that
 starts it; for its session-end event, to switch it off; for its
-before-tool event of the question tool, to keep questions in the reply; and
-for its
-after-tool event of the Skill tool, beside its two other skills, to show
-what they ask for. Needs the Claude Code
+before-tool event of the question tool, to keep questions in the reply;
+and for its after-tool event of the Skill tool, beside its two other
+skills, to show what they ask for. Needs the Claude Code
 command-line tool, signed in, to ask models through; and `bash`, `awk`,
 `jq` and util-linux's `flock`.

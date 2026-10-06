@@ -6,8 +6,9 @@ reviewer that judges the work against them, the advisor that gives a
 single finding a second, independent reading, the builder that carries
 out one step of a written brief, the organizer that says which briefs
 are ready, waiting or taken, and writes a new one on the operator's yes,
-and the stand-in that reads the questions an agent puts to the operator
-and sorts them against the operator's own judgement.
+and the stand-in that reads what an agent puts to the operator (its
+questions, a finished step's report, a request to start building) and
+weighs it against the operator's own judgement.
 
 The parts ship, version and mount as one. What the kit needs from a
 project is stated here and nowhere else in it.
@@ -42,9 +43,8 @@ learns their names.
   sessions the stand-in is switched on for), `sessions` (where the gate
   stands with each) and `log` (every question, step report and request to
   build it let go, with the operator's answer) are this machine's alone
-  and worth ignoring; the last
-  two may hold raw agent text. The config file can move
-  it.
+  and worth ignoring; the last two may hold raw agent text. The config
+  file can move it.
 
 ## Mounting
 
