@@ -2,7 +2,9 @@
 name: brief-writer
 description: Writes one new brief into the project's plans folder, in the one brief shape, and checks it before handing back; never commits. A session calls it only after the operator said yes to writing that brief — never on a session's own finding, and never for a finding small enough to stay one line in the notes.
 tools: Read, Grep, Glob, Bash, Write, Edit
-model: opus
+# The strongest model: a brief shapes every step built after it, and it is
+# written rarely, only on the operator's yes, so the cost barely adds up.
+model: fable
 ---
 
 # Brief-writer agent
