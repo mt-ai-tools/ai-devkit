@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Claude Code SessionEnd hook — the thin orchestrator that switches the
-# stand-in off for the ending session and removes the gate's record of it, so
-# neither stands longer than its session lives. The record holds nothing the
+# stand-in off for the ending session and removes the gate's record of it and
+# the mark a wait of its left, so none stands longer than its session lives.
+# A wait's mark the gate never read is one no reply of the session's can
+# reach once it has ended. The record holds nothing the
 # session's end needs kept: drops are lines of the question log, which the end
 # report and reopen read (settled 2026-10-06), and a record left behind would
 # be a held question or a reopened mark nothing could ever reach. Whatever the
@@ -49,6 +51,7 @@ tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/end-event.sh"
 . "$tool_root/lib/switch.sh"
 . "$tool_root/lib/record.sh"
+. "$tool_root/lib/woken.sh"
 
 # Every value below is resolved into a variable before use, never inline as
 # an argument, for the reason the gate gives. An event with no session id has
@@ -56,10 +59,11 @@ tool_root="$(cd "$here/.." && pwd)"
 event="$(cat)"
 session="$(to_end_session "$event")" || exit 0
 history="$(get_config_path AIDK_STAND_IN_HISTORY)"
-# Each is tried whatever the other did: they are two files, and one that
-# would not go is no reason to leave the other.
+# Each is tried whatever the others did: they are files apart, and one that
+# would not go is no reason to leave the rest.
 record_file="$(to_record_path "$history" "$session")"
 removed=0
 remove_switch "$history" "$session" || removed=1
 remove_session_record "$record_file" || removed=1
+remove_woken_mark "$history" "$session" || removed=1
 exit "$removed"

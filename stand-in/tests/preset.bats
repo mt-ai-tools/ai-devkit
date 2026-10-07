@@ -194,3 +194,19 @@ setup() {
   [[ "$(jq -r '."use-look"' <<<"$output")" == "Your work introduced something new. Find every place in the frame that should now use it: "*"Don't propose things that belong to other ongoing sessions' work." ]]
   [ "$(jq -r '."whole-brief-done"' <<<"$output")" = "Is the whole brief done?" ]
 }
+
+@test "the resume look-around's message is read by name, and a missing one is refused" {
+  preset "alpha:First." "one"
+  run get_resume_messages "$preset_dir" look-around
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(jq -cn --arg l "$look_around" '{"look-around": $l}')" ]
+  run --separate-stderr get_resume_messages "$preset_dir" nonesuch
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_ladder_message_missing_note "$preset_dir/challenges/resume-look-around.md" nonesuch)" ]
+}
+
+@test "the kit's own preset resume look-around holds the operator's words" {
+  run get_resume_messages "$BATS_TEST_DIRNAME/../../presets/stand-in" look-around
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '."look-around"' <<<"$output")" = "A lot changed. Take a big look around and report back." ]
+}

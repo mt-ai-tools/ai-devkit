@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The briefs, as the work organizer keeps them: its list, a brief taken for a
 # session, which briefs a session holds, which every session holds and where
-# they work, and a brief finished. The stand-in asks all of it of the
+# they work, a brief finished, and what a brief waits on, read and written. The stand-in asks all of it of the
 # organizer's own command, and never reads or writes its marks. Sourced,
 # never executed.
 
@@ -39,6 +39,14 @@ list_taken_briefs() {
   local taken
   taken="$("$(get_kit_dir)/$ORGANIZER_COMMAND" taken "$@")" || return 1
   jq -Rcn '[inputs | select(. != "") | split("\t") | {brief: .[0], session: .[1]}]' <<<"$taken"
+}
+
+# The briefs the brief given waits on, one a line, as the organizer reads its
+# after list; nothing where it waits on none. A refusal on stderr and a
+# non-zero status where the organizer cannot be run or refuses, as it does
+# where the list names a brief no longer in the folder.
+list_awaited_briefs() {
+  "$(get_kit_dir)/$ORGANIZER_COMMAND" waits "$1"
 }
 
 # The organizer's list as it printed it, every byte, its refusals among it;
@@ -88,4 +96,18 @@ finish_brief() {
     return 1
   fi
   "$organizer" done "$1"
+}
+
+# Write into the brief given that it waits on the other brief given, through
+# the organizer's own wait, printing the path it changed, for whoever called
+# it to commit; nothing where it already waits on it. Its refusal goes to
+# stderr in its own words, with a non-zero status.
+write_brief_wait() {
+  local organizer
+  organizer="$(get_kit_dir)/$ORGANIZER_COMMAND"
+  if [ ! -f "$organizer" ] || [ ! -x "$organizer" ]; then
+    organizer_unrunnable_note "$organizer" >&2
+    return 1
+  fi
+  "$organizer" wait "$1" "$2"
 }

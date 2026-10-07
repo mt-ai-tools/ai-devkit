@@ -44,6 +44,7 @@ setup() {
 }
 
 teardown() {
+  [ -z "${watcher:-}" ] || kill "$watcher" 2>/dev/null || true
   [ ! -d "$history" ] || chmod -R u+rwx "$history"
 }
 
@@ -2067,4 +2068,208 @@ no_next_reply="Step 9 is built and its proof passed."
   [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
   why="$(gate_next_unsaid_line)"$'\n'"$(gate_no_brief_line)"
   [ "$(message)" = "$(gate_step_operator_note "$(gate_step_question "")" "$why")" ]
+}
+
+# --- The resume look-around.
+
+# The mark a wait of the suite's session leaves, as given.
+woken() {
+  . "$lib/woken.sh"
+  write_woken_mark "$history" "$session" "$1"
+}
+
+woken_file() { printf '%s/woken/%s' "$history" "$session"; }
+
+brief_over='{"outcome":"over","kind":"brief","on":"media-bucket","why":""}'
+
+# The look around a woken session is sent, given the wait's mark.
+look_around_note() {
+  . "$lib/resume.sh"
+  format_resume_note "$look_around" "$1"
+}
+
+@test "a session whose wait is over is sent the preset's look around, asking no model, and its report reaches the operator, who gives the go" {
+  . "$lib/resume.sh"
+  woken "$brief_over"
+  run_gate false "The wait is over."
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  [ "$(reason)" = "$(look_around_note "$brief_over")" ]
+  [[ "$(reason)" == "From the stand-in: $look_around"$'\n'* ]]
+  [ -z "$(calls)" ]
+  [ ! -e "$(woken_file)" ]
+  [ "$(jq -c '.resumed' "$record_file")" = '{"kind":"brief","on":"media-bucket"}' ]
+  # The report asks nothing: it reaches the operator, and the reply stops.
+  answer_for reader "$(no_question_form)"
+  run_gate true "media-bucket landed the bucket; my answer on sizes no longer holds."
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(message)" = "$(format_resumed_note '{"kind":"brief","on":"media-bucket"}')" ]
+  [ "$(calls)" = "reader $READER_MODEL" ]
+  [ "$(jq -c '.resumed' "$record_file")" = null ]
+  # The next reply asking nothing stops as any does.
+  run_gate false "Going on."
+  [ -z "$output" ]
+}
+
+@test "a report that asks again a decision the wait shook goes through the gate as any question; the go after it is still the operator's, never weighed" {
+  . "$lib/resume.sh"
+  . "$lib/step-go.sh"
+  woken "$brief_over"
+  run_gate false "The wait is over."
+  # The shaken decision is asked: the gate takes it as any question.
+  run_gate true
+  [ "$(reason)" = "$(gate_challenge_note "$standing_test")" ]
+  [ "$(calls)" = "$(all_three)" ]
+  [ "$(jq -c '.resumed' "$record_file")" = '{"kind":"brief","on":"media-bucket"}' ]
+  # The wait the session woke from outlives a new turn: the next reply
+  # asking nothing reaches the operator for the go.
+  answer_for reader "$(no_question_form)"
+  run_gate false "Understood."
+  [ "$(jq -c '.resumed' "$record_file")" = null ]
+  [ "$(message)" = "$(format_resumed_note '{"kind":"brief","on":"media-bucket"}')" ]
+}
+
+@test "a step's report from a woken session reaches the operator for the go, even once its kind is switched, and the step's sorter is never asked" {
+  . "$lib/resume.sh"
+  switch_kinds
+  step_report
+  woken "$brief_over"
+  run_gate false "The wait is over."
+  [ -z "$(calls)" ]
+  run_gate true "$step_reply"
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(message)" = "$(format_resumed_note '{"kind":"brief","on":"media-bucket"}')" ]
+  [ "$(calls)" = "reader $READER_MODEL" ]
+  # Once the operator has it, the next report is weighed as any.
+  run_gate false "$step_reply"
+  [ "$(reason)" = "$(gate_go_note)" ]
+}
+
+@test "a wait that could not be watched reaches the operator with why, and no look around is sent" {
+  . "$lib/resume.sh"
+  why="$(refuse_repository_no_upstream_note monoframe/mf-users)"
+  mark="$(to_woken_mark refused repository monoframe/mf-users "$why")"
+  woken "$mark"
+  run_gate false "The wait ended."
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(message)" = "$(resume_refused_note "$(wait_repository_words monoframe/mf-users)" "$why")" ]
+  [ ! -e "$(woken_file)" ]
+  [ -z "$(calls)" ]
+  [ "$(jq -c '.resumed' "$record_file" 2>/dev/null || echo null)" = null ]
+}
+
+@test "a wait that ends while a question is in flight waits for it: the question climbs on, and the look around follows" {
+  . "$lib/resume.sh"
+  run_gate
+  [ "$(reason)" = "$(gate_challenge_note "$standing_test")" ]
+  woken "$brief_over"
+  answer_for matcher "$(item five)"
+  run_gate true
+  [ "$(reason)" = "$(gate_challenge_note "$are_you_sure")" ]
+  [ -e "$(woken_file)" ]
+  answer_for matcher "$(item five)"
+  run_gate true
+  [ "$(reason)" = "$(retelling)" ]
+  retell
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ -e "$(woken_file)" ]
+  run_gate false "The wait is over."
+  [ "$(reason)" = "$(look_around_note "$brief_over")" ]
+}
+
+@test "a preset missing the look around tells the operator, and the mark stays for the next stop" {
+  woken "$brief_over"
+  rm "$preset_dir/challenges/resume-look-around.md"
+  run_gate false "The wait is over."
+  [ "$(message)" = "$(gate_broken_note "$(refuse_unreadable_file_note "$preset_dir/challenges/resume-look-around.md")")" ]
+  [ -e "$(woken_file)" ]
+}
+
+@test "a mark that cannot be read tells the operator" {
+  . "$lib/woken.sh"
+  mkdir -p "$history/woken"
+  printf '{"outcome":"maybe"}\n' >"$(woken_file)"
+  run_gate false "The wait is over."
+  [ "$(message)" = "$(gate_broken_note "$(refuse_woken_unreadable_note "$(woken_file)")")" ]
+}
+
+# The suite's session's wait, of the kind and on what given, watched in a
+# shell of its own in the background, as the entry runs it, its looks a
+# tenth of a second apart; its process left in watcher.
+watch() {
+  bash -c '. "$1"; WAIT_LOOK_SECONDS=0.1; run_wait "$3" "$2" "$4" "$5"' _ \
+    "$lib/wait.sh" "$session" "$history" "$1" "$2" >/dev/null 2>&1 3>&- &
+  watcher=$!
+}
+
+# The watch's status once it ends, within twenty seconds; 99 where it does
+# not.
+watch_end() {
+  local i
+  for i in $(seq 200); do
+    if ! kill -0 "$watcher" 2>/dev/null; then
+      wait "$watcher"
+      return
+    fi
+    sleep 0.1
+  done
+  return 99
+}
+
+@test "proof: a waiting session wakes when the brief it waits for is finished and gone, reports, and waits for the go" {
+  . "$lib/resume.sh"
+  hold_brief
+  printf -- '---\nsummary: Bucket.\nafter: []\ntouches: [aidk-plans]\ncreates: []\n---\n\n# media-bucket\n' \
+    >"$project/aidk-plans/media-bucket.md"
+  watch brief media-bucket
+  for i in $(seq 200); do grep -qxF -- "after: [media-bucket]" "$project/aidk-plans/file-trash.md" && break; sleep 0.1; done
+  sleep 3
+  kill -0 "$watcher"
+  [ ! -e "$(woken_file)" ]
+  "$BATS_TEST_DIRNAME/../../organizer/bin/organizer.sh" done media-bucket >/dev/null
+  [ ! -e "$project/aidk-plans/media-bucket.md" ]
+  watch_end
+  watcher=""
+  run_gate false "The wait is over."
+  [ "$(reason)" = "$(look_around_note "$brief_over")" ]
+  answer_for reader "$(no_question_form)"
+  run_gate true "media-bucket landed; nothing I decided is shaken."
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(message)" = "$(format_resumed_note '{"kind":"brief","on":"media-bucket"}')" ]
+}
+
+@test "proof: a session waiting on a repository wakes when it holds nothing uncommitted and nothing unpushed, and not before" {
+  . "$lib/resume.sh"
+  remote="$BATS_TEST_TMPDIR/remote.git"
+  module="$project/monoframe/mf-users"
+  git init -q --bare "$remote"
+  mkdir -p "$module"
+  git -C "$module" init -q -b main
+  printf 'users\n' >"$module/users.ts"
+  git -C "$module" add -A
+  git -C "$module" -c user.name=suite -c user.email=suite@example.invalid commit -qm ground
+  git -C "$module" remote add origin "$remote"
+  git -C "$module" push -q -u origin main
+  # Uncommitted alone keeps it waiting.
+  printf 'edit\n' >>"$module/users.ts"
+  watch repository monoframe/mf-users
+  sleep 1
+  kill -0 "$watcher"
+  [ ! -e "$(woken_file)" ]
+  # Unpushed alone keeps it waiting.
+  git -C "$module" add -A
+  git -C "$module" -c user.name=suite -c user.email=suite@example.invalid commit -qm edit
+  sleep 1
+  kill -0 "$watcher"
+  [ ! -e "$(woken_file)" ]
+  # Neither: it wakes.
+  git -C "$module" push -q
+  watch_end
+  watcher=""
+  mark='{"outcome":"over","kind":"repository","on":"monoframe/mf-users","why":""}'
+  run_gate false "The wait is over."
+  [ "$(reason)" = "$(look_around_note "$mark")" ]
+  answer_for reader "$(no_question_form)"
+  run_gate true "mf-users landed the frozen flag."
+  [ "$(message)" = "$(format_resumed_note '{"kind":"repository","on":"monoframe/mf-users"}')" ]
 }

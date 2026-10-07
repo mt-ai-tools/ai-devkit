@@ -1,7 +1,7 @@
 # organizer
 
 A work organizer over a folder of briefs: what is ready to start, what waits
-and on what, what a session has taken, which ready briefs would work where
+and on what, what one brief waits on, what a session has taken, which ready briefs would work where
 a taken one already does, and which taken briefs work where a path lies — and the one writer of a new brief, in the
 one shape a brief has, once the operator has said yes to it.
 
@@ -14,10 +14,12 @@ problem and never offered as work; a name it cannot find is an error, never
 read as finished. Only a ready brief can be taken: one still waiting is
 refused, naming what it waits on.
 
-It changes only its own marks, and, when a brief is finished, that brief and
-the after lists naming it; its writer adds only the one new brief, and the
-after lists the operator's yes named. Neither runs version control: finishing prints
-every path it changed, and committing them is left to whoever called it.
+It changes only its own marks; when a brief is finished, that brief and the
+after lists naming it; and when a wait on another brief is written into a
+brief, that brief's after list. Its writer adds only the one new brief, and
+the after lists the operator's yes named. Neither runs version control:
+finishing and a written wait print every path they changed, and committing
+them is left to whoever called it.
 
 Needs a folder of briefs, each opening with a header of four fields — a
 one-line summary, the briefs it waits on, the existing paths it works in,

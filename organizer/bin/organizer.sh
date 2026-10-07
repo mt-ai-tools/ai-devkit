@@ -14,6 +14,9 @@
 #                             only those working where any of them lies
 #   free-brief <brief>        free one brief, whoever holds it
 #   done <brief>              finish a brief, printing every path it changed
+#   wait <brief> <on>         write into a brief that it waits on another,
+#                             printing the path it changed
+#   waits <brief>             the briefs a brief waits on, one a line
 #
 # Status: 0 when it did what was asked and found nothing wrong; 1 for a
 # refusal, a problem the check found, or a usage it does not know. One
@@ -33,6 +36,7 @@ tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/list.sh"
 . "$tool_root/lib/done.sh"
 . "$tool_root/lib/taken.sh"
+. "$tool_root/lib/wait.sh"
 
 usage() {
   refuse_usage_note >&2
@@ -94,6 +98,14 @@ case "$command" in
   done)
     [ "$#" -eq 1 ] || usage
     finish_brief "$plans" "$marks" "$1"
+    ;;
+  wait)
+    [ "$#" -eq 2 ] || usage
+    write_wait "$plans" "$1" "$2"
+    ;;
+  waits)
+    [ "$#" -eq 1 ] || usage
+    list_awaited_briefs "$plans" "$1"
     ;;
   *)
     usage

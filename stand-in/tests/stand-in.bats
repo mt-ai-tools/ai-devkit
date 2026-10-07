@@ -69,9 +69,9 @@ setup() {
 }
 
 @test "an unknown command or a wrong count of arguments is refused with the usage" {
-  for args in "" "judge" "read-reply extra" "sort"; do
+  for args in "" "judge" "read-reply extra" "sort" "wait-brief" "wait-repository a b"; do
     run --separate-stderr "$script" $args </dev/null
     [ "$status" -eq 1 ]
-    [ "$stderr" = "$(refuse_usage_note)" ]
+    [ "$stderr" = "$(refuse_usage_note wait-brief wait-repository)" ]
   done
 }

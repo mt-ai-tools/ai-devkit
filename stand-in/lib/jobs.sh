@@ -155,6 +155,10 @@ derive_stop_seconds() {
 # finding to be fixed in passing lies, which ask no model. The second look's
 # stop also reads the log to count the rounds and writes the round's line,
 # each under its own hold of the lock, so it may wait at the lock twice.
+#
+# A session woken from a wait (settled 2026-10-06) is sent the look around
+# from the mark alone, before the reply is read, so that stop asks no model;
+# its report's stop runs the reader alone, as a reply asking nothing does.
 derive_jobs_seconds() {
   local stop longest=0
   for stop in \

@@ -78,6 +78,21 @@ round that makes three finding something that belongs to the brief reaches
 the operator too, with its list, rounds whose findings all belong elsewhere
 not counting.
 
+A session that must wait on another session's work starts the stand-in's
+wait as a background command, and stops. Waiting for another brief to be
+finished, the wait is written into its own brief through the work organizer,
+as that brief waiting on the other, and is over once the organizer finishes
+the other; waiting for a repository another session holds, it is over once
+the repository holds nothing uncommitted and nothing unpushed, and never read
+so where git cannot tell, or its branch has no upstream to compare with. The
+wait reads that work and never takes, commits or pushes it. Its end leaves a
+mark, and at the session's next stop where no question is in flight, the
+stand-in sends it the preset's look around; whatever it then reports, asking
+nothing, reaches the operator, whose go it waits for, and is never weighed
+for a step's go. A decision it asks again goes through the gate as any
+question, and the go after it is still the operator's. A wait that could not
+be watched reaches the operator with why.
+
 It is switched on for a session by a command the operator types, and in no
 other way. With a brief's name, the brief is taken through the work
 organizer, and the session is handed the preset's opener before anything
@@ -85,8 +100,9 @@ else; with a word asking for no brief, it is switched on and nothing is
 taken; bare, the organizer's list is shown to pick from, and nothing
 changes. A command that cannot be carried out is refused whole, in the
 organizer's own words where the organizer refused it, and leaves nothing
-switched on and nothing taken. It is switched off, and its record of the
-session removed, when the session ends.
+switched on and nothing taken. With a brief, the session is told the command
+its wait runs by. It is switched off, and its record of the session and any
+mark of its wait removed, when the session ends.
 
 In a session it is on for, Claude Code's question box is refused, and the
 agent is told to ask in its reply instead, where the gate reads it; in every
@@ -150,14 +166,18 @@ a list of risks, each opening with its short name, a
 challenge ladder holding each message the stand-in sends — the two
 challenges, the bigger look around and the plain retelling — quoted under
 the short name it is asked for by, a closing loop holding its two looks and
-the question whether the whole brief is done, quoted the same way, and an
-opener, what a session started with a brief is told first. Needs the rules, and the conventions
+the question whether the whole brief is done, quoted the same way, a resume
+look-around holding the look around a woken session is sent, quoted the same
+way, and an opener, what a session started with a brief is told first. Needs the rules, and the conventions
 where a project keeps them, and the kit's advisor, whose command a second
 reading runs. Needs a working folder of its own, holding a switch per
-session it is on for, its record of each and its log, worth nothing beyond
-one machine. Needs the kit's work organizer, to show its list, to take a
-brief, to say which brief a session holds, and which briefs every session
-holds and where they work, and to finish a brief. Needs registering for Claude
+session it is on for, its record of each, the mark a session's wait leaves,
+and its log, worth nothing beyond one machine. Needs the kit's work
+organizer, to show its list, to take a brief, to say which brief a session
+holds, and which briefs every session holds and where they work, to finish a
+brief, and to read and write what a brief waits on. Needs Claude Code to set
+the session's id in the environment of the commands its agent runs, and to
+wake a session when a background command it started finishes. Needs registering for Claude
 Code's end-of-reply event, with a time limit no shorter than the one it
 declares; for its turn-start event, to keep the operator's answers, and
 again, beside the skill that offers the command, to act on the command that

@@ -38,7 +38,13 @@
 # time. One per reopen rather than one mark for all: two reopened in one turn
 # are asked as two questions, and one mark would let the second through.
 # Drops are kept in the question log, never here: this record goes with its
-# session, and the end report and reopen read the log.
+# session, and the end report and reopen read the log. And resumed: the wait
+# the session woke from, {kind, on}, once it was sent the resume look-around,
+# or null. While it stands, a reply that asks the operator nothing reaches
+# them as the session's report, and is never weighed for a step's go: work
+# resumes on their go alone (settled 2026-10-06). It outlives a new turn, as
+# reopened does, since the report may first ask again a decision the wait
+# shook, and the go waits behind it.
 #
 # The question log is written from this record as a question is let go:
 # everything it holds of the exchange, the question as asked, its checks, its
@@ -66,7 +72,7 @@ EXCHANGE_AGENT="agent"
 EXCHANGE_STAND_IN="stand-in"
 
 # The record of a session the gate has not held anything for.
-EMPTY_RECORD='{"sent_back":0,"challenge":null,"ladder":null,"round":null,"rounds_sent":[],"asked":null,"operator":null,"exchange":[],"checks":[],"sort":null,"closing":null,"reopened":null}'
+EMPTY_RECORD='{"sent_back":0,"challenge":null,"ladder":null,"round":null,"rounds_sent":[],"asked":null,"operator":null,"exchange":[],"checks":[],"sort":null,"closing":null,"reopened":null,"resumed":null}'
 
 # What a record must be to be read: anything else was not written by the gate,
 # or not whole, and is refused rather than repaired.
@@ -87,7 +93,9 @@ RECORD_SHAPE='
   and (.closing | type == "null"
     or (type == "object" and (.briefs | type == "array") and (.findings | type == "array")
       and (.finished | type == "null" or type == "string")))
-  and (.reopened | type == "null" or (type == "array" and length > 0 and all(.[]; type == "number")))'
+  and (.reopened | type == "null" or (type == "array" and length > 0 and all(.[]; type == "number")))
+  and (.resumed | type == "null"
+    or (type == "object" and (.kind | type == "string") and (.on | type == "string")))'
 
 # --- Transforms.
 
@@ -267,6 +275,30 @@ without_first_reopened() {
 # where it waits on none.
 to_reopened() {
   jq -r '.reopened[0] // empty' <<<"$1"
+}
+
+# The record marked with the wait the session woke from, out of the wait's
+# mark: its kind and what it was on.
+with_resumed() {
+  jq -c --argjson mark "$2" '.resumed = ($mark | {kind, on})' <<<"$1"
+}
+
+# The record with the wait it woke from let go: its report reached the
+# operator.
+without_resumed() {
+  jq -c '.resumed = null' <<<"$1"
+}
+
+# The wait the record's session woke from, as JSON {kind, on}; nothing where
+# it woke from none.
+to_resumed() {
+  jq -c '.resumed // empty' <<<"$1"
+}
+
+# True if the record holds nothing in flight: no fixed round awaited, no
+# question on the ladder, under a challenge, or waiting for its retelling.
+is_record_idle() {
+  jq -e '.round == null and .ladder == null and .challenge == null and .operator == null' >/dev/null <<<"$1"
 }
 
 # --- Reads.

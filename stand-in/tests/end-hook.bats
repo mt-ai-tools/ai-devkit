@@ -1,7 +1,7 @@
 bats_require_minimum_version 1.5.0
 
-# Behavior tests for the session-end hook: the ending session's switch and
-# record are removed and every other session's stay; an event with no session
+# Behavior tests for the session-end hook: the ending session's switch,
+# record and wait's mark are removed and every other session's stay; an event with no session
 # id it can use removes nothing, and a switch or a record that cannot be
 # removed is said, the other still removed, and the session ends.
 
@@ -18,6 +18,9 @@ setup() {
   mkdir -p "$history/sessions"
   printf '{}\n' >"$history/sessions/session-1.json"
   printf '{}\n' >"$history/sessions/session-2.json"
+  mkdir -p "$history/woken"
+  printf '{}\n' >"$history/woken/session-1"
+  printf '{}\n' >"$history/woken/session-2"
 }
 
 teardown() {
@@ -28,15 +31,17 @@ run_hook() {
   run --separate-stderr "$hook" <<<"$1"
 }
 
-@test "the ending session's switch and record are removed, and only its own" {
+@test "the ending session's switch, record and wait's mark are removed, and only its own" {
   run_hook '{"session_id":"session-1","hook_event_name":"SessionEnd","reason":"prompt_input_exit"}'
   [ "$status" -eq 0 ]
   [ -z "$output" ]
   [ -z "$stderr" ]
   [ ! -e "$history/on/session-1" ]
   [ ! -e "$history/sessions/session-1.json" ]
+  [ ! -e "$history/woken/session-1" ]
   [ -f "$history/on/session-2" ]
   [ -f "$history/sessions/session-2.json" ]
+  [ -f "$history/woken/session-2" ]
 }
 
 @test "a session the stand-in was never on for ends cleanly, saying nothing" {
@@ -72,4 +77,15 @@ run_hook() {
   [ "$stderr" = "$(refuse_state_unremovable_note "$history/sessions/session-1.json")"$'\n'"$(end_not_removed_note session-1)" ]
   [ ! -e "$history/on/session-1" ]
   [ -f "$history/sessions/session-1.json" ]
+}
+
+@test "a wait's mark that cannot be removed is said, the switch and the record still go, and the session ends cleanly" {
+  . "$lib/woken.sh"
+  chmod a-w "$history/woken"
+  run_hook '{"session_id":"session-1"}'
+  [ "$status" -eq 0 ]
+  [ "$stderr" = "$(refuse_woken_unremovable_note "$history/woken/session-1")"$'\n'"$(end_not_removed_note session-1)" ]
+  [ ! -e "$history/on/session-1" ]
+  [ ! -e "$history/sessions/session-1.json" ]
+  [ -f "$history/woken/session-1" ]
 }

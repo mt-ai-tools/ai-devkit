@@ -81,10 +81,14 @@ tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/switch.sh"
 . "$tool_root/lib/briefs.sh"
 . "$tool_root/lib/preset.sh"
+. "$tool_root/lib/wait.sh"
 
 # Found from this hook's own place in the kit, never from the project's
-# layout: the kit names no project folder.
+# layout: the kit names no project folder. The entry is handed to the model
+# beside the opener, which names the stand-in's wait by role alone: a preset
+# a project swaps in cannot know where the kit is mounted.
 entry_skill="$tool_root/skills/start/SKILL.md"
+entry_command="$tool_root/bin/stand-in.sh"
 
 # Bare: the organizer's list, shown whole; nothing written.
 show_list() {
@@ -123,7 +127,8 @@ start_brief() {
   preset="$(get_config_path AIDK_STAND_IN)"
   opener="$(read_opener "$preset")"
   answer="$(to_prompt_answer "$(start_brief_shown_note "$brief")" \
-    "$(start_brief_agent_note "$brief" "$preset/$PRESET_OPENER_FILE" "$opener")")"
+    "$(start_brief_agent_note "$brief" "$preset/$PRESET_OPENER_FILE" "$opener" \
+      "$entry_command" "$WAIT_BRIEF_COMMAND" "$WAIT_REPOSITORY_COMMAND")")"
   existing="$(find_switch "$history" "$session")"
   write_switch "$history" "$session"
   [ -n "$existing" ] || wrote_switch=1

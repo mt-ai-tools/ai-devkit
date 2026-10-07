@@ -61,7 +61,23 @@ problem_marks_unreadable_note() {
 # --- Refusals: the operation stops and changes nothing.
 
 refuse_usage_note() {
-  printf 'Usage: list | check | take <brief> <session> | free <session> | held <session> | taken [<path>...] | free-brief <brief> | done <brief>\n'
+  printf 'Usage: list | check | take <brief> <session> | free <session> | held <session> | taken [<path>...] | free-brief <brief> | done <brief> | wait <brief> <on> | waits <brief>\n'
+}
+
+refuse_wait_self_note() {
+  printf '%s cannot wait on itself.\n' "$1"
+}
+
+refuse_wait_cycle_note() {
+  printf '%s cannot wait on %s: %s already waits on it, directly or through others, so neither could ever start.\n' "$1" "$2" "$2"
+}
+
+refuse_wait_unwritten_note() {
+  printf '%s: its after list could not be written, so it was not changed.\n' "$1"
+}
+
+refuse_awaited_missing_note() {
+  printf '%s waits on %s, which is no brief in the folder, so whether its wait is over cannot be told.\n' "$1" "$2"
 }
 
 refuse_marks_unreadable_note() {

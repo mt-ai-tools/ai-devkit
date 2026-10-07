@@ -299,8 +299,9 @@ refuse_unknown_placeholder_note() {
 
 # --- The entry.
 
+# The two waits' commands, as the agent types them.
 refuse_usage_note() {
-  printf 'Usage: read-reply (the reply on stdin) | sort <reader form> (the reply on stdin)\n'
+  printf 'Usage: read-reply (the reply on stdin) | sort <reader form> (the reply on stdin) | %s <brief> | %s <path>\n' "$1" "$2"
 }
 
 # --- The gate's event, switch and state.
@@ -962,6 +963,78 @@ refuse_changes_unknown_note() {
   printf 'Whether %s holds changes nobody committed cannot be told: git could not read it.\n' "$1"
 }
 
+# --- The wait on another session's work, and the look around once it is
+# over.
+
+refuse_wait_session_note() {
+  printf 'The environment carries no session id in %s, so the wait cannot be marked as this session'\''s; run it from inside the session.\n' "$1"
+}
+
+refuse_wait_no_brief_note() {
+  printf 'This session holds no brief, so there is none to write the wait into.\n'
+}
+
+refuse_repository_missing_note() {
+  printf 'The path "%s" is no folder inside the project root, so there is no repository there to wait on.\n' "$1"
+}
+
+refuse_repository_unreadable_note() {
+  printf 'Whether %s holds uncommitted or unpushed work cannot be told: git could not read it.\n' "$1"
+}
+
+refuse_repository_no_upstream_note() {
+  printf '%s has no upstream to compare with (its branch tracks none, or it is on no branch), so whether its commits are pushed cannot be told.\n' "$1"
+}
+
+refuse_woken_unreadable_note() {
+  printf 'The mark of this session'\''s wait, %s, cannot be read.\n' "$1"
+}
+
+refuse_woken_unwritable_note() {
+  printf 'The mark of a session'\''s wait cannot be written in %s.\n' "$1"
+}
+
+refuse_woken_unremovable_note() {
+  printf 'The mark of this session'\''s wait, %s, cannot be removed.\n' "$1"
+}
+
+# What a wait was for, given the brief waited for, or the repository's path.
+wait_brief_words() {
+  printf 'the brief %s to be finished' "$1"
+}
+
+wait_repository_words() {
+  printf '%s to hold nothing uncommitted and nothing unpushed' "$1"
+}
+
+# Over the paths the organizer printed as the wait was written.
+wait_written_line() {
+  printf 'The wait is written into the briefs at these paths:\n'
+}
+
+# Given what the wait was for.
+wait_over_note() {
+  printf 'The wait is over: it was for %s.\n' "$1"
+}
+
+# Under the look around the woken session is sent: what to report, and that
+# the go is the operator's.
+resume_report_note() {
+  printf 'Report what the other session landed, and which of the answers given before the wait may no longer hold. Ask again any decision it shook, one at a time, as a question with its options and your recommendation. Then wait for the operator'\''s go: build nothing until they give it.\n'
+}
+
+# Under the session's report, given what the wait was for.
+resume_reported_note() {
+  printf 'Stand-in: this session waited for %s. The wait is over, and its look around is above: what landed, and which earlier answers may no longer hold. The go is yours: it builds nothing until you give it.\n' "$1"
+}
+
+# Where the wait could not be watched, given what it was for and why.
+resume_refused_note() {
+  local why="$2"
+  [ -n "$why" ] || why='No part of the stand-in said why.'
+  printf 'Stand-in: this session waited for %s, but the wait could not be watched, so it is yours. Why:\n%s\n' "$1" "$why"
+}
+
 # --- The question log.
 
 refuse_log_unwritable_note() {
@@ -1204,9 +1277,10 @@ start_session_shown_note() {
 }
 
 # The model's note for the brief form: the brief, where the opener was read
-# from, and the opener whole.
+# from, the opener whole, and the stand-in's entry with its two waits'
+# commands, which the opener names by role alone.
 start_brief_agent_note() {
-  printf 'The user started this session under the stand-in, working on the brief %s, which the work organizer has taken for this session. Before anything else, follow the stand-in'\''s opener below, read from %s; what it names sits beside it.\n\n%s\n' "$1" "$2" "$3"
+  printf 'The user started this session under the stand-in, working on the brief %s, which the work organizer has taken for this session. Before anything else, follow the stand-in'\''s opener below, read from %s; what it names sits beside it.\n\n%s\n\nThe stand-in'\''s wait, as a background command: `%s %s <brief>` waits for that brief to be finished; `%s %s <path>` waits for the repository at that path, from the project root, to hold nothing uncommitted and nothing unpushed.\n' "$1" "$2" "$3" "$4" "$5" "$4" "$6"
 }
 
 start_session_agent_note() {

@@ -91,8 +91,8 @@ calls() {
 # leans on the kit's own preset: the stand-in must hand over whatever a
 # project's preset holds. Kinds as "name:summary" words, a summary of one
 # word; risks as names. Its ladder file holds the four messages below, and
-# its closing loop the three after them, each under the short name the
-# stand-in asks for it by.
+# its closing loop the three after them, and its resume look-around the one
+# after those, each under the short name the stand-in asks for it by.
 preset() {
   local kinds="$1" risks="$2" kind name
   preset_dir="$BATS_TEST_TMPDIR/preset"
@@ -108,6 +108,7 @@ preset() {
   ladder_file "$standing_test" "$are_you_sure" "$bigger_look" "$plain_retelling" \
     >"$preset_dir/challenges/challenge-ladder.md"
   closing_file "$cleanup_look" "$use_look" "$whole_done" >"$preset_dir/challenges/closing-loop.md"
+  resume_file "$look_around" >"$preset_dir/challenges/resume-look-around.md"
   printf 'AIDK_STAND_IN=%s\n' "$preset_dir" >"$project/aidk-config.env"
 }
 
@@ -118,6 +119,13 @@ closing_file() {
   printf -- '- `whole-brief-done` — first:\n  > %s\n\n' "$3"
   printf -- '1. `cleanup-look` — the cleanup:\n   > %s\n' "$1"
   printf -- '2. `use-look` — then:\n   > %s\n' "$2"
+}
+
+# A resume look-around file's text holding the message given, quoted under
+# its short name.
+resume_file() {
+  printf -- '---\nsummary: Resume.\n---\n\n# Resume\n\n'
+  printf -- '- `look-around` — once the wait is over:\n  > %s\n' "$1"
 }
 
 # A ladder file's text holding the four messages given, in the order the
@@ -140,6 +148,9 @@ plain_retelling="Say it plainly."
 cleanup_look="Anything to tidy?"
 use_look="Use the new thing everywhere?"
 whole_done="All of it done?"
+
+# The message the suite's preset resume look-around sends.
+look_around="Things moved. Look again."
 
 # A whole summary's answer, each part told apart by its words.
 summary_form() {

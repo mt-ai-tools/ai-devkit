@@ -164,3 +164,27 @@ teardown() {
     [ "$stderr" = "$(refuse_state_unreadable_note "$file")" ]
   done
 }
+
+@test "the wait a session woke from is kept through a question let go, and let go itself" {
+  mark='{"outcome":"over","kind":"brief","on":"media-bucket","why":""}'
+  record="$(with_resumed "$(with_send_back "$EMPTY_RECORD")" "$mark")"
+  [ "$(to_resumed "$record")" = '{"kind":"brief","on":"media-bucket"}' ]
+  record="$(with_chain_reset "$record")"
+  [ "$(to_resumed "$record")" = '{"kind":"brief","on":"media-bucket"}' ]
+  record="$(without_resumed "$record")"
+  [ -z "$(to_resumed "$record")" ]
+  mkdir -p "$(dirname "$file")"
+  jq -c '.resumed = "media-bucket"' <<<"$EMPTY_RECORD" >"$file"
+  run --separate-stderr read_session_record "$file"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_state_unreadable_note "$file")" ]
+}
+
+@test "a record is idle only while nothing is in flight" {
+  is_record_idle "$EMPTY_RECORD"
+  is_record_idle "$(with_resumed "$EMPTY_RECORD" '{"kind":"brief","on":"x"}')"
+  ! is_record_idle "$(with_round "$EMPTY_RECORD" plain-retelling)"
+  ! is_record_idle "$(with_ladder "$EMPTY_RECORD" "Five or ten?" defaults ladder "" '{"options":["five","ten"],"recommended":"five"}')"
+  ! is_record_idle "$(jq -c '.challenge = {} | .operator = null' <<<"$EMPTY_RECORD")"
+  ! is_record_idle "$(with_operator "$EMPTY_RECORD" '{"question":"Five or ten?"}')"
+}

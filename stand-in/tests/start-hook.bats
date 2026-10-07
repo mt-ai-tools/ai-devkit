@@ -56,7 +56,8 @@ held() {
   [ "$(jq -r '.systemMessage' <<<"$output")" = "$(start_brief_shown_note file-trash)" ]
   [ "$(jq -r '.hookSpecificOutput.hookEventName' <<<"$output")" = "UserPromptSubmit" ]
   [ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")" = \
-    "$(start_brief_agent_note file-trash "$opener_file" "$(cat "$opener_file")")" ]
+    "$(start_brief_agent_note file-trash "$opener_file" "$(cat "$opener_file")" \
+      "$(cd "$BATS_TEST_DIRNAME/../bin" && pwd)/stand-in.sh" wait-brief wait-repository)" ]
   [ "$(jq 'has("decision")' <<<"$output")" = false ]
 }
 

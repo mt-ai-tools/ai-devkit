@@ -23,6 +23,10 @@ PRESET_LADDER_FILE="challenges/challenge-ladder.md"
 # stand-in sends once the work is said to be done, read as the ladder's are
 # and for the same reason.
 PRESET_CLOSING_FILE="challenges/closing-loop.md"
+# The operator's resume look-around, whose named quote is the message the
+# stand-in sends a session once its wait on another session's work is over,
+# read as the ladder's are and for the same reason.
+PRESET_RESUME_FILE="challenges/resume-look-around.md"
 # What a session started under the stand-in with a brief is told first: read
 # from the file the operator reads and swaps, never copied into code.
 PRESET_OPENER_FILE="challenges/opener.md"
@@ -259,8 +263,17 @@ get_closing_messages() {
   get_preset_messages "$preset/$PRESET_CLOSING_FILE" "$@"
 }
 
+# The messages a preset's resume look-around holds under the names given, as
+# get_ladder_messages hands back the ladder's, and refused as it refuses.
+get_resume_messages() {
+  local preset="$1"
+  shift
+  get_preset_messages "$preset/$PRESET_RESUME_FILE" "$@"
+}
+
 # The messages the preset's file given holds under the names given, the one
-# reading both the ladder's and the closing loop's go through.
+# reading the ladder's, the closing loop's and the resume look-around's go
+# through.
 get_preset_messages() {
   local file="$1" text messages name
   shift

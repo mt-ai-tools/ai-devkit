@@ -14,7 +14,9 @@
 # each look's findings checked in code and sorted, until a round finds nothing
 # that belongs to the brief; the brief is then finished through the work
 # organizer, and the agent's reply after committing what that changed brings
-# the operator the end report. In every other session it does nothing at all.
+# the operator the end report. A session whose wait on another session's work
+# is over is sent the preset's resume look-around, and its report reaches the
+# operator for the go. In every other session it does nothing at all.
 #
 # A proposal the agent drops under its kind's challenge is a line of the log,
 # listed in the end report and reopenable. A decision the operator reopened
@@ -149,6 +151,8 @@ switch="$(find_switch "$history" "$session")"
 . "$tool_root/lib/closing-reader.sh"
 . "$tool_root/lib/changes.sh"
 . "$tool_root/lib/end-report.sh"
+. "$tool_root/lib/woken.sh"
+. "$tool_root/lib/resume.sh"
 
 preset="$(get_config_path AIDK_STAND_IN)"
 rules="$(get_config_path AIDK_RULES)"
@@ -911,6 +915,55 @@ take_ladder() {
   [ -n "$ladder" ] || { refuse_state_unreadable_note "$record_file" >&2; exit 1; }
 }
 
+# The words of the preset's resume look-around named, every one asked for
+# each time, as the ladder's are.
+resume_message() {
+  local messages
+  messages="$(get_resume_messages "$preset" "${RESUME_MESSAGES[@]}")" || return 1
+  jq -r --arg name "$1" '.[$name]' <<<"$messages"
+}
+
+# A session whose wait ended, given the wait's mark: sent the preset's look
+# around, its record marked with the wait it woke from, so its report reaches
+# the operator; or, where the wait could not be watched, the reply stops with
+# the operator told why, which needs no word of the preset. The mark is
+# removed before anything is sent, so one wait wakes the session once; the
+# look around's words are read before that, so a preset missing them leaves
+# the mark for the next stop and tells the operator.
+answer_woken() {
+  local mark="$1" words
+  if ! is_wait_over "$mark"; then
+    remove_woken_mark "$history" "$session"
+    let_stop_told "$(format_wait_refused_note "$mark")" ""
+  fi
+  words="$(resume_message "$RESUME_LOOK_AROUND")"
+  remove_woken_mark "$history" "$session"
+  record="$(with_resumed "$record" "$mark")"
+  hold_reply "$(format_resume_note "$words" "$mark")"
+}
+
+# A reply asking the operator nothing, from a session woken from a wait: its
+# report, given the wait the record keeps, brought to the operator, whose go
+# it waits for. Never weighed for a step's go, never the closing loop's start,
+# never passed on silently: what the agent decided before the wait may no
+# longer hold, and the operator says whether work resumes (settled
+# 2026-10-06).
+answer_resumed() {
+  record="$(without_resumed "$record")"
+  let_stop_told "$(format_resumed_note "$1")" ""
+}
+
+# A wait that ended is acted on at the first stop where the gate holds
+# nothing for the session: a question in flight already has its way to the
+# operator, and finishes first. The mark waits for that stop, read before the
+# reply is, so the look around costs no model: the reply it holds is the
+# agent's waking, which the report replaces. Called from an if's body, never
+# after a || or &&, where bash would let a refusal inside it pass unseen.
+if is_record_idle "$record"; then
+  woken="$(find_woken_mark "$history" "$session")"
+  if [ -n "$woken" ]; then answer_woken "$woken"; fi
+fi
+
 # A fixed round awaiting its reply takes this reply, whatever it says. A
 # round the gate does not know is a record it did not write.
 round="$(to_round "$record")"
@@ -963,8 +1016,12 @@ fi
 # a question is taken as a question first, even where it also asks to go on
 # or says it is done: nothing is ready to go on, or done, while it is open.
 # A claim of done is taken before a step's report it ends with: the loop is
-# what decides done, so the claim is swept rather than weighed as a step.
+# what decides done, so the claim is swept rather than weighed as a step. A
+# session woken from a wait is the exception before all of these: whatever it
+# reports reaches the operator for the go.
 if ! jq -e '.asks_operator' >/dev/null <<<"$form"; then
+  resumed="$(to_resumed "$record")"
+  if [ -n "$resumed" ]; then answer_resumed "$resumed"; fi
   if jq -e '.closes_round' >/dev/null <<<"$form"; then answer_round; fi
   if jq -e '.claims_done' >/dev/null <<<"$form"; then start_closing; fi
   if jq -e '.ends_step' >/dev/null <<<"$form"; then
