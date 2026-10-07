@@ -11,6 +11,13 @@ the challenge ladder). Prepare every question of the brief before asking
 any, then ask them one at a time, each explained plainly with an
 everyday example, its options' risks named, and one recommendation.
 
+Build in order, one step at a time: a step often changes with what the
+one before it showed. Before building, mark the clean shots — steps that
+need nothing from each other, whose shape nothing found in the other
+could change, and that touch different files — and build those side by
+side, one builder each, reading and committing each on its own. Where
+you are not sure a step is a clean shot, it is not.
+
 If you must wait on another session — for its brief to be finished, or
 for a repository it holds, in a module you must touch, to have nothing
 uncommitted and nothing unpushed — start the stand-in's wait for it as a

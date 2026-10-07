@@ -1,6 +1,6 @@
 ---
 name: builder
-description: Carries out one step of a written brief and verifies it; never commits. Use it for every building step once a brief exists — the launching session plans, reads the diff against the brief, and commits.
+description: Carries out one step of a written brief and verifies it; never commits. Use it for every building step once a brief exists — the launching session plans, reads the diff against the brief, and commits. One step at a time is the default; the session may start several, one builder each, only for steps that need nothing from each other, whose shape nothing found in the other could change, and that touch different files — and reads and commits each on its own.
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: opus
 ---
