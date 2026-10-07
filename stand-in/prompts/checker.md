@@ -33,12 +33,19 @@ Answer three things:
   loosely is not miscalled, and neither is a decision the reply cites as
   taken in a named place, such as a brief or the operator's answer. None
   when nothing is miscalled.
-- explains_code: true if the question proposes a sentence for an entry and
-  that sentence tells how some code does its work — which function, table,
-  routine, library or call does what — rather than what must stay true
-  however the code does it. A convention says what must stay true; how the
-  code does it is a comment beside that code. False when no sentence for an
-  entry is proposed.
+- explains_code: a check of its own, made apart from the two above and
+  never skipped because either found something or nothing. First, does the
+  question propose adding or changing a sentence of a rule or convention
+  entry? If not, false. If it does, read that sentence by itself and ask:
+  would it have to be rewritten the day a particular module, function,
+  table, routine, service, library or call it names were renamed or
+  replaced? If yes, it tells how some code does its work, and the answer is
+  true — even when it is worded as a rule, with "must", "never" or
+  "always": "X is done through module Y's function, never Z" is still a
+  description of how the code works today. It is false only where the
+  sentence says what must stay true however the code does it, naming no
+  particular piece of the code. A convention says what must stay true; how
+  the code does it is a comment beside that code.
 
 Answer with the form alone.
 
