@@ -147,6 +147,7 @@ $(exam_failed_note 1 0 1 1)" ]
 }
 
 @test "a case never passed before fails without blocking, and is left out of the results" {
+  kind defaults ladder
   mkdir -p "$history/exam"
   printf '%s\n' '{"passed":["a.md"]}' >"$results"
   question_case a.md naming yes
@@ -263,6 +264,7 @@ $(exam_failed_note 4 0 4 4)" ]
 }
 
 @test "a passing exam clears the session's exam owed; a failing one keeps it, saying so" {
+  kind defaults ladder
   question_case naming.md naming no
   owe
   answer_for sorter '{"kind":"defaults","unsure":false,"risks":[],"defers":false}'
@@ -418,6 +420,42 @@ $(exam_failed_note 1 0 1 1)" ]
   [ "$status" -eq 1 ]
   grep -qxF -- "$(exam_detail_line "$(exam_finding_missing_fault explains_code)")" <<<"$output"
   ! grep -qF -- "$(exam_breaks_none_fault rule-one.md)" <<<"$output"
+}
+
+# --- The sorter's kind, where two kinds always reach the operator.
+
+@test "the case's own kind passes, and so does another kind that also always reaches the operator" {
+  question_case naming.md naming no
+  run_exam
+  [ "$status" -eq 0 ]
+  [ "$(sed -n 2p <<<"$output")" = "$(exam_passed_line naming.md "" operator)" ]
+  rm "$results"
+  answer_for sorter '{"kind":"defaults","unsure":false,"risks":[],"defers":false}'
+  run_exam
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(exam_no_results_line)
+$(exam_passed_line naming.md "" operator)
+$(exam_replays_line 3 3)
+$(exam_passed_note 1 1 0)" ]
+}
+
+@test "a kind that can ever be answered alone never passes for another, nor another for it" {
+  question_case naming.md naming no
+  answer_for sorter '{"kind":"defaults","unsure":false,"risks":[],"defers":false}'
+  for route in ladder light accept go; do
+    kind defaults "$route"
+    run_exam
+    [ "$status" -eq 1 ]
+    grep -qxF -- "$(exam_detail_line "$(exam_kind_fault defaults naming)")" <<<"$output"
+  done
+  # The case's kind the one answered alone, the sorter's always the operator's.
+  kind defaults ladder
+  rm "$answers/naming.md"
+  question_case defaults.md defaults yes
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
+  run_exam
+  [ "$status" -eq 1 ]
+  grep -qxF -- "$(exam_detail_line "$(exam_kind_fault naming defaults)")" <<<"$output"
 }
 
 # --- The trial's score, kept with a passing exam's results.

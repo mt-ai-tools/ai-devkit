@@ -115,8 +115,9 @@ whose answer code decides from: the reader, the rules and conventions check,
 the sorter and the route for a question, and the reader, the step's labeller
 and the step go for a step's report; never the parts that only write for the
 operator. A case passes where the reader read it as what it is, the check
-found what the case says it must, the sorter gave the case's kind, and the
-route sent it where the operator would: exactly where a case naming its
+found what the case says it must, the sorter gave the case's kind — or,
+where that kind always reaches the operator, another kind that does too —
+and the route sent it where the operator would: exactly where a case naming its
 route says, and never settled without the operator where they did not take
 the agent's recommendation. A ladder's climb is taken as held, since no case
 holds the agent's replies to it. A case tuned on is replayed like any other

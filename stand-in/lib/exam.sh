@@ -11,8 +11,8 @@
 # the operator — the summary, the round's list, the cold second reading — are
 # not, since nothing is decided from them. Each case is checked for four
 # things: the reader read it as what it is; the check found what the case
-# says it must; the sorter gave the case's kind; and the route sent it where
-# the operator would.
+# says it must; the sorter gave the case's kind, or one the operator also
+# always answers; and the route sent it where the operator would.
 
 # Loaded once, however many of the stand-in's parts source it, as words.sh is.
 [ -z "${STAND_IN_LOADED_EXAM:-}" ] || return 0
@@ -154,14 +154,27 @@ derive_checker_faults() {
   fi
 }
 
-# The sorter gave the case's kind, given the case and the sorter's answer;
-# nothing to check where the case names none.
+# The sorter gave the case's kind, given the case, the sorter's answer, and
+# the routes of the case's kind and of the kind sorted, as the preset's kind
+# entries name them, each empty where its entry cannot be read; nothing to
+# check where the case names no kind.
+#
+# Two kinds that both take the ask route pass for each other (settled with
+# the operator 2026-10-07): such a kind is always the operator's, so what
+# they see is the same whichever was picked — the waiting-for-push case
+# dropped on the sorter picking organising-the-work where the case says
+# other-session, both of which always reach the operator. Where either kind
+# can ever be answered alone, by any other route, the exact kind is still
+# required: each kind's score is counted on the cases sorted as it. A route
+# that could not be read is no ask route, so the exact kind is required.
 derive_kind_fault() {
   local kind sorted
   kind="$(to_case_kind "$1")"
   [ -n "$kind" ] || return 0
   sorted="$(jq -r '.kind' <<<"$2")"
-  [ "$sorted" = "$kind" ] || exam_kind_fault "$sorted" "$kind"
+  [ "$sorted" != "$kind" ] || return 0
+  [ "$3" != "$ROUTE_ASK" ] || [ "$4" != "$ROUTE_ASK" ] || return 0
+  exam_kind_fault "$sorted" "$kind"
 }
 
 # The route sent the case where the operator would (decision 7), given the

@@ -59,6 +59,16 @@ ask_part() {
   part_answer="$answer"
 }
 
+# The route of the kind named, as its entry in the preset's folder names it;
+# nothing where the entry cannot be read, which the kind check takes as no
+# ask route. Why the entry could not be read is not this check's to say: the
+# sorted kind's entry is read again below, where a refusal fails the case.
+find_kind_route() {
+  local entry
+  entry="$(get_kind_entry "$1" "$2" 2>/dev/null)" || return 0
+  jq -r '.route' <<<"$entry"
+}
+
 # A question's replay, given the case, its reader's form, the preset's
 # folder, the rules and conventions entries and the preset's risks. The check
 # first: a question breaking an entry goes back to the agent before it is
@@ -77,7 +87,8 @@ replay_question() {
   if [ -z "$sendback" ] || [ -n "$kind" ]; then
     ask_part "$(exam_sorter_words)" get_sorter_answer "$form" "$reply" "$preset" || return 0
     sort="$part_answer"
-    faults="$(derive_kind_fault "$case" "$sort")" || return 1
+    faults="$(derive_kind_fault "$case" "$sort" "$(find_kind_route "$preset" "$kind")" \
+      "$(find_kind_route "$preset" "$(jq -r '.kind' <<<"$sort")")")" || return 1
     add_fault "$faults"
   fi
   if [ -n "$sendback" ]; then
