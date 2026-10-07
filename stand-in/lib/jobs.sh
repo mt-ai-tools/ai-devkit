@@ -21,12 +21,18 @@ STAND_IN_LOADED_JOBS=1
 READER_MODEL="claude-sonnet-5-5"
 
 # The sorter names a question's kind and its option's risks: a judgement
-# against the preset's own words.
-SORTER_MODEL="claude-sonnet-5-5"
+# against the preset's own words. On the strongest model (operator,
+# 2026-10-07): it decides whether the operator sees a question at all, and a
+# miss there is the one nobody ever sees. Only this job, since Fable has a
+# usage limit and a job that cannot run sends every question to the operator.
+SORTER_MODEL="claude-fable-5-1"
 
 # The checker reads a question against every rule and convention entry, whole:
-# a judgement against the project's own words, as the sorter's is.
-CHECKER_MODEL="claude-sonnet-5-5"
+# a judgement against the project's own words, as the sorter's is. At least
+# Opus (operator, 2026-10-07): the same judgement the reviewer makes on the
+# session's own model, and a rule break it misses is still met by the
+# operator or the reviewer later, so the trial decides whether it moves up.
+CHECKER_MODEL="claude-opus-5-5"
 
 # The matcher tells, on each ladder rung after the first, which of the first
 # rung's options a reply now recommends, or that it chose something new or
