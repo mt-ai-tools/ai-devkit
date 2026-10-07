@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # A settled question brought back: shown to the operator in full as its log
-# line holds it — the question as retold, what was settled on, the summary's
-# parts with the cold reading among them where one ran, and on request every
-# turn of the exchange word for word — and handed to the session's agent to
-# ask again as a normal question. Every function here is a transform.
-# Sourced, never executed.
+# line holds it — the question as retold where the line kept a retelling and
+# as asked otherwise, what was settled on, the summary's parts with the cold
+# reading among them where one ran, and on request every turn of the
+# exchange word for word — and handed to the session's agent to ask again as
+# a normal question. Every function here is a transform. Sourced, never
+# executed.
 #
 # A decision laid out in a round's list before building is brought back the
 # same way, whoever decided it (settled 2026-10-06): the list shows the

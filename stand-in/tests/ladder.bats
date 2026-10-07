@@ -82,7 +82,6 @@ ladder() {
   [ "$(to_round_message_name "$LADDER_SURE_AGAIN")" = are-you-sure ]
   [ "$LADDER_SURE_AGAIN" != are-you-sure ]
   [ "$(to_round_message_name bigger-look)" = bigger-look ]
-  [ "$(to_round_message_name plain-retelling)" = plain-retelling ]
 }
 
 @test "each rung after the first sends the next challenge by its name, in order" {

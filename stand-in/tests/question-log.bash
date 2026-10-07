@@ -5,7 +5,9 @@
 
 # A log line, given its number, outcome, session, when (UTC), and the answer
 # approved; the question, its retelling and the summary's problem are derived
-# from the number, so each line is told apart by them.
+# from the number, so each line is told apart by them. It holds a retelling,
+# as lines written before the gate stopped asking for one do, and the readers
+# still read those.
 log_line() {
   jq -cn --argjson number "$1" --arg outcome "$2" --arg session "$3" --arg when "$4" --arg approved "${5:-five}" \
     --argjson briefs "${6:-[]}" '{

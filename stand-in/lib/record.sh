@@ -19,8 +19,7 @@
 # round: the fixed round whose reply the gate is waiting for, or null.
 # rounds_sent: every fixed round sent for the question. asked: the question
 # as the reader last read it, its options and recommendation, or null.
-# operator: the message waiting for the agent's plain retelling, in parts, or
-# null. exchange: every reply the gate held and every message it sent the
+# exchange: every reply the gate held and every message it sent the
 # agent over the question, in order, each {from, text}, whole. checks: the
 # checker's answer each time the question was checked, in order. sort: the
 # sorter's answer the question was routed on, or null. closing: the closing
@@ -77,7 +76,7 @@ EXCHANGE_AGENT="agent"
 EXCHANGE_STAND_IN="stand-in"
 
 # The record of a session the gate has not held anything for.
-EMPTY_RECORD='{"sent_back":0,"challenge":null,"ladder":null,"round":null,"rounds_sent":[],"asked":null,"operator":null,"exchange":[],"checks":[],"sort":null,"closing":null,"reopened":null,"resumed":null}'
+EMPTY_RECORD='{"sent_back":0,"challenge":null,"ladder":null,"round":null,"rounds_sent":[],"asked":null,"exchange":[],"checks":[],"sort":null,"closing":null,"reopened":null,"resumed":null}'
 
 # What a record must be to be read: anything else was not written by the gate,
 # or not whole, and is refused rather than repaired.
@@ -91,7 +90,6 @@ RECORD_SHAPE='
   and (.round | type == "null" or type == "string")
   and (.rounds_sent | type == "array")
   and (.asked | type == "null" or type == "object")
-  and (.operator | type == "null" or type == "object")
   and (.exchange | type == "array")
   and (.checks | type == "array")
   and (.sort | type == "null" or type == "object")
@@ -121,7 +119,7 @@ to_record_path() {
 # whenever that comes.
 with_chain_reset() {
   jq -c '.sent_back = 0 | .challenge = null | .ladder = null | .round = null | .rounds_sent = []
-    | .asked = null | .operator = null | .exchange = [] | .checks = [] | .sort = null | .closing = null' <<<"$1"
+    | .asked = null | .exchange = [] | .checks = [] | .sort = null | .closing = null' <<<"$1"
 }
 
 # The record with one more send-back counted.
@@ -190,18 +188,6 @@ with_check() {
 # The record holding the sorter's answer the question is routed on.
 with_sort() {
   jq -c --argjson sort "$2" '.sort = $sort' <<<"$1"
-}
-
-# The record holding the operator's message in parts, waiting for the agent's
-# plain retelling.
-with_operator() {
-  jq -c --argjson parts "$2" '.operator = $parts' <<<"$1"
-}
-
-# The operator's message the record holds in parts, as JSON; nothing where
-# there is none.
-to_operator_parts() {
-  jq -c '.operator // empty' <<<"$1"
 }
 
 # The record holding a challenge sent, at the step given, for the kind's entry
@@ -309,9 +295,9 @@ to_resumed() {
 }
 
 # True if the record holds nothing in flight: no fixed round awaited, no
-# question on the ladder, under a challenge, or waiting for its retelling.
+# question on the ladder, or under a challenge.
 is_record_idle() {
-  jq -e '.round == null and .ladder == null and .challenge == null and .operator == null' >/dev/null <<<"$1"
+  jq -e '.round == null and .ladder == null and .challenge == null' >/dev/null <<<"$1"
 }
 
 # --- Reads.

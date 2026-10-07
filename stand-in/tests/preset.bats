@@ -100,10 +100,10 @@ setup() {
 }
 
 @test "the ladder's messages are its quotes by the name each follows, joined over their lines" {
-  text=$'1. First.\n2. `standing-test` — the test:\n   > Is it clean?\n   > Is it consistent?\n\nProse.\n\n- `plain-retelling` — the last,\n  running on:\n  > Plainly.\n'
+  text=$'1. First.\n2. `standing-test` — the test:\n   > Is it clean?\n   > Is it consistent?\n\nProse.\n\n- `bigger-look` — the last,\n  running on:\n  > Look around.\n'
   run parse_messages ladder.md "$text"
   [ "$status" -eq 0 ]
-  [ "$output" = '{"standing-test":"Is it clean? Is it consistent?","plain-retelling":"Plainly."}' ]
+  [ "$output" = '{"standing-test":"Is it clean? Is it consistent?","bigger-look":"Look around."}' ]
 }
 
 @test "a quote with no name before it, or a name written twice, is refused" {
@@ -140,14 +140,16 @@ setup() {
   [ "$stderr" = "$(refuse_unreadable_file_note "$file")" ]
 }
 
-@test "the kit's own preset ladder holds the operator's four messages" {
+@test "the kit's own preset ladder holds the operator's three messages, and no plain retelling" {
   run get_ladder_messages "$BATS_TEST_DIRNAME/../../presets/stand-in" \
-    standing-test are-you-sure bigger-look plain-retelling
+    standing-test are-you-sure bigger-look
   [ "$status" -eq 0 ]
   [[ "$(jq -r '."standing-test"' <<<"$output")" == "What is the clean way? "*"cheaper than tomorrow's." ]]
   [ "$(jq -r '."are-you-sure"' <<<"$output")" = "Are you sure?" ]
   [[ "$(jq -r '."bigger-look"' <<<"$output")" == "Since you are not sure, take a bigger look around. "*"and ask questions if needed." ]]
-  [ "$(jq -r '."plain-retelling"' <<<"$output")" = "Explain it much more plainly. Use everyday words. Call things by their names." ]
+  # Dropped 2026-10-07: the summary's parts are a question's plain version.
+  run get_ladder_messages "$BATS_TEST_DIRNAME/../../presets/stand-in" plain-retelling
+  [ "$status" -eq 1 ]
 }
 
 @test "the opener is its file whole, header included" {

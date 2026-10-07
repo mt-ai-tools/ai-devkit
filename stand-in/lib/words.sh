@@ -419,9 +419,9 @@ gate_explains_code_line() {
 }
 
 # --- What the gate brings the operator. It opens with the decision asked
-# for, as the agent retold it plainly, then why it came to them, one line per
-# reason; then the summary's parts, the cold second reading where one ran
-# standing before the operator's call.
+# for, as the agent asked it, then why it came to them, one line per reason;
+# then the summary's parts, the cold second reading where one ran standing
+# before the operator's call.
 
 gate_operator_note() {
   printf 'Stand-in: a question for you: %s\nWhy it came to you:\n%s' "$1" "$2"
@@ -582,13 +582,6 @@ gate_operator_call_part() {
 
 gate_summary_failed_note() {
   printf 'The summary of how it got to you failed, so here are the answers as given. Why:\n%s\n' "$1"
-}
-
-# The agent's plain retelling could not be read as a question: the question
-# shown is the one first asked, and why, where a part said.
-gate_retelling_unread_line() {
-  printf -- '- The agent'\''s plain retelling could not be read as a question, so this is the question as first asked.\n'
-  [ -z "$1" ] || printf '%s\n' "$1"
 }
 
 # The reading stands as the model wrote it, under a line saying what it is:
@@ -967,7 +960,8 @@ end_silent_heading() {
 }
 
 # One decision settled without the operator: its number, the question as the
-# agent retold it, and the option settled on.
+# agent retold it where its line kept a retelling, as asked otherwise, and the
+# option settled on.
 end_silent_line() {
   printf -- '- %s. %s Settled on: %s. Say "reopen %s" to bring it back.\n' "$1" "$2" "$3" "$1"
 }
@@ -1178,7 +1172,8 @@ settled_all_heading() {
   printf 'Stand-in: every question it settled without you:\n'
 }
 
-# One question: its number, and the question as the agent retold it.
+# One question: its number, and the question as the agent retold it where its
+# line kept a retelling, as asked otherwise.
 settled_item_line() {
   printf '%s. %s\n' "$1" "$2"
 }

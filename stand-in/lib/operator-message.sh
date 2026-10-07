@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# The message that brings the operator a question: its parts, kept while the
-# agent is asked for its plain retelling, and the message made from them once
-# the retelling is in. Every function here is a transform. Sourced, never
-# executed.
+# The message that brings the operator a question: its parts, and the message
+# made from them and the summary. Every function here is a transform.
+# Sourced, never executed.
 #
-# The order is the operator's (settled 2026-10-04, 2026-10-05 and
-# 2026-10-06): the question as the agent retold it plainly, and why it came
-# to them; then the summary reader's fixed parts — the problem, the first
+# The order is the operator's (settled 2026-10-04, 2026-10-05, 2026-10-06
+# and 2026-10-07): the question as the agent asked it, and why it came to
+# them; then the summary reader's fixed parts — the problem, the first
 # recommendation, what moved it and why, what it recommends now — then the
 # cold second reading where one ran, and last the operator's call, so the
-# call is read with everything that bears on it already in view. The retold
-# question opens it because the operator reads every question plainly
-# worded; the question as first asked stays in the parts, for the record, and
-# is never shown in its place. The agent's own retelling never tells the
-# story: it would tell its own wavering, so the parts are a fresh reader's.
+# call is read with everything that bears on it already in view. The
+# question opens it in the agent's own words, never retold: the summary's
+# parts, written by a fresh model in everyday words, are its plain version,
+# and the agent is never asked to retell it (dropped 2026-10-07). The agent
+# never tells the story either: it would tell its own wavering, so the parts
+# are a fresh reader's.
 
 # Loaded once, however many of the stand-in's parts source it, as words.sh is.
 [ -z "${STAND_IN_LOADED_OPERATOR_MESSAGE:-}" ] || return 0
@@ -67,15 +67,15 @@ to_operator_story() {
   [ -z "$reading" ] || printf '%s\n' "$reading"
 }
 
-# The operator's message, given its parts, the question to open it with, a
-# line to add to why it came to them (empty for none), and what follows: the
-# story, as to_operator_story makes it.
+# The operator's message, given its parts and what follows why it came to
+# them: the story, as to_operator_story makes it. It opens with the question
+# as the parts hold it, as asked.
 to_operator_message() {
-  local parts="$1" question="$2" extra="$3" story="$4" approved held why
+  local parts="$1" story="$2" question approved held why
+  question="$(jq -r '.question' <<<"$parts")"
   approved="$(jq -r '.approved' <<<"$parts")"
   held="$(jq -r '.held' <<<"$parts")"
   why="$(jq -r '.why' <<<"$parts")"
-  [ -z "$extra" ] || why="${why:+$why$'\n'}$extra"
   if [ -n "$approved" ] && [ -n "$held" ]; then
     printf '%s\n' "$(gate_held_note "$question" "$approved" "$held" "$why")"
   elif [ -n "$approved" ]; then

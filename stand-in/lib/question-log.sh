@@ -8,13 +8,12 @@
 # Each line holds: id, a stable random id; number, the short handle the
 # operator reopens it by, one more than the line before; when, in UTC;
 # session; briefs, those the session held as the line was written, empty for
-# none and null where they could not be told; question, as first asked;
-# retold, the agent's plain retelling, or null; kind, unsure and risks, from
-# the sort it was routed on; checks, every checker's answer; ladder, its first
-# answer and the matcher's picks, or null; exchange, every turn between the
-# stand-in and the agent, whole; outcome; reasons, why it came to the
-# operator, a line each; approved, the option the stand-in approved or would
-# have; summary, the summary reader's parts as the operator was shown them,
+# none and null where they could not be told; question, as asked; kind,
+# unsure and risks, from the sort it was routed on; checks, every checker's
+# answer; ladder, its first answer and the matcher's picks, or null;
+# exchange, every turn between the stand-in and the agent, whole; outcome;
+# reasons, why it came to the operator, a line each; approved, the option
+# the stand-in approved or would have; summary, the summary reader's parts as the operator was shown them,
 # and reading, the cold second reading, each null where none was written;
 # step, for a finished step's report, what it said of its problems, its proof
 # and its next step and what the sorter found major, null for a question;
@@ -25,6 +24,11 @@
 # dropped under its kind's challenge, the options it offered and the one it
 # recommended, {options, recommended}, null otherwise; answer, the
 # operator's, empty until they give one.
+#
+# Lines written before 2026-10-07 may also hold retold, the agent's plain
+# retelling of the question, from a round the gate no longer sends: whatever
+# shows a line's question shows that where it is there, and the question as
+# asked otherwise, so the log is never rewritten for it.
 #
 # A step's report is logged like a question, its decision being whether to go
 # on: the go the stand-in would give is counted toward its kind's trial as a
@@ -94,10 +98,9 @@ to_log_path() {
 # The line a question is logged as, from the gate's record of it and the
 # operator's message in parts, as record.sh and operator-message.sh keep them,
 # and the details only the moment of letting it go knows, as JSON: id, when,
-# session, briefs, retold (empty for none), reasons (one per line) and
-# summary (the summary's parts, null for none); and, for a step's report
-# alone, kind, outcome and step, which no record holds, since the report is
-# let go in the stop that read it; for a request to start building, outcome
+# session, briefs, reasons (one per line) and summary (the summary's parts,
+# null for none); and, for a step's report alone, kind, outcome and step,
+# which no record holds, since the report is let go in the stop that read it; for a request to start building, outcome
 # and round, for the same reason; for a round of the closing loop, outcome
 # and closing; for a proposal dropped under a challenge, outcome and dropped;
 # and for a question settled without the operator, its outcome. Its number
@@ -116,7 +119,6 @@ to_log_line() {
       session: $details.session,
       briefs: $details.briefs,
       question: $parts.question,
-      retold: ($details.retold | text_or_null),
       kind: ($details.kind // (if .sort then .sort.kind elif .ladder then .ladder.kind else null end)),
       unsure: (if .sort then .sort.unsure else null end),
       risks: (if .sort then .sort.risks else [] end),

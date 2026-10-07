@@ -116,29 +116,27 @@ teardown() {
 }
 
 @test "a fixed round is awaited, noted as sent, never counted, and let go with the question" {
-  record="$(with_round "$EMPTY_RECORD" plain-retelling)"
-  [ "$(to_round "$record")" = plain-retelling ]
-  run is_round_sent "$record" plain-retelling
-  [ "$status" -eq 0 ]
+  record="$(with_round "$EMPTY_RECORD" bigger-look)"
+  [ "$(to_round "$record")" = bigger-look ]
   run is_round_sent "$record" bigger-look
+  [ "$status" -eq 0 ]
+  run is_round_sent "$record" are-you-sure-again
   [ "$status" -eq 1 ]
   [ "$(jq '.sent_back' <<<"$record")" -eq 0 ]
   record="$(with_chain_reset "$record")"
   [ -z "$(to_round "$record")" ]
-  run is_round_sent "$record" plain-retelling
+  run is_round_sent "$record" bigger-look
   [ "$status" -eq 1 ]
 }
 
-@test "the exchange keeps each turn whole and in order, and the question as asked and the waiting message are kept" {
+@test "the exchange keeps each turn whole and in order, and the question as asked is kept" {
   long="$(printf 'line %s\n' $(seq 1 20000))"
   record="$(with_turn "$EMPTY_RECORD" "$EXCHANGE_AGENT" "$long")"
   record="$(with_turn "$record" "$EXCHANGE_STAND_IN" "From the stand-in: Sure?")"
   record="$(with_asked "$record" "$(whole_form)")"
-  record="$(with_operator "$record" '{"question":"Five retries or ten?"}')"
   [ "$(jq -r '.[0].text' <<<"$(to_exchange "$record")")" = "$long" ]
   [ "$(jq -c '[.[] | .from]' <<<"$(to_exchange "$record")")" = '["agent","stand-in"]' ]
   [ "$(to_asked "$record")" = '{"question":"Five retries or ten?","options":["five","ten"],"recommended":"five"}' ]
-  [ "$(to_operator_parts "$record")" = '{"question":"Five retries or ten?"}' ]
   write_session_record "$file" "$record"
   [ "$(read_session_record "$file")" = "$record" ]
   [ "$(with_chain_reset "$record")" = "$EMPTY_RECORD" ]
@@ -190,8 +188,7 @@ teardown() {
 @test "a record is idle only while nothing is in flight" {
   is_record_idle "$EMPTY_RECORD"
   is_record_idle "$(with_resumed "$EMPTY_RECORD" '{"kind":"brief","on":"x"}')"
-  ! is_record_idle "$(with_round "$EMPTY_RECORD" plain-retelling)"
+  ! is_record_idle "$(with_round "$EMPTY_RECORD" bigger-look)"
   ! is_record_idle "$(with_ladder "$EMPTY_RECORD" "Five or ten?" defaults ladder "" '{"options":["five","ten"],"recommended":"five"}')"
-  ! is_record_idle "$(jq -c '.challenge = {} | .operator = null' <<<"$EMPTY_RECORD")"
-  ! is_record_idle "$(with_operator "$EMPTY_RECORD" '{"question":"Five or ten?"}')"
+  ! is_record_idle "$(jq -c '.challenge = {}' <<<"$EMPTY_RECORD")"
 }

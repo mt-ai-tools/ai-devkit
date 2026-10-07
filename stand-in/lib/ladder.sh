@@ -27,13 +27,13 @@ STAND_IN_LOADED_LADDER=1
 
 # The messages the stand-in sends from the preset's ladder file, each asked
 # for by the short name beside its quote there: the standing test and "are
-# you sure?", the two challenges; the bigger look around, sent once when an
-# answer moved; and the plain retelling, the last message before any question
-# reaches the operator.
+# you sure?", the two challenges; and the bigger look around, sent once when
+# an answer moved. No message asks the agent to retell a question plainly
+# before it reaches the operator (dropped 2026-10-07): the summary's parts
+# are its plain version.
 LADDER_STANDING_TEST="standing-test"
 LADDER_ARE_YOU_SURE="are-you-sure"
 LADDER_BIGGER_LOOK="bigger-look"
-LADDER_PLAIN_RETELLING="plain-retelling"
 
 # The fixed round after the bigger look around: "are you sure?" once more, in
 # the ladder's own words (settled 2026-10-06, the operator's own sequence). A
@@ -43,7 +43,7 @@ LADDER_PLAIN_RETELLING="plain-retelling"
 LADDER_SURE_AGAIN="are-you-sure-again"
 
 # Every message the ladder file must hold, all asked for whichever is sent.
-LADDER_MESSAGES=("$LADDER_STANDING_TEST" "$LADDER_ARE_YOU_SURE" "$LADDER_BIGGER_LOOK" "$LADDER_PLAIN_RETELLING")
+LADDER_MESSAGES=("$LADDER_STANDING_TEST" "$LADDER_ARE_YOU_SURE" "$LADDER_BIGGER_LOOK")
 
 # The challenge each rung after the first sends, in rung order. The order is
 # held here, never read off the file: a reordered file would otherwise send

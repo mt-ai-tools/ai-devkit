@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # The list of questions the stand-in settled without the operator, as the
-# operator reads it: each by its number, the question as the agent retold it,
-# the option settled on, when, and in which session and brief. Made from the
-# question log's lines alone. Every function here is a transform. Sourced,
-# never executed.
+# operator reads it: each by its number, the question as the agent retold it
+# where its line kept a retelling and as asked otherwise, the option settled
+# on, when, and in which session and brief. Made from the question log's
+# lines alone. Every function here is a transform. Sourced, never executed.
 #
 # The numbers are the log's own, never a position in this list: a number seen
 # today still reopens the same question tomorrow, whatever was settled since.

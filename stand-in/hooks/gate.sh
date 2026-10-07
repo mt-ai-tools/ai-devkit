@@ -34,18 +34,22 @@
 # answer goes to the operator either way.
 #
 # Fixed rounds come before the operator, sent by code rather than chosen
-# (settled 2026-10-05: the operator does not wait the research out, and reads
-# every question plainly worded). An answer that moved on the ladder is sent
-# the bigger look around first, so it arrives better researched, then "are
-# you sure?" once more (settled 2026-10-06, the operator's own sequence);
-# whatever the agent answers, the question still goes on. Then every question
-# bound for the operator, whatever its route, is sent the plain retelling,
-# and the agent's rewrite is what the operator reads first: the agent knows
-# the subject, and is the one to say it plainly. No fixed round asks the
-# agent to rethink, so none counts toward the send-back limit, and each is
-# sent at most once per question: their count is fixed, and the limit guards
-# against a loop, which a fixed round cannot make. A gate failure gets none:
-# the operator is told at once, and nothing more is asked of the agent.
+# (settled 2026-10-05: the operator does not wait the research out). An
+# answer that moved on the ladder is sent the bigger look around first, so it
+# arrives better researched, then "are you sure?" once more (settled
+# 2026-10-06, the operator's own sequence); whatever the agent answers, the
+# question still goes on. No fixed round asks the agent to rethink, so none
+# counts toward the send-back limit, and each is sent at most once per
+# question: their count is fixed, and the limit guards against a loop, which
+# a fixed round cannot make. A gate failure gets none: the operator is told
+# at once, and nothing more is asked of the agent.
+#
+# No round asks the agent to retell a question plainly before it reaches the
+# operator (dropped 2026-10-07, the operator's call): the question as the
+# agent asked it opens their message, and the summary's fixed parts, written
+# by a fresh model in everyday words, are its plain version. So the message
+# is made in the stop that decides the question is theirs, and nothing is
+# held over to a later stop for it.
 #
 # Hook contract (Claude Code): the event arrives as JSON on stdin and carries
 # the reply as written, which is handed to the reader unread: the gate never
@@ -248,29 +252,47 @@ current_answers() {
 # cold reading's part (empty where none ran), its own words (empty where
 # none were written), and how many times the approved label held (empty
 # where it would have stood with no challenge). Every route to the operator
-# ends here, the loop guard's included: the message is kept in parts and the
-# agent is sent the plain retelling, whose reply finishes it.
+# ends here, the loop guard's included, and the message is made, shown and
+# logged in this stop: the reply that brought the question here joins the
+# exchange as its last turn, and the summary is written from the whole of
+# it. The summary never holds the question up: where it fails, the operator
+# is told why and shown the answers as given.
 bring_operator() {
-  local question="$1" why="$2" approved="${3:-}" reading="${4:-}" reading_text="${5:-}" held="${6:-}" answers parts
+  local question="$1" why="$2" approved="${3:-}" reading="${4:-}" reading_text="${5:-}" held="${6:-}"
+  local answers parts exchange failure summary="" failed="" story message logged
   answers="$(current_answers)"
   parts="$(to_operator_message_parts "$question" "$approved" "$why" "$reading" "$answers" "$reading_text" "$held")"
-  record="$(with_operator "$record" "$parts")"
-  send_round "$LADDER_PLAIN_RETELLING"
+  record="$(with_turn "$record" "$EXCHANGE_AGENT" "$reply")"
+  exchange="$(to_exchange "$record")"
+  failure="$(mktemp)"
+  if ! summary="$(get_summary "$exchange" 2>"$failure")"; then
+    summary=""
+    failed="$(cat "$failure")"
+  fi
+  rm -f "$failure"
+  story="$(to_operator_story "$parts" "$summary" "$failed")"
+  message="$(to_operator_message "$parts" "$story")"
+  logged="$(log_let_go "$parts" "$why" "$summary")"
+  [ -z "$logged" ] || message+=$'\n'"$logged"
+  record="$(with_chain_reset "$record")"
+  keep_record
+  to_operator_answer "$message"
+  exit 0
 }
 
 # Settle a question without the operator, its kind through the trial, given
 # the question as asked and the option settled on: logged as settled, so it
 # is listed and can be reopened, and the agent told to go on with it. Never
-# brought to the operator, so it is sent no plain retelling and given no
-# summary. A settling that cannot be logged is never given, since nobody
-# could list or reopen it: the question goes to the operator instead, at once
-# and as it stands, as a broken gate's does.
+# brought to the operator, so it is given no summary. A settling that cannot
+# be logged is never given, since nobody could list or reopen it: the
+# question goes to the operator instead, at once and as it stands, as a
+# broken gate's does.
 settle_question() {
   local question="$1" approved="$2" parts logged settled
   parts="$(to_operator_message_parts "$question" "$approved" "" "" "" "")"
   settled="$(jq -cn --arg outcome "$OUTCOME_SETTLED" '{outcome: $outcome}')"
   record="$(with_turn "$record" "$EXCHANGE_AGENT" "$reply")"
-  logged="$(log_let_go "$parts" "" "" "" "$settled")"
+  logged="$(log_let_go "$parts" "" "" "$settled")"
   record="$(with_chain_reset "$record")"
   keep_record
   if [ -n "$logged" ]; then
@@ -282,24 +304,24 @@ settle_question() {
 }
 
 # Write the question the record holds to the log as it is let go, given the
-# message's parts, the question as retold (empty where it could not be read),
-# why it came to the operator, one reason a line, the summary's parts as JSON
-# (empty where it failed), kept as the operator was shown them, and for a
-# step's report its kind, outcome and step as JSON (empty for a question).
-# Prints nothing where the line was written, and otherwise the line telling
-# the operator it was not, with why. The briefs the session holds
-# are logged as unknown where the organizer cannot say, rather than the line
-# lost: a project may run the stand-in with no briefs folder at all.
+# message's parts, why it came to the operator, one reason a line, the
+# summary's parts as JSON (empty where it failed), kept as the operator was
+# shown them, and for a step's report its kind, outcome and step as JSON
+# (empty for a question). Prints nothing where the line was written, and
+# otherwise the line telling the operator it was not, with why. The briefs
+# the session holds are logged as unknown where the organizer cannot say,
+# rather than the line lost: a project may run the stand-in with no briefs
+# folder at all.
 log_let_go() {
-  local parts="$1" retold="$2" why_lines="$3" summary="$4" step="${5:-}" briefs id when details line why
+  local parts="$1" why_lines="$2" summary="$3" step="${4:-}" briefs id when details line why
   why="$(mktemp)"
   briefs="$(get_held_briefs "$session" 2>/dev/null)" || briefs=null
   id="$(mint_log_id)"
   when="$(get_log_now)"
   details="$(jq -cn --arg id "$id" --arg when "$when" --arg session "$session" --argjson briefs "$briefs" \
-    --arg retold "$retold" --arg reasons "$why_lines" --argjson summary "${summary:-null}" \
+    --arg reasons "$why_lines" --argjson summary "${summary:-null}" \
     --argjson step "${step:-null}" \
-    '{id: $id, when: $when, session: $session, briefs: $briefs, retold: $retold, reasons: $reasons,
+    '{id: $id, when: $when, session: $session, briefs: $briefs, reasons: $reasons,
       summary: $summary} + ($step // {})')"
   if ! line="$(to_log_line "$record" "$parts" "$details" 2>"$why")" \
     || ! append_log_line "$(to_log_dir "$history")" "$line" 2>"$why"; then
@@ -309,58 +331,16 @@ log_let_go() {
 }
 
 # A broken gate's question to the log, given the message the operator is
-# shown, which is why it came to them: the message's parts where the gate had
-# made them, the question as last read otherwise. Nothing where the gate held
-# no question: a reply it could not read may have asked nothing.
+# shown, which is why it came to them: the question as last read. Nothing
+# where the gate held no question: a reply it could not read may have asked
+# nothing.
 log_broken() {
   local message="$1" parts asked
   [ -n "${history:-}" ] && [ -n "${session:-}" ] && [ -n "${record:-}" ] || return 0
-  parts="$(to_operator_parts "$record")"
-  if [ -z "$parts" ]; then
-    asked="$(to_asked "$record")"
-    [ -n "$asked" ] || return 0
-    parts="$(jq -c '{question, approved: ""}' <<<"$asked")"
-  fi
-  log_let_go "$parts" "" "$message" ""
-}
-
-# The reply to the plain retelling: the operator's message made and shown,
-# and the question let go. The retold question is read by the reader; where it
-# cannot be, the question as first asked opens the message, saying so. The
-# summary never holds the question up either: where it fails, the operator
-# is told why and shown the answers as given.
-answer_retold() {
-  local parts question retold="" extra="" why form exchange summary="" failed="" story message why_lines logged
-  parts="$(to_operator_parts "$record")"
-  if [ -z "$parts" ]; then
-    refuse_state_unreadable_note "$record_file" >&2
-    exit 1
-  fi
-  question="$(jq -r '.question' <<<"$parts")"
-  why="$(mktemp)"
-  if form="$(get_reader_form "$reply" 2>"$why")" && jq -e '.asks_operator' >/dev/null <<<"$form"; then
-    question="$(jq -r '.question' <<<"$form")"
-    retold="$question"
-  else
-    extra="$(gate_retelling_unread_line "$(cat "$why")")"
-  fi
-  record="$(with_turn "$record" "$EXCHANGE_AGENT" "$reply")"
-  exchange="$(to_exchange "$record")"
-  if ! summary="$(get_summary "$exchange" 2>"$why")"; then
-    summary=""
-    failed="$(cat "$why")"
-  fi
-  rm -f "$why"
-  story="$(to_operator_story "$parts" "$summary" "$failed")"
-  message="$(to_operator_message "$parts" "$question" "$extra" "$story")"
-  why_lines="$(jq -r '.why' <<<"$parts")"
-  [ -z "$extra" ] || why_lines+=$'\n'"$extra"
-  logged="$(log_let_go "$parts" "$retold" "$why_lines" "$summary")"
-  [ -z "$logged" ] || message+=$'\n'"$logged"
-  record="$(with_chain_reset "$record")"
-  keep_record
-  to_operator_answer "$message"
-  exit 0
+  asked="$(to_asked "$record")"
+  [ -n "$asked" ] || return 0
+  parts="$(jq -c '{question, approved: ""}' <<<"$asked")"
+  log_let_go "$parts" "$message" ""
 }
 
 # Put a question on the ladder, or on the light check, as the route given
@@ -434,10 +414,11 @@ answer_changed() {
 # asked once more whether it was sure: a cold second reading, run here and
 # only here, and to the operator. Run by the stand-in itself, never asked of
 # the agent: the agent would read it with its own proposal in view, could
-# lead it, and code could not tell whether it ran. The reading rides this
-# stop beside the matcher alone, since no stop has room for it beside the
-# summary too. It never holds the question up: where it fails or runs out of
-# time, the operator is told why there is none.
+# lead it, and code could not tell whether it ran. The reading runs in this
+# stop, the one that knows the answer moved again, before the summary that
+# brings the question to the operator: the hook's time limit is sized for
+# the three together. It never holds the question up: where it fails or runs
+# out of time, the operator is told why there is none.
 answer_moved_again() {
   local ladder="$1" question options why reading part
   question="$(jq -r '.question' <<<"$ladder")"
@@ -529,7 +510,7 @@ log_step() {
   step="$(jq -cn --arg kind "$(jq -r '.name' <<<"$entry")" --arg outcome "$outcome" \
     --argjson step "$(to_step_details "$form" "$sort")" '{kind: $kind, outcome: $outcome, step: $step}')"
   record="$(with_turn "$record" "$EXCHANGE_AGENT" "$reply")"
-  log_let_go "$parts" "" "$why" "" "$step"
+  log_let_go "$parts" "$why" "" "$step"
 }
 
 # Let the reply stop, showing the operator the message given and, under it,
@@ -546,8 +527,8 @@ let_stop_told() {
 # A step's report the go is the operator's for, given the reader's form, the
 # sorter's labelling, the go kind's entry, and why, one reason a line. The
 # report itself is already in front of them as the agent wrote it, so it is
-# sent no plain retelling and given no summary: a step's report is not a
-# question, and the note beside it says only why the go is theirs.
+# given no summary: a step's report is not a question, and the note beside it
+# says only why the go is theirs.
 step_to_operator() {
   local form="$1" sort="$2" entry="$3" why="$4" question logged
   question="$(to_step_question "$form")"
@@ -625,7 +606,7 @@ answer_step() {
 # request that is always the operator's, brought to them with every decision
 # of the round laid out, numbered and saying who decided it (settled
 # 2026-10-06). The request is in front of them as the agent wrote it, so it is
-# sent no plain retelling, as a step's report is not. Its line in the log is
+# given no summary, as a step's report is not. Its line in the log is
 # where the session's next round begins, and the operator's answer — "go", or
 # "reopen" and a number — is kept on it. The round reader never holds the
 # request up: where it fails, each decision is shown as the log keeps it,
@@ -648,7 +629,7 @@ answer_round() {
   parts="$(to_operator_message_parts "$(gate_round_question)" "" "$why" "" "")"
   details="$(jq -cn --arg outcome "$OUTCOME_TO_OPERATOR" --argjson round "$shown" '{outcome: $outcome, round: $round}')"
   record="$(with_turn "$record" "$EXCHANGE_AGENT" "$reply")"
-  logged="$(log_let_go "$parts" "" "$why" "" "$details")"
+  logged="$(log_let_go "$parts" "$why" "" "$details")"
   [ -z "$logged" ] || message+=$'\n'"$logged"
   record="$(with_chain_reset "$record")"
   keep_record
@@ -748,7 +729,7 @@ log_round() {
   local question="$1" why="$2" outcome="$3" closing="$4" parts details
   parts="$(to_operator_message_parts "$question" "" "$why" "" "")"
   details="$(jq -cn --arg outcome "$outcome" --argjson closing "$closing" '{outcome: $outcome, closing: $closing}')"
-  log_let_go "$parts" "" "$why" "" "$details"
+  log_let_go "$parts" "$why" "" "$details"
 }
 
 # Both looks are in: the round is logged, one line with every finding and
@@ -875,7 +856,7 @@ drop_proposal() {
   details="$(jq -cn --arg outcome "$OUTCOME_DROPPED" --argjson dropped "$dropped" \
     '{outcome: $outcome, dropped: $dropped}')"
   record="$(with_turn "$record" "$EXCHANGE_AGENT" "$reply")"
-  logged="$(log_let_go "$parts" "" "" "" "$details")"
+  logged="$(log_let_go "$parts" "" "" "$details")"
   [ -z "$logged" ] || let_stop_told "$(gate_drop_unlogged_note "$question")" "$logged"
   record="$(with_chain_reset "$record")"
 }
@@ -974,7 +955,6 @@ fi
 round="$(to_round "$record")"
 case "$round" in
   "") ;;
-  "$LADDER_PLAIN_RETELLING") answer_retold ;;
   "$LADDER_BIGGER_LOOK") take_ladder; answer_looked ;;
   "$LADDER_SURE_AGAIN") take_ladder; answer_sure_again ;;
   "$CLOSING_CLEANUP_LOOK" | "$CLOSING_USE_LOOK") answer_look "$round" ;;

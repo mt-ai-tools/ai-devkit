@@ -1,5 +1,5 @@
 ---
-summary: The operator's challenge ladder — the standing test, then "are you sure?" — read for whether a recommendation holds, and the two rounds before a question reaches them.
+summary: The operator's challenge ladder — the standing test, then "are you sure?" — read for whether a recommendation holds, and the bigger look around before a moved answer reaches them.
 ---
 
 # The challenge ladder
@@ -30,10 +30,6 @@ holds, it goes to the operator without one, told it moved and then held.
   > Since you are not sure, take a bigger look around. Look for the
   > clean and consistent way, expect growth, consider what big
   > companies would do, search the web, and ask questions if needed.
-- `plain-retelling` — the last message before any question reaches
-  the operator:
-  > Explain it much more plainly. Use everyday words. Call things by
-  > their names.
 
 Each message the stand-in sends is the quote under its name, word for
 word.

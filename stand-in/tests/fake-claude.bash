@@ -103,7 +103,7 @@ calls() {
 # A preset of the suite's own, with the kinds and risks given, so no suite
 # leans on the kit's own preset: the stand-in must hand over whatever a
 # project's preset holds. Kinds as "name:summary" words, a summary of one
-# word; risks as names. Its ladder file holds the four messages below, and
+# word; risks as names. Its ladder file holds the three messages below, and
 # its closing loop the three after them, and its resume look-around the one
 # after those, each under the short name the stand-in asks for it by.
 preset() {
@@ -118,7 +118,7 @@ preset() {
     printf -- '---\nsummary: Risks.\n---\n\n# Risks\n\n'
     for name in $risks; do printf -- '- `%s` — The %s risk.\n' "$name" "$name"; done
   } >"$preset_dir/challenges/risks.md"
-  ladder_file "$standing_test" "$are_you_sure" "$bigger_look" "$plain_retelling" \
+  ladder_file "$standing_test" "$are_you_sure" "$bigger_look" \
     >"$preset_dir/challenges/challenge-ladder.md"
   closing_file "$cleanup_look" "$use_look" "$whole_done" >"$preset_dir/challenges/closing-loop.md"
   resume_file "$look_around" >"$preset_dir/challenges/resume-look-around.md"
@@ -141,21 +141,19 @@ resume_file() {
   printf -- '- `look-around` — once the wait is over:\n  > %s\n' "$1"
 }
 
-# A ladder file's text holding the four messages given, in the order the
+# A ladder file's text holding the three messages given, in the order the
 # kit's own file holds them, each quoted under its short name.
 ladder_file() {
   printf -- '---\nsummary: Ladder.\n---\n\n# Ladder\n\n1. First.\n'
   printf -- '2. `standing-test` — the test:\n   > %s\n' "$1"
   printf -- '3. `are-you-sure` — then:\n   > %s\n\n' "$2"
   printf -- '- `bigger-look` — when it moved:\n  > %s\n' "$3"
-  printf -- '- `plain-retelling` — last:\n  > %s\n' "$4"
 }
 
 # The messages the suite's preset ladder sends.
 standing_test="Is it the clean way?"
 are_you_sure="Sure?"
 bigger_look="Look around more."
-plain_retelling="Say it plainly."
 
 # The messages the suite's preset closing loop sends.
 cleanup_look="Anything to tidy?"

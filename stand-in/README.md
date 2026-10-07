@@ -126,21 +126,22 @@ agent is told to ask in its reply instead, where the gate reads it; in every
 other session the box works as before. Where whether it is on cannot be
 told, the box is let through and the operator told why.
 
-Before any question reaches the operator, whatever its route, the agent is
-asked once to retell it plainly, and its retelling is what the operator reads
-first; then why it came to them; then fixed parts a fresh model writes from
-the whole exchange between the stand-in and the agent, in everyday words —
-the problem with an everyday example, the first recommendation, what moved
-it and why in the agent's own reasons, what it recommends now — then the
-second reading where one ran, and last the operator's call, each option with
-its risk. The fresh model retells and never judges or recommends; a part it
-leaves empty is a refused form. The exchange is kept in the session's record
-while the question is held.
+A question reaches the operator, whatever its route, at the end of the reply
+that decides it is theirs, and the agent is asked nothing more for it. The
+question as the agent asked it opens their message; then why it came to
+them; then fixed parts a fresh model writes from the whole exchange between
+the stand-in and the agent, in everyday words, which are the question's
+plain version — the problem with an everyday example, the first
+recommendation, what moved it and why in the agent's own reasons, what it
+recommends now — then the second reading where one ran, and last the
+operator's call, each option with its risk. The fresh model retells and
+never judges or recommends; a part it leaves empty is a refused form. The
+exchange is kept in the session's record while the question is held.
 
 Every question it lets go leaves one whole line in a log of its own: when,
-in which session and brief, the question as asked and as retold, how it was
-sorted and checked, every answer on the ladder, the whole exchange, how it
-ended and why, the summary's parts and the second reading. So does every
+in which session and brief, the question as asked, how it was sorted and
+checked, every answer on the ladder, the whole exchange, how it ended and
+why, the summary's parts and the second reading. So does every
 step's report it weighs, with what it said of its problems, its proof and its
 next step, and what was found major; a go is listed and reopened as a
 settled question is. So does every request to start building, with the
@@ -170,9 +171,9 @@ answers are checked against.
 It fails toward the operator: whatever it cannot read or judge lets the reply
 stop with the reason shown to them, and asks the agent nothing more. It never
 holds one question past a small number of send-backs asking the agent to
-rethink, the ladder's challenges among them; the bigger look around, the
-second "are you sure?" after it and the plain retelling are fixed rounds
-outside that count, each sent at most once for a question. A second
+rethink, the ladder's challenges among them; the bigger look around and the
+second "are you sure?" after it are fixed rounds outside that count, each
+sent at most once for a question. A second
 reading, a summary, a round's list or a log line that fails never holds a
 question up: the operator is told why there is none. Where it is off
 for a session it does nothing, and asks no model.
@@ -181,7 +182,7 @@ Needs a preset: a folder of kinds of question, each with a one-line summary
 and its route, one of them at most taking the route of a finished step's go,
 a list of risks, each opening with its short name, a
 challenge ladder holding each message the stand-in sends — the two
-challenges, the bigger look around and the plain retelling — quoted under
+challenges and the bigger look around — quoted under
 the short name it is asked for by, a closing loop holding its two looks and
 the question whether the whole brief is done, quoted the same way, a resume
 look-around holding the look around a woken session is sent, quoted the same
