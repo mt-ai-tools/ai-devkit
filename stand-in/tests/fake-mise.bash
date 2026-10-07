@@ -18,9 +18,13 @@ printf '%s\n' "$@" >"$dir/args"
 env >"$dir/env"
 pwd >"$dir/pwd"
 ls -A >"$dir/folder"
-cat >"$dir/stdin"
+# Judged on the text it was given, never on the copy it keeps: the cases'
+# scans run side by side, and the kept copy may be another scan's by then.
+text="$(cat && printf x)"
+text="${text%x}"
+printf '%s' "$text" >"$dir/stdin"
 [ -f "$dir/status" ] && exit "$(cat "$dir/status")"
-grep -q "FAKE-KEY-SHAPED" "$dir/stdin" && exit 7
+grep -q "FAKE-KEY-SHAPED" <<<"$text" && exit 7
 exit 0
 FAKE
   chmod +x "$fakebin/mise"

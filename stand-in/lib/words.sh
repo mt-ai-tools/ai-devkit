@@ -30,6 +30,10 @@ refuse_model_error_note() {
   printf 'Claude Code, asking the %s model, answered with an error.\n' "$1"
 }
 
+refuse_model_busy_note() {
+  printf 'Claude was busy: the %s model refused all %s tries.\n' "$1" "$2"
+}
+
 # --- The reader's form and the sorter's answer. Each names the field, so the
 # operator sees which part of the reading broke.
 

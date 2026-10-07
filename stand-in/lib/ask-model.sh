@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Asking a model, in one place: Claude Code run headless, once, fresh, with a
-# time limit, made to answer to a JSON schema. Sourced, never executed.
+# Asking a model, in one place: Claude Code run headless, once — again only
+# where Claude was busy — fresh, with a time limit, made to answer to a JSON
+# schema. Sourced, never executed.
 #
 # Needs the claude CLI on the path; the stand-in reaches a model through
 # nothing else.
@@ -31,6 +32,25 @@ ASK_MODEL_TIMEOUT_STATUSES=" 124 137 "
 # How long a call that ignored its time limit is given to stop before it is
 # killed, so a stuck call never holds the hook past its own limit.
 ASK_MODEL_KILL_AFTER=5
+
+# The statuses of the API refusals that say Claude is busy: 429, too many
+# requests for the account or its plan, and 529, overloaded — the two Claude
+# Code itself tells busy by. Read off the envelope Claude Code prints, which
+# keeps the status of the API error a call ended on: measured 2026-10-07 with
+# a model that does not exist, Claude Code ended with status 1 and printed an
+# envelope marked as an error, holding the status (404). Nothing else is
+# retried: not a timeout, not an answer that cannot be read, and not a refusal
+# carrying no status, as an overload met halfway through an answer may — an
+# error nobody classified is not retried.
+ASK_MODEL_BUSY_STATUSES="[429, 529]"
+
+# How many times a busy refusal is asked again, and the seconds waited before
+# each try (settled with the operator 2026-10-07). Few and short: the exam asks
+# several calls at once, and a crowd asking again at once keeps Claude busy.
+# Every try stays inside the call's own time limit, which the gate's budget
+# counts on: a try that would start too late is not made.
+ASK_MODEL_BUSY_RETRIES=2
+ASK_MODEL_BUSY_WAIT=5
 
 # --- Transforms.
 
@@ -63,13 +83,44 @@ to_model_answer() {
   printf '%s\n' "$answer"
 }
 
+# True if the envelope Claude Code printed is a refusal saying Claude is busy.
+is_busy_refusal() {
+  jq -e --argjson busy "$ASK_MODEL_BUSY_STATUSES" \
+    'type == "object" and .is_error == true and (.api_error_status as $s | $busy | index($s) != null)' \
+    >/dev/null 2>&1 <<<"$1"
+}
+
 # --- Reads.
+
+# What Claude Code printed for one call, the prompt read from stdin, given the
+# model, the seconds it may take, the schema, the tools, the settings already
+# merged and the standing text; its status is Claude Code's, or timeout's
+# where the time ran out.
+get_model_envelope() {
+  local model="$1" seconds="$2" schema="$3" tools="$4" settings="$5" standing="$6" status=0
+  local standing_args=() standing_fd
+  # Opened for the whole call and closed after it: a process substitution
+  # kept in a list of arguments is closed before the command runs. Opened
+  # afresh for every try, since a pipe is read once: a retry handed the same
+  # one would send Claude Code an empty text.
+  if [ -n "$standing" ]; then
+    exec {standing_fd}< <(printf '%s' "$standing")
+    standing_args=(--append-system-prompt-file "/dev/fd/$standing_fd")
+  fi
+  timeout -k "$ASK_MODEL_KILL_AFTER" "$seconds" \
+    claude -p "$ASK_MODEL_ISOLATION" --model "$model" --settings "$settings" --tools "$tools" \
+    "${standing_args[@]}" --output-format json --json-schema "$schema" 2>/dev/null || status=$?
+  [ -z "$standing" ] || exec {standing_fd}<&-
+  return "$status"
+}
 
 # The model's answer to the prompt on stdin, as one line of JSON shaped by the
 # schema given; a refusal naming why on stderr and a non-zero status where the
 # time ran out, Claude Code stopped with an error, or what it printed cannot
-# be read. No tools unless a comma-separated list is given: a job that only
-# reads what it is handed has nothing to reach. A read-only tool given reaches
+# be read. A refusal saying Claude is busy is asked again, as
+# ASK_MODEL_BUSY_RETRIES says, before it is one. No tools unless a
+# comma-separated list is given: a job that only reads what it is handed has
+# nothing to reach. A read-only tool given reaches
 # no further than the folder the call runs in, which is the caller's to
 # choose: a headless call with nothing allowed is refused a read outside its
 # working directory (measured 2026-10-05). Settings given, as a JSON object,
@@ -89,23 +140,30 @@ to_model_answer() {
 # argument, which it would outgrow; it must be the same byte for byte each
 # time, since a single trailing newline more was measured to miss the cache.
 get_model_answer() {
-  local model="$1" seconds="$2" schema="$3" tools="${4:-}" standing="${6:-}" settings envelope status=0
-  local standing_args=() standing_fd
+  local model="$1" seconds="$2" schema="$3" tools="${4:-}" standing="${6:-}" settings prompt envelope status
+  local started="$SECONDS" tries=1
   settings="$(to_call_settings "${5:-}")" || return 1
-  # Opened for the whole call and closed after it: a process substitution
-  # kept in a list of arguments is closed before the command runs.
-  if [ -n "$standing" ]; then
-    exec {standing_fd}< <(printf '%s' "$standing")
-    standing_args=(--append-system-prompt-file "/dev/fd/$standing_fd")
-  fi
-  envelope="$(timeout -k "$ASK_MODEL_KILL_AFTER" "$seconds" \
-    claude -p "$ASK_MODEL_ISOLATION" --model "$model" --settings "$settings" --tools "$tools" \
-    "${standing_args[@]}" --output-format json --json-schema "$schema" 2>/dev/null)" || status=$?
-  [ -z "$standing" ] || exec {standing_fd}<&-
-  if [[ "$ASK_MODEL_TIMEOUT_STATUSES" == *" $status "* ]]; then
-    refuse_model_timeout_note "$model" "$seconds" >&2
-    return 1
-  fi
+  # Kept whole, the trailing "x" holding its last newline, so every try is
+  # handed the same prompt.
+  prompt="$(cat && printf x)"
+  prompt="${prompt%x}"
+  while :; do
+    status=0
+    envelope="$(get_model_envelope "$model" "$((seconds - (SECONDS - started)))" "$schema" "$tools" "$settings" \
+      "$standing" < <(printf '%s' "$prompt"))" || status=$?
+    if [[ "$ASK_MODEL_TIMEOUT_STATUSES" == *" $status "* ]]; then
+      refuse_model_timeout_note "$model" "$seconds" >&2
+      return 1
+    fi
+    is_busy_refusal "$envelope" || break
+    if [ "$tries" -gt "$ASK_MODEL_BUSY_RETRIES" ] \
+      || [ "$((seconds - (SECONDS - started)))" -le "$ASK_MODEL_BUSY_WAIT" ]; then
+      refuse_model_busy_note "$model" "$tries" >&2
+      return 1
+    fi
+    tries=$((tries + 1))
+    sleep "$ASK_MODEL_BUSY_WAIT"
+  done
   if [ "$status" -ne 0 ]; then
     refuse_model_exit_note "$model" "$status" >&2
     return 1

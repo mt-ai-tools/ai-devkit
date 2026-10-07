@@ -15,7 +15,9 @@
 # Loaded once, however many of the stand-in's parts source it, as words.sh is.
 [ -z "${STAND_IN_LOADED_EXAM_REPLAY:-}" ] || return 0
 STAND_IN_LOADED_EXAM_REPLAY=1
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/runners/side-by-side.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/cases.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/reader.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/checker.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/sorter.sh"
@@ -147,30 +149,31 @@ replay_case() {
   to_case_result "$case" "$replay_route" "$replay_faults" "$replay_notes"
 }
 
+# One replay of a case, as replay_case gives it, given what replay_case is
+# handed after the case, and the case's file last: the call the exam's runner
+# makes for each replay, in a process of its own. The case is read from its
+# file here rather than handed over, since the runner hands an item over as
+# one line of an argument, and a case holds a whole reply.
+replay_case_file() {
+  local file="${*: -1}" case
+  case="$(read_case "$file")" || return 1
+  replay_case "$case" "${@:1:$#-1}"
+}
+
 # One case's result over its replays, as to_best_of_result gives it, given
-# what replay_case is handed. The replays run side by side, each in a
-# process of its own writing its result to a file, and the case waits for
-# all of them (settled 2026-10-07): one after another, every case would cost
-# its replays' time over again. Bounded by the number of replays, since the
-# cases themselves are run one after another. A replay that ends without a
-# result counts as one that failed, with what it said on the way out.
-replay_best_of() {
-  local case="$1" folder run pids=() replays="" result
-  folder="$(mktemp -d)"
-  for run in $(seq "$EXAM_REPLAYS"); do
-    replay_case "$@" >"$folder/$run" 2>"$folder/$run.why" &
-    pids+=("$!")
-  done
-  for run in "${!pids[@]}"; do
-    wait "${pids[$run]}" || true
-  done
-  for run in $(seq "$EXAM_REPLAYS"); do
-    if ! result="$(jq -ce 'select(type == "object")' "$folder/$run" 2>/dev/null)" || [ -z "$result" ]; then
-      result="$(to_case_result "$case" "" \
-        "$(exam_replay_stopped_fault "$(tr '\n' ' ' <"$folder/$run.why" | sed 's/ *$//')")" "")"
+# the case, the folder the exam's runner kept its replays' output in, and the
+# place of the case's first replay among the replays run: the case's replays
+# are the EXAM_REPLAYS from there. A replay that ended without a result
+# counts as one that failed, with what it said on the way out.
+get_best_of_result() {
+  local case="$1" folder="$2" first="$3" place result why replays=""
+  for place in $(seq "$first" "$((first + EXAM_REPLAYS - 1))"); do
+    if ! result="$(jq -ce 'select(type == "object")' "$(to_side_by_side_output "$folder" "$place")" 2>/dev/null)" \
+      || [ -z "$result" ]; then
+      why="$(tr '\n' ' ' 2>/dev/null <"$(to_side_by_side_errors "$folder" "$place")" | sed 's/ *$//')" || why=""
+      result="$(to_case_result "$case" "" "$(exam_replay_stopped_fault "$why")" "")"
     fi
     replays+="$result"$'\n'
   done
-  rm -rf "$folder"
   to_best_of_result "$case" "$(printf '%s' "$replays" | jq -cs .)"
 }

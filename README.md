@@ -92,6 +92,9 @@ a session the stand-in is off for is never told it owes one.
 The machine installs the stand-in's secret scanner through mise, at the
 release the stand-in pins: the case-writer never fetches it, and without
 it holds every case back, naming the command that installs it.
+GNU parallel is optional: where the machine has it, the kit's tests, the
+stand-in's exam and its case-writer run several at a time; without it,
+one at a time, to the same result.
 
 ## Develop
 
@@ -100,6 +103,4 @@ pnpm install
 pnpm test
 ```
 
-The test command takes test files or folders to run only those. It runs
-tests in parallel where GNU parallel is installed, and one at a time
-where it is not.
+The test command takes test files or folders to run only those.

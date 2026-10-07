@@ -62,15 +62,27 @@ sample_log() {
     "$(brief_line 5 "$OUTCOME_TO_OPERATOR" "b")" \
     "$(jq -c '.briefs = ["other"] | .answer = "a"' <<<"$(log_line 6 "$OUTCOME_TO_OPERATOR" session-2 2026-10-06T09:00:00Z)")" \
     "$(log_line 7 "$OUTCOME_SETTLED" session-1 2026-10-06T09:30:00Z five '["stand-in-loops"]')"
-  answer_for_call case-writer 1 "$(case_form one)"
-  answer_for_call case-writer 2 "$(case_form two '.picked = "Ten tries" | .answered = "Ten tries." | .why = "The service is slow to wake."')"
-  answer_for_call case-writer 3 "$skipped_form"
-  answer_for_call case-writer 4 "$(case_form four '.why = "The operator says the password is correct horse battery staple."')"
-  answer_for_call case-writer 5 "$(case_form five ".why = \"The key $fake_key_mark goes in the build.\"")"
+  # Each line's answer told by its words, since the lines are drafted side
+  # by side and their calls arrive in no fixed order.
+  answer_for_words case-writer "$(line_words 1)" "$(case_form one)"
+  answer_for_words case-writer "$(line_words 2)" "$(case_form two '.picked = "Ten tries" | .answered = "Ten tries." | .why = "The service is slow to wake."')"
+  answer_for_words case-writer "$(line_words 3)" "$skipped_form"
+  answer_for_words case-writer "$(line_words 4)" "$(case_form four '.why = "The operator says the password is correct horse battery staple."')"
+  answer_for_words case-writer "$(line_words 5)" "$(case_form five ".why = \"The key $fake_key_mark goes in the build.\"")"
   answer_for secret '{"holds_secret":false}'
-  # The secret check's third call is the fourth line's: the fifth is held by
-  # the scanner before any model reads it.
-  answer_for_call secret 3 '{"holds_secret":true}'
+  # The fifth is held by the scanner before any model reads it.
+  answer_for_words secret "Retries four" '{"holds_secret":true}'
+}
+
+# The words of the log line of the number given that no other line holds.
+line_words() {
+  printf 'i recomend five (%s)' "$1"
+}
+
+# The calls so far, each kind once with how many times it was asked, sorted:
+# lines drafted side by side ask in no fixed order.
+counted_calls() {
+  calls | sort | uniq -c | sed 's/^ *//'
 }
 
 run_cases() {
@@ -99,9 +111,29 @@ prompt_part() {
   [ "$(sed -n "/^## The operator's answer\$/,/^## Why\$/p" "$answers/2026-10-02-retries-two.md" | sed '1,2d;$d' | sed '/^$/d')" = \
     "Ten tries." ]
   [ "$(jq -c '.closing.cases' "$record_file")" = '{"written":2,"skipped":1,"held":2,"failed":0}' ]
-  [ "$(calls)" = "$(printf '%s\n' "case-writer $CASE_MODEL" "secret $SECRET_MODEL" "case-writer $CASE_MODEL" \
-    "secret $SECRET_MODEL" "case-writer $CASE_MODEL" "case-writer $CASE_MODEL" "secret $SECRET_MODEL" \
-    "case-writer $CASE_MODEL")" ]
+  [ "$(counted_calls)" = "5 case-writer $CASE_MODEL"$'\n'"3 secret $SECRET_MODEL" ]
+}
+
+@test "the lines are drafted side by side, and the cases written as one at a time would write them" {
+  # Four answered lines of one day whose cases share a title: the first in
+  # the log takes the plain name, the rest add their line's id.
+  for number in 1 2 3 4; do
+    add_log_lines "$history" "$(jq -c '.when = "2026-10-01T08:00:00Z"' <<<"$(brief_line "$number" "$OUTCOME_TO_OPERATOR" "a")")"
+  done
+  answer_for case-writer "$(case_form same)"
+  answer_for secret '{"holds_secret":false}'
+  export FAKE_SLEEP=2
+  started="$SECONDS"
+  run_cases
+  [ "$status" -eq 0 ]
+  # Four lines of two calls, two seconds a call: one at a time, 16 s; side
+  # by side, 4 s.
+  [ "$((SECONDS - started))" -lt 10 ]
+  [ "$output" = "$(printf '%s\n' "$answers/2026-10-01-retries-same.md" "$answers/2026-10-01-retries-same-id-2.md" \
+    "$answers/2026-10-01-retries-same-id-3.md" "$answers/2026-10-01-retries-same-id-4.md")" ]
+  grep -qxF "log-id: id-1" "$answers/2026-10-01-retries-same.md"
+  grep -qxF "log-id: id-4" "$answers/2026-10-01-retries-same-id-4.md"
+  [ "$(jq -c '.closing.cases' "$record_file")" = '{"written":4,"skipped":0,"held":0,"failed":0}' ]
 }
 
 @test "the case-writer is handed what the log kept and the answer as typed; the secret check the case whole" {
@@ -192,19 +224,14 @@ step_case_form() {
 @test "run again, a case already written is printed again and not asked of a model twice" {
   sample_log
   run_cases
-  first="$(calls | wc -l)"
-  # The second run's calls, counted on from the first's: the three lines with
-  # no case are asked again, as before.
-  answer_for_call case-writer 6 "$skipped_form"
-  answer_for_call case-writer 7 "$(case_form four)"
-  answer_for_call case-writer 8 "$(case_form five ".why = \"$fake_key_mark\"")"
-  answer_for_call secret 4 '{"holds_secret":true}'
+  # The second run's calls alone: the three lines with no case are asked
+  # again, as before.
+  : >"$FAKE_CALLS"
   run_cases
   [ "$status" -eq 0 ]
   [ "$output" = "$answers/2026-10-01-retries-one.md"$'\n'"$answers/2026-10-02-retries-two.md" ]
   [ "$(ls "$answers" | wc -l)" -eq 2 ]
-  [ "$(calls | tail -n +"$((first + 1))")" = "$(printf '%s\n' "case-writer $CASE_MODEL" "case-writer $CASE_MODEL" \
-    "secret $SECRET_MODEL" "case-writer $CASE_MODEL")" ]
+  [ "$(counted_calls)" = "3 case-writer $CASE_MODEL"$'\n'"1 secret $SECRET_MODEL" ]
   [ "$(jq -c '.closing.cases' "$record_file")" = '{"written":2,"skipped":1,"held":2,"failed":0}' ]
 }
 

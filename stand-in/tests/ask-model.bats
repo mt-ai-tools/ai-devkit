@@ -2,7 +2,9 @@ bats_require_minimum_version 1.5.0
 
 # Behavior tests for asking a model: the answer comes back as the structured
 # output alone, the call runs with hooks off and no tools unless some are
-# given, and every way the call can fail is a refusal naming why. Claude Code is the suite's own fake.
+# given, and every way the call can fail is a refusal naming why; a refusal
+# saying Claude is busy alone is asked again, a few times and inside the
+# call's time limit. Claude Code is the suite's own fake.
 
 load fake-claude
 
@@ -90,4 +92,70 @@ setup() {
     [ "$status" -eq 1 ]
     [ "$stderr" = "$(refuse_model_unreadable_note some-model)" ]
   done
+}
+
+# The calls the fake was asked, counted.
+call_count() {
+  calls | wc -l
+}
+
+@test "a call refused because Claude is busy or rate-limited is asked again, and the answer comes back" {
+  ASK_MODEL_BUSY_WAIT=0
+  export FAKE_ANSWER='{"colour": "blue"}'
+  refusal_for_call other 1 529
+  refusal_for_call other 2 429
+  run --separate-stderr get_model_answer some-model 10 "$schema" <<<"Which colour?"
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"colour":"blue"}' ]
+  [ "$(call_count)" -eq 3 ]
+  # Every try is handed the prompt whole.
+  [ "$(cat "$FAKE_PROMPT.other.1")" = "Which colour?" ]
+  [ "$(cat "$FAKE_PROMPT.other.3")" = "Which colour?" ]
+}
+
+@test "a standing text reaches every try whole" {
+  ASK_MODEL_BUSY_WAIT=0
+  export FAKE_ANSWER='{}'
+  refusal_for_call other 1 529
+  get_model_answer some-model 10 "$schema" "" "" "Every rule." <<<"Which colour?" >/dev/null
+  [ "$(call_count)" -eq 2 ]
+  [ "$(cat "$FAKE_STANDING.other")" = "Every rule." ]
+}
+
+@test "busy on every try is refused as busy, after the retries named" {
+  ASK_MODEL_BUSY_WAIT=0
+  for call in $(seq $((ASK_MODEL_BUSY_RETRIES + 2))); do refusal_for_call other "$call" 529; done
+  run --separate-stderr get_model_answer some-model 10 "$schema" <<<"Which colour?"
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
+  [ "$stderr" = "$(refuse_model_busy_note some-model $((ASK_MODEL_BUSY_RETRIES + 1)))" ]
+  [ "$(call_count)" -eq $((ASK_MODEL_BUSY_RETRIES + 1)) ]
+}
+
+@test "no try is started that the call's time limit would not leave room for after the wait" {
+  ASK_MODEL_BUSY_WAIT=3
+  refusal_for_call other 1 529
+  run --separate-stderr get_model_answer some-model 2 "$schema" <<<"Which colour?"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_model_busy_note some-model 1)" ]
+  [ "$(call_count)" -eq 1 ]
+}
+
+@test "a timeout, an answer that cannot be read and another API refusal are never asked again" {
+  ASK_MODEL_BUSY_WAIT=0
+  export FAKE_ANSWER='{}' FAKE_SLEEP=3
+  run --separate-stderr get_model_answer some-model 1 "$schema" <<<"Which colour?"
+  [ "$stderr" = "$(refuse_model_timeout_note some-model 1)" ]
+  [ "$(call_count)" -eq 1 ]
+  unset FAKE_SLEEP
+  : >"$FAKE_CALLS"
+  export FAKE_ENVELOPE='{"type":"result","is_error":false,"result":"blue"}'
+  run --separate-stderr get_model_answer some-model 10 "$schema" <<<"Which colour?"
+  [ "$stderr" = "$(refuse_model_unreadable_note some-model)" ]
+  [ "$(call_count)" -eq 1 ]
+  : >"$FAKE_CALLS"
+  export FAKE_ENVELOPE='{"type":"result","is_error":true,"api_error_status":404,"result":"No such model."}' FAKE_STATUS=1
+  run --separate-stderr get_model_answer some-model 10 "$schema" <<<"Which colour?"
+  [ "$stderr" = "$(refuse_model_exit_note some-model 1)" ]
+  [ "$(call_count)" -eq 1 ]
 }

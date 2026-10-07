@@ -22,7 +22,10 @@ setup_fake_claude() {
   # FAKE_STATUS is the status the fake ends with; FAKE_SLEEP holds it up. Where
   # one run asks several jobs, each job's answer and status may be given apart,
   # by answer_for and status_for, and a job asked several times in one run
-  # may be given an answer for each call apart, by answer_for_call: the job
+  # may be given an answer for each call apart, by answer_for_call, or for
+  # each call whose prompt holds some words, by answer_for_words, which
+  # holds whatever order calls made side by side arrive in; a call may be
+  # refused as the API refuses, by refusal_for_call. The job
   # is told by the first field its schema requires, since two jobs may run on
   # one model. Every call is logged
   # in turn as "<job> <model>", and its arguments, its prompt, the text added
@@ -62,17 +65,29 @@ printf '%s\n' "$@" >"$FAKE_ARGS"
 cp "$FAKE_ARGS" "$FAKE_ARGS.$job"
 cat >"$FAKE_PROMPT"
 cp "$FAKE_PROMPT" "$FAKE_PROMPT.$job"
+cp "$FAKE_PROMPT" "$FAKE_PROMPT.$job.$turn"
 [ -z "$standing" ] || cat "$standing" >"$FAKE_STANDING.$job"
 pwd >"$FAKE_ARGS.$job.pwd"
 flock -u 9
 [ -n "${FAKE_SLEEP:-}" ] && sleep "$FAKE_SLEEP"
 [ -f "$FAKE_ANSWERS/$job.status" ] && exit "$(cat "$FAKE_ANSWERS/$job.status")"
+# Refused as Claude Code prints an API refusal: an envelope marked as an
+# error, holding the refusal's status, and status 1 (measured 2026-10-07).
+if [ -f "$FAKE_ANSWERS/$job.$turn.refusal" ]; then
+  jq -cn --argjson status "$(cat "$FAKE_ANSWERS/$job.$turn.refusal")" \
+    '{type: "result", subtype: "success", is_error: true, api_error_status: $status, result: "API Error"}'
+  exit 1
+fi
 if [ -n "${FAKE_ENVELOPE+set}" ]; then
   printf '%s' "$FAKE_ENVELOPE"
 else
   answer="${FAKE_ANSWER:-null}"
   [ -f "$FAKE_ANSWERS/$job" ] && answer="$(cat "$FAKE_ANSWERS/$job")"
   [ -f "$FAKE_ANSWERS/$job.$turn" ] && answer="$(cat "$FAKE_ANSWERS/$job.$turn")"
+  for words in "$FAKE_ANSWERS/$job".words.*; do
+    [ -f "$words" ] && [ "${words%.answer}" = "$words" ] || continue
+    grep -qF -- "$(cat "$words")" "$FAKE_PROMPT.$job.$turn" && answer="$(cat "$words.answer")"
+  done
   jq -cn --argjson answer "$answer" \
     '{type: "result", is_error: false, result: ($answer | tojson), structured_output: $answer}'
 fi
@@ -93,6 +108,21 @@ answer_for() {
 # counted from 1, over the job's answer for every call.
 answer_for_call() {
   printf '%s' "$3" >"$FAKE_ANSWERS/$1.$2"
+}
+
+# The answer the fake gives the job named on every call whose prompt holds
+# the words given, over its answer for the call's number.
+answer_for_words() {
+  local count
+  count="$(find "$FAKE_ANSWERS" -maxdepth 1 -name "$1.words.*" ! -name '*.answer' | wc -l)"
+  printf '%s' "$2" >"$FAKE_ANSWERS/$1.words.$count"
+  printf '%s' "$3" >"$FAKE_ANSWERS/$1.words.$count.answer"
+}
+
+# The job named refused on its call of the number given, counted from 1, as
+# the API refuses with the status given.
+refusal_for_call() {
+  printf '%s' "$3" >"$FAKE_ANSWERS/$1.$2.refusal"
 }
 
 # The status the fake ends with when the job named is asked, answering

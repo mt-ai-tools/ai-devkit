@@ -356,29 +356,50 @@ $(exam_detail_line "$(exam_misread_fault "$(exam_question_words)")")
 $(exam_failed_note 1 0 1 1)" ]
 }
 
-@test "the replays of a case run side by side, and a replay that stops without a result counts as failed" {
-  question_case naming.md naming no
+@test "the cases run side by side, their replays with them, and print in the cases' order" {
+  for name in a b c d; do question_case "$name.md" naming no; done
   export FAKE_SLEEP=2
   started="$SECONDS"
   run_exam
   [ "$status" -eq 0 ]
-  # Three replays of three calls each, two seconds a call: side by side, six.
-  [ "$((SECONDS - started))" -lt 12 ]
-  unset FAKE_SLEEP
-  # A replay whose process ends without a result, in two replays of three.
-  . "$lib/exam-replay.sh"
-  replay_case() {
-    if mkdir "$BATS_TEST_TMPDIR/first" 2>/dev/null; then
-      to_case_result "$1" operator "" ""
-    else
-      printf 'it fell over\n' >&2
-      exit 1
-    fi
-  }
-  result="$(replay_best_of "$(jq -cn '{name: "naming.md", tuning_used: false}')")"
-  [ "$(jq -c '{runs, passes, faults}' <<<"$result")" = "$(jq -cn --arg f "$(exam_replay_stopped_fault "it fell over")" \
-    '{runs: 3, passes: 1, faults: [$f]}')" ]
-  ! is_case_passed "$result"
+  # Four cases of three replays, each replay three calls of two seconds: one
+  # case at a time, its replays side by side, 24 s; the twelve replays eight
+  # at a time, 12 s.
+  [ "$((SECONDS - started))" -lt 20 ]
+  expected="$(exam_no_results_line)"
+  for name in a b c d; do
+    expected+=$'\n'"$(exam_passed_line "$name.md" "" operator)"$'\n'"$(exam_replays_line 3 3)"
+  done
+  [ "$output" = "$expected"$'\n'"$(exam_passed_note 4 4 0)" ]
+}
+
+@test "a replay that stops without a result counts as failed, with what it said" {
+  question_case naming.md naming no
+  # A private copy of the kit, whose replay gives a result once and stops
+  # without one after: each replay runs in a process of its own, which loads
+  # the replay from its file, so the change is made there.
+  kit="$BATS_TEST_TMPDIR/kit"
+  mkdir -p "$kit"
+  cp -r "$BATS_TEST_DIRNAME/../../lib" "$kit/lib"
+  cp -r "$BATS_TEST_DIRNAME/.." "$kit/stand-in"
+  cat >>"$kit/stand-in/lib/exam-replay.sh" <<EOF
+replay_case() {
+  if mkdir "$BATS_TEST_TMPDIR/first" 2>/dev/null; then
+    to_case_result "\$1" operator "" ""
+  else
+    printf 'it fell over\n' >&2
+    exit 1
+  fi
+}
+EOF
+  script="$kit/stand-in/bin/stand-in.sh"
+  run_exam
+  [ "$status" -eq 1 ]
+  [ "$output" = "$(exam_no_results_line)
+$(exam_dropped_unknown_line naming.md "")
+$(exam_replays_line 1 3)
+$(exam_detail_line "$(exam_replay_stopped_fault "it fell over")")
+$(exam_failed_note 1 0 1 1)" ]
 }
 
 @test "of the entries a case says it breaks, any one named passes; none named fails; a kind of finding missing fails" {

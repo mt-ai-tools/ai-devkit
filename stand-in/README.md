@@ -257,5 +257,8 @@ owes the exam. Needs the Claude Code
 command-line tool, signed in, to ask models through; the tool installer
 `mise`, called for one command at a time and never activated, with the
 Betterleaks secret scanner installed through it at the release the
-stand-in pins, which it never fetches by itself; and `bash`, `awk`, `jq`,
-`git` and util-linux's `flock`.
+stand-in pins, which it never fetches by itself; `bash`, `awk`, `jq`,
+`git` and util-linux's `flock`; and the kit's side-by-side runner, through
+which the exam replays its cases and the case-writer drafts its questions
+several at a time where GNU parallel is installed, one at a time where it
+is not.

@@ -16,10 +16,21 @@
 # Fails closed for each case: a writer, a scanner or a check that cannot run
 # holds the case back, counted apart from those held for a secret, and the
 # reasons go to stderr, never the case's text.
+#
+# The questions are drafted side by side through the kit's side-by-side
+# runner (settled with the operator 2026-10-07), each in a process of its own
+# that asks the models and writes nothing; their files are then put in place
+# one after another, in the log's order, and the record written once, at the
+# end. So nothing a draft does touches another's: two cases of one day and
+# title take the same names they would one at a time, the first in the log
+# the plain one, and the counts are counted by the run alone, from the
+# drafts in order, never by drafts adding to a shared record, which would
+# need a lock for no gain.
 
 # Loaded once, however many of the stand-in's parts source it, as words.sh is.
 [ -z "${STAND_IN_LOADED_WRITE_CASES:-}" ] || return 0
 STAND_IN_LOADED_WRITE_CASES=1
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/runners/side-by-side.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/words.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/record.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/question-log.sh"
@@ -28,16 +39,14 @@ STAND_IN_LOADED_WRITE_CASES=1
 . "$(dirname "${BASH_SOURCE[0]}")/secret-check.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/scanner.sh"
 
-# How one question ended, as write_one_case prints it, with the path after a
-# written one.
+# How one question ended, as get_case_draft gives it: written, already or
+# now; skipped; held back for a secret; failed to write; or clean, read and
+# found to hold no secret, its file still to be put in place.
 CASE_WRITTEN="written"
 CASE_SKIPPED="skipped"
 CASE_HELD="held"
 CASE_FAILED="failed"
-
-# The separator between the word and the path: the ASCII unit separator,
-# which no path is expected to hold and bash never collapses.
-CASE_US=$'\037'
+CASE_CLEAN="clean"
 
 # The reasons a part gave on stderr, under the line naming the question whose
 # case was not written. The file given holds the reasons.
@@ -72,54 +81,91 @@ check_case_secrets() {
   fi
 }
 
-# One question's case, given the cases' folder and its log line: printed as
-# how it ended, and for a written one its path. A case already written from
-# the line is not written again, and counts as written: its path is printed
-# again, for a run that stopped half-way to be run again whole.
-write_one_case() {
-  local dir="$1" line="$2" number id path form text state date title slug why
+# One question's case drafted, given the cases' folder, the file holding the
+# log lines that become cases, one a line, and the line's place in it,
+# counted from 1: what its case-writer and the secret checks made of it, as
+# one line of JSON {ended, path, text, date, slug, id, number}, path set for
+# a case already written and the rest for a clean one. It asks the models and
+# writes nothing: the call the case-writer's runner makes for each line. A
+# case already written from the line is not drafted again, and counts as
+# written: its path is printed again, for a run that stopped half-way to be
+# run again whole. A draft that could not be made says why on stderr, under
+# the line naming its question.
+get_case_draft() {
+  local dir="$1" lines="$2" place="$3" line number id path form text state date title slug why
+  line="$(sed -n "${place}p" "$lines")"
   number="$(jq -r '.number' <<<"$line")"
   id="$(jq -r '.id' <<<"$line")"
   path="$(find_case_path "$dir" "$id")"
   if [ -n "$path" ]; then
-    printf '%s%s%s\n' "$CASE_WRITTEN" "$CASE_US" "$path"
+    to_case_draft "$CASE_WRITTEN" "$number" --arg path "$path"
     return 0
   fi
   why="$(mktemp)"
   if ! form="$(get_case_form "$line" 2>"$why")"; then
     tell_case_unwritten "$number" "$why"
     rm -f "$why"
-    printf '%s\n' "$CASE_FAILED"
+    to_case_draft "$CASE_FAILED" "$number"
     return 0
   fi
   if ! jq -e '.answers' >/dev/null <<<"$form"; then
     rm -f "$why"
-    printf '%s\n' "$CASE_SKIPPED"
+    to_case_draft "$CASE_SKIPPED" "$number"
     return 0
   fi
   if ! text="$(to_case_text "$line" "$form" 2>"$why")" \
     || ! state="$(check_case_secrets "$text" 2>"$why")"; then
     tell_case_unwritten "$number" "$why"
     rm -f "$why"
-    printf '%s\n' "$CASE_FAILED"
+    to_case_draft "$CASE_FAILED" "$number"
     return 0
   fi
   if [ "$state" = "$SCAN_FOUND" ]; then
     rm -f "$why"
-    printf '%s\n' "$CASE_HELD"
+    to_case_draft "$CASE_HELD" "$number"
     return 0
   fi
-  if ! date="$(to_case_date "$line")" || ! title="$(jq -r '.title' <<<"$form")" \
-    || ! slug="$(to_case_slug "$title")" \
-    || ! path="$(find_free_case_path "$dir" "$date" "$slug" "$id" 2>"$why")" \
-    || ! write_case_file "$path" "$text" 2>"$why"; then
+  if ! date="$(to_case_date "$line" 2>"$why")" || ! title="$(jq -r '.title' <<<"$form" 2>"$why")" \
+    || ! slug="$(to_case_slug "$title" 2>"$why")"; then
     tell_case_unwritten "$number" "$why"
     rm -f "$why"
-    printf '%s\n' "$CASE_FAILED"
+    to_case_draft "$CASE_FAILED" "$number"
     return 0
   fi
   rm -f "$why"
-  printf '%s%s%s\n' "$CASE_WRITTEN" "$CASE_US" "$path"
+  # The text reaches jq through a file descriptor, never as an argument: a
+  # whole case can outgrow what one argument may hold.
+  to_case_draft "$CASE_CLEAN" "$number" --rawfile text <(printf '%s' "$text") --arg date "$date" --arg slug "$slug" \
+    --arg id "$id"
+}
+
+# A draft as get_case_draft prints it, given how it ended, its question's
+# number, and the fields it carries as jq's named arguments.
+to_case_draft() {
+  local ended="$1" number="$2"
+  shift 2
+  jq -cn --arg ended "$ended" --arg number "$number" "$@" '$ARGS.named'
+}
+
+# Put a clean draft's case file in place, given the cases' folder and the
+# draft: its path printed; where it cannot be put in place, the reasons on
+# stderr under the line naming its question, and a non-zero status.
+write_case_draft() {
+  local dir="$1" draft="$2" number date slug id text path why
+  number="$(jq -r '.number' <<<"$draft")" || return 1
+  date="$(jq -r '.date' <<<"$draft")" || return 1
+  slug="$(jq -r '.slug' <<<"$draft")" || return 1
+  id="$(jq -r '.id' <<<"$draft")" || return 1
+  text="$(jq -r '.text' <<<"$draft")" || return 1
+  why="$(mktemp)"
+  if ! path="$(find_free_case_path "$dir" "$date" "$slug" "$id" 2>"$why")" \
+    || ! write_case_file "$path" "$text" 2>"$why"; then
+    tell_case_unwritten "$number" "$why"
+    rm -f "$why"
+    return 1
+  fi
+  rm -f "$why"
+  printf '%s\n' "$path"
 }
 
 # Write the cases of the briefs the session's record says the gate finished,
@@ -128,9 +174,11 @@ write_one_case() {
 # non-zero status, writing nothing, where no brief was finished, or the
 # record or the log cannot be read; and where the counts cannot be kept,
 # after the cases are written, since the end report would then say none was.
+# A draft that ended without one counts as a case that failed to write, with
+# what it said.
 run_write_cases() {
-  local history="$1" session="$2" record_file record closing briefs lines dir line ended path counts
-  local written=0 skipped=0 held=0 failed=0
+  local history="$1" session="$2" record_file record closing briefs lines dir work count place draft ended path
+  local counts status=0 written=0 skipped=0 held=0 failed=0
   record_file="$(to_record_path "$history" "$session")"
   record="$(read_session_record "$record_file")" || return 1
   closing="$(to_closing "$record")"
@@ -142,16 +190,40 @@ run_write_cases() {
   lines="$(list_log_lines "$(to_log_dir "$history")")" || return 1
   lines="$(to_case_lines "$lines" "$briefs")" || return 1
   dir="$(to_cases_dir "$history")"
-  while IFS= read -r line; do
-    [ -n "$line" ] || continue
-    IFS="$CASE_US" read -r ended path <<<"$(write_one_case "$dir" "$line")"
+  work="$(mktemp -d)" || return 1
+  if ! mkdir "$work/runs"; then
+    rm -rf "$work"
+    return 1
+  fi
+  printf '%s\n' "$lines" | sed '/^$/d' >"$work/lines"
+  count="$(wc -l <"$work/lines")"
+  seq "$count" | run_side_by_side "$SIDE_BY_SIDE_JOBS" "$work/runs" "$(dirname "${BASH_SOURCE[0]}")/write-cases.sh" \
+    get_case_draft "$dir" "$work/lines" || status=$?
+  if [ "$status" -eq "$SIDE_BY_SIDE_REFUSED" ]; then
+    rm -rf "$work"
+    return 1
+  fi
+  for place in $(seq "$count"); do
+    cat "$(to_side_by_side_errors "$work/runs" "$place")" >&2 2>/dev/null || true
+    draft="$(jq -ce 'select(type == "object")' "$(to_side_by_side_output "$work/runs" "$place")" 2>/dev/null)" || draft=""
+    ended="$(jq -r '.ended // empty' <<<"${draft:-null}")"
+    if [ "$ended" = "$CASE_CLEAN" ]; then
+      if path="$(write_case_draft "$dir" "$draft")"; then
+        ended="$CASE_WRITTEN"
+      else
+        ended="$CASE_FAILED"
+      fi
+    elif [ "$ended" = "$CASE_WRITTEN" ]; then
+      path="$(jq -r '.path' <<<"$draft")"
+    fi
     case "$ended" in
       "$CASE_WRITTEN") written=$((written + 1)); printf '%s\n' "$path" ;;
       "$CASE_SKIPPED") skipped=$((skipped + 1)) ;;
       "$CASE_HELD") held=$((held + 1)) ;;
       *) failed=$((failed + 1)) ;;
     esac
-  done <<<"$lines"
+  done
+  rm -rf "$work"
   counts="$(to_case_counts "$written" "$skipped" "$held" "$failed")" || return 1
   record="$(with_closing_cases "$record" "$counts")" || return 1
   write_session_record "$record_file" "$record"
