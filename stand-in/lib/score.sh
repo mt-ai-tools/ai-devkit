@@ -71,24 +71,29 @@ is_bar_reached() {
 # The kinds whose score reaches the bar, one a line, in name order, given
 # every kind's score.
 list_bar_kinds() {
-  local kind
+  local kind kinds score
+  kinds="$(jq -r 'keys[]' <<<"$1")" || return 1
   while IFS= read -r kind; do
     [ -n "$kind" ] || continue
-    ! is_bar_reached "$(jq -c --arg kind "$kind" '.[$kind]' <<<"$1")" || printf '%s\n' "$kind"
-  done < <(jq -r 'keys[]' <<<"$1")
+    score="$(jq -c --arg kind "$kind" '.[$kind]' <<<"$1")" || return 1
+    ! is_bar_reached "$score" || printf '%s\n' "$kind"
+  done <<<"$kinds"
 }
 
 # Each kind's score as the exam prints it, one line a kind, in name order.
 format_score_lines() {
-  local scores="$1" kind score reached
+  local scores="$1" kind score reached kinds tries agreed security
+  kinds="$(jq -r 'keys[]' <<<"$scores")" || return 1
   while IFS= read -r kind; do
     [ -n "$kind" ] || continue
-    score="$(jq -c --arg kind "$kind" '.[$kind]' <<<"$scores")"
+    score="$(jq -c --arg kind "$kind" '.[$kind]' <<<"$scores")" || return 1
+    tries="$(jq -r '.tries' <<<"$score")" || return 1
+    agreed="$(jq -r '.agreed' <<<"$score")" || return 1
+    security="$(jq -r '[.misses[] | select(.security)] | length' <<<"$score")" || return 1
     reached=false
     ! is_bar_reached "$score" || reached=true
-    exam_score_line "$kind" "$(jq -r '.tries' <<<"$score")" "$(jq -r '.agreed' <<<"$score")" \
-      "$(jq -r '[.misses[] | select(.security)] | length' <<<"$score")" "$reached"
-  done < <(jq -r 'keys[]' <<<"$scores")
+    exam_score_line "$kind" "$tries" "$agreed" "$security" "$reached"
+  done <<<"$kinds"
 }
 
 # --- Reads.
@@ -103,18 +108,21 @@ format_score_lines() {
 # A refusal on stderr and a non-zero status where the kept results cannot be
 # read.
 find_switch_kind() {
-  local history="$1" preset="$2" results scores kind entry
+  local history="$1" preset="$2" results scores kind entry route score kinds
   results="$(read_exam_results "$history")" || return 1
   scores="$(jq -c '.scores // {}' <<<"$results")" || return 1
+  kinds="$(list_bar_kinds "$scores")" || return 1
   while IFS= read -r kind; do
     [ -n "$kind" ] || continue
     entry="$(get_kind_entry "$preset" "$kind" 2>/dev/null)" || continue
     # Kinds the operator keeps for themselves never switch (decision 8),
     # whatever a score says: their questions reach them by route.
-    [ "$(jq -r '.route' <<<"$entry")" != "$ROUTE_ASK" ] || continue
+    route="$(jq -r '.route' <<<"$entry")" || return 1
+    [ "$route" != "$ROUTE_ASK" ] || continue
     is_on_trial "$history" "$kind" || continue
-    jq -cn --arg kind "$kind" --argjson score "$(jq -c --arg kind "$kind" '.[$kind]' <<<"$scores")" \
+    score="$(jq -c --arg kind "$kind" '.[$kind]' <<<"$scores")" || return 1
+    jq -cn --arg kind "$kind" --argjson score "$score" \
       '{kind: $kind, score: $score}' || return 1
     return 0
-  done < <(list_bar_kinds "$scores")
+  done <<<"$kinds"
 }

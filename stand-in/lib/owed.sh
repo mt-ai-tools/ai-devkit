@@ -73,11 +73,12 @@ with_owed_file() {
 
 # The files a mark lists, one line each as the agent is shown them.
 format_owed_files() {
-  local file
+  local file files
+  files="$(jq -r '.files[]' <<<"$1")" || return 1
   while IFS= read -r file; do
     [ -n "$file" ] || continue
     owed_file_line "$file"
-  done < <(jq -r '.files[]' <<<"$1")
+  done <<<"$files"
 }
 
 # --- Reads.

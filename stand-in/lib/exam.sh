@@ -53,8 +53,9 @@ EXAM_FINDINGS='["breaks", "miscalled", "explains_code"]'
 # option recommended; a route or a finding it names must be one the exam
 # knows. A case that cannot be judged fails, never passes unread.
 derive_case_problem() {
-  local case="$1" route picked finding
-  if [ -z "$(jq -r '.reply' <<<"$case")" ]; then
+  local case="$1" reply route picked finding
+  reply="$(jq -r '.reply' <<<"$case")" || return 1
+  if [ -z "$reply" ]; then
     exam_case_no_reply_words
     return 0
   fi
@@ -137,16 +138,19 @@ derive_reading_fault() {
 # check missed that a sentence explained code while a challenge still sent
 # the question back.
 derive_checker_faults() {
-  local case="$1" checked="$2" finding entry
+  local case="$1" checked="$2" finding entry findings listed
+  findings="$(jq -r '.findings[]' <<<"$case")" || return 1
   while IFS= read -r finding; do
     [ -n "$finding" ] || continue
     jq -e --arg f "$finding" 'if $f == "explains_code" then .explains_code else (.[$f] | length > 0) end' \
       >/dev/null <<<"$checked" || { exam_finding_missing_fault "$finding"; printf '\n'; }
-  done < <(jq -r '.findings[]' <<<"$case")
+  done <<<"$findings"
+  listed="$(jq -c '.breaks' <<<"$case")" || return 1
   if jq -e '.breaks | length > 0' >/dev/null <<<"$case" \
-    && ! jq -e --argjson listed "$(jq -c '.breaks' <<<"$case")" \
+    && ! jq -e --argjson listed "$listed" \
       'any(.breaks[]; .entry as $e | $listed | index($e) != null)' >/dev/null <<<"$checked"; then
-    exam_breaks_none_fault "$(jq -r '.breaks | join(", ")' <<<"$case")"
+    listed="$(jq -r '.breaks | join(", ")' <<<"$case")" || return 1
+    exam_breaks_none_fault "$listed"
   fi
 }
 
@@ -222,8 +226,9 @@ to_case_result() {
 
 # The result of a case that cannot be judged, given its file's name and why.
 to_unjudged_result() {
-  to_case_result "$(jq -cn --arg name "$1" '{name: $name, tuning_used: false}')" "" \
-    "$(exam_unjudgeable_fault "$2")" ""
+  local case
+  case="$(jq -cn --arg name "$1" '{name: $name, tuning_used: false}')" || return 1
+  to_case_result "$case" "" "$(exam_unjudgeable_fault "$2")" ""
 }
 
 # True if the case passed: more than half of its replays passed, where it was
@@ -236,11 +241,14 @@ is_case_passed() {
 # results, or null where none are kept: whether it passed, failed or dropped,
 # how many of its replays passed, then each fault and note under it.
 format_case_lines() {
-  local result="$1" last="$2" name tuning="" line
-  name="$(jq -r '.name' <<<"$result")"
+  local result="$1" last="$2" name route passes runs tuning="" line details
+  name="$(jq -r '.name' <<<"$result")" || return 1
+  route="$(jq -r '.route' <<<"$result")" || return 1
+  passes="$(jq -r '.passes' <<<"$result")" || return 1
+  runs="$(jq -r '.runs' <<<"$result")" || return 1
   ! jq -e '.tuning_used' >/dev/null <<<"$result" || tuning="$(exam_tuning_used_words)"
   if is_case_passed "$result"; then
-    exam_passed_line "$name" "$tuning" "$(jq -r '.route' <<<"$result")"
+    exam_passed_line "$name" "$tuning" "$route"
   elif [ "$last" = null ]; then
     exam_dropped_unknown_line "$name" "$tuning"
   elif is_case_drop "$name" "$last"; then
@@ -249,9 +257,10 @@ format_case_lines() {
     exam_failed_new_line "$name" "$tuning"
   fi
   ! jq -e 'has("runs")' >/dev/null <<<"$result" \
-    || exam_replays_line "$(jq -r '.passes' <<<"$result")" "$(jq -r '.runs' <<<"$result")"
+    || exam_replays_line "$passes" "$runs"
+  details="$(jq -r '.faults[], .notes[]' <<<"$result")" || return 1
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     exam_detail_line "$line"
-  done < <(jq -r '.faults[], .notes[]' <<<"$result")
+  done <<<"$details"
 }

@@ -53,7 +53,7 @@ to_case_step_text() {
   text="$(jq -r '.step // empty
     | (if .next_step != "" then "Next step: \(.next_step)" else empty end),
       (if .proof != "" then "Proof: \(.proof)" else empty end),
-      (if (.problems | length) > 0 then "Problems:", (.problems[] | "- \(.problem) (\(.state))") else empty end)' <<<"$1")"
+      (if (.problems | length) > 0 then "Problems:", (.problems[] | "- \(.problem) (\(.state))") else empty end)' <<<"$1")" || return 1
   [ -n "$text" ] || text="$(case_none_kept_words)"
   printf '%s\n' "$text"
 }
@@ -65,7 +65,7 @@ to_case_step_text() {
 to_case_options_text() {
   local text
   text="$(jq -r '(.ladder.first // .dropped // empty)
-    | (.options[] | "- \(.)"), (if .recommended != "" then "Recommended: \(.recommended)" else empty end)' <<<"$1")"
+    | (.options[] | "- \(.)"), (if .recommended != "" then "Recommended: \(.recommended)" else empty end)' <<<"$1")" || return 1
   [ -n "$text" ] || text="$(case_none_kept_words)"
   printf '%s\n' "$text"
 }
@@ -74,7 +74,7 @@ to_case_options_text() {
 # words for none where none was written.
 to_case_summary_text() {
   local text
-  text="$(jq -r '.summary // empty | to_entries[] | "\(.key): \(.value)"' <<<"$1")"
+  text="$(jq -r '.summary // empty | to_entries[] | "\(.key): \(.value)"' <<<"$1")" || return 1
   [ -n "$text" ] || text="$(case_none_kept_words)"
   printf '%s\n' "$text"
 }
@@ -89,13 +89,24 @@ to_case_summary_text() {
 # asked. One slot for both, rather than a retelling slot every new line would
 # hand over empty.
 to_case_prompt() {
-  local prose="$1" line="$2" values
-  values="$(jq -cn --rawfile shape <(to_case_shape_text "$line") \
-    --rawfile question <(jq -j '.retold // .question' <<<"$line") \
-    --rawfile step <(to_case_step_text "$line") \
-    --rawfile options <(to_case_options_text "$line") --rawfile summary <(to_case_summary_text "$line") \
-    --rawfile exchange <(to_exchange_text "$(jq -c '.exchange' <<<"$line")") \
-    --rawfile answer <(jq -j '.answer' <<<"$line") \
+  local prose="$1" line="$2" shape question step options summary exchange answer values
+  # Each part made here, where its failure is seen, and handed to jq after:
+  # a process substitution's status is never read. The trailing "x" keeps
+  # each part's last newline, which a command substitution would strip.
+  shape="$(to_case_shape_text "$line" && printf x)" || return 1
+  question="$(jq -j '.retold // .question' <<<"$line" && printf x)" || return 1
+  step="$(to_case_step_text "$line" && printf x)" || return 1
+  options="$(to_case_options_text "$line" && printf x)" || return 1
+  summary="$(to_case_summary_text "$line" && printf x)" || return 1
+  exchange="$(jq -c '.exchange' <<<"$line")" || return 1
+  exchange="$(to_exchange_text "$exchange" && printf x)" || return 1
+  answer="$(jq -j '.answer' <<<"$line" && printf x)" || return 1
+  values="$(jq -cn --rawfile shape <(printf '%s' "${shape%x}") \
+    --rawfile question <(printf '%s' "${question%x}") \
+    --rawfile step <(printf '%s' "${step%x}") \
+    --rawfile options <(printf '%s' "${options%x}") --rawfile summary <(printf '%s' "${summary%x}") \
+    --rawfile exchange <(printf '%s' "${exchange%x}") \
+    --rawfile answer <(printf '%s' "${answer%x}") \
     '{shape: $shape, question: $question, step: $step, options: $options, summary: $summary,
       exchange: $exchange, answer: $answer}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/case-writer.md" "$prose" "$values"

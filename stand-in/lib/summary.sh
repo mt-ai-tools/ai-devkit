@@ -41,8 +41,11 @@ to_exchange_text() {
 # exchange reaches jq through a file descriptor, never as an argument: whole
 # replies outgrow what one argument to a command may hold.
 to_summary_prompt() {
-  local prose="$1" exchange="$2" values
-  values="$(jq -cn --rawfile exchange <(to_exchange_text "$exchange") '{exchange: $exchange}')" || return 1
+  local prose="$1" exchange="$2" text values
+  # Made here, where its failure is seen: a process substitution's status is
+  # never read. The trailing "x" keeps the last newline.
+  text="$(to_exchange_text "$exchange" && printf x)" || return 1
+  values="$(jq -cn --rawfile exchange <(printf '%s' "${text%x}") '{exchange: $exchange}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/summary.md" "$prose" "$values"
 }
 

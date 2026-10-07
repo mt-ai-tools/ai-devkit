@@ -76,21 +76,25 @@ derive_round_decisions() {
 # reach jq through a file descriptor, never as an argument: answers the
 # operator typed can outgrow what one argument may hold.
 to_round_prompt() {
-  local prose="$1" decisions="$2" values
-  values="$(jq -cn --rawfile decisions <(to_round_decisions_text "$decisions") '{decisions: $decisions}')" || return 1
+  local prose="$1" decisions="$2" text values
+  # Made here, where its failure is seen: a process substitution's status is
+  # never read. The trailing "x" keeps the last newline.
+  text="$(to_round_decisions_text "$decisions" && printf x)" || return 1
+  values="$(jq -cn --rawfile decisions <(printf '%s' "${text%x}") '{decisions: $decisions}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/round.md" "$prose" "$values"
 }
 
 # The decisions as the round reader reads them.
 to_round_decisions_text() {
-  local decisions="$1" count i decision by answer decided
+  local decisions="$1" count i decision by answer approved decided
   count="$(jq 'length' <<<"$decisions")" || return 1
   for ((i = 0; i < count; i++)); do
     decision="$(jq -c --argjson i "$i" '.[$i]' <<<"$decisions")" || return 1
     by="$(jq -r '.by' <<<"$decision")" || return 1
     answer="$(jq -r '.answer' <<<"$decision")" || return 1
     if [ "$by" = "$ROUND_BY_STAND_IN" ]; then
-      decided="$(round_by_stand_in_prompt_words "$(jq -r '.approved' <<<"$decision")")"
+      approved="$(jq -r '.approved' <<<"$decision")" || return 1
+      decided="$(round_by_stand_in_prompt_words "$approved")"
     elif [ -n "$answer" ]; then
       decided="$(round_by_operator_prompt_words "$answer")"
     else
@@ -135,17 +139,19 @@ to_round_shown() {
 # them and why the round reader failed, empty where it did not: the request,
 # every decision under its number and who decided it, and how to answer.
 format_round_message() {
-  local shown="$1" failed="$2" number by decision
+  local shown="$1" failed="$2" count number by decision rows
+  count="$(jq 'length' <<<"$shown")" || return 1
   round_heading
   [ -z "$failed" ] || round_failed_note "$failed"
-  if [ "$(jq 'length' <<<"$shown")" -eq 0 ]; then
+  if [ "$count" -eq 0 ]; then
     round_empty_line
   fi
+  rows="$(jq -r --arg us "$ROUND_US" '.[] | [(.number | tostring), .by, .decision] | map(gsub("\\s+"; " ")) | join($us)' <<<"$shown")" || return 1
   while IFS="$ROUND_US" read -r number by decision; do
     [ -n "$number" ] || continue
     if [ "$by" = "$ROUND_BY_STAND_IN" ]; then by="$(round_by_stand_in_words)"; else by="$(round_by_operator_words)"; fi
     round_item_line "$number" "$by" "$decision"
-  done < <(jq -r --arg us "$ROUND_US" '.[] | [(.number | tostring), .by, .decision] | map(gsub("\\s+"; " ")) | join($us)' <<<"$shown")
+  done <<<"$rows"
   round_hint
 }
 

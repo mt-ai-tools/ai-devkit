@@ -46,12 +46,13 @@ derive_outcome_rows() {
 # Whether the full check passed, as code reads the reader's form of the
 # agent's last reply, empty where it could not be read; then why not.
 format_end_check() {
-  local form="$1" failed="$2"
+  local form="$1" failed="$2" proof
   if [ -z "$form" ]; then
     end_check_unread_line "$failed"
     return 0
   fi
-  case "$(jq -r '.proof' <<<"$form")" in
+  proof="$(jq -r '.proof' <<<"$form")" || return 1
+  case "$proof" in
     "$STEP_PROOF_PASSED") end_check_passed_line ;;
     "$STEP_PROOF_FAILED") end_check_failed_line ;;
     *) end_check_unsaid_line ;;
@@ -122,14 +123,17 @@ format_end_parked() {
 # the agent is told to run it, and only code reading the record can say it
 # did.
 format_end_cases() {
-  local cases
-  cases="$(jq -c '.cases // empty' <<<"$1")"
+  local cases written skipped held failed
+  cases="$(jq -c '.cases // empty' <<<"$1")" || return 1
   if [ -z "$cases" ]; then
     end_cases_never_line
     return 0
   fi
-  end_cases_line "$(jq -r '.written' <<<"$cases")" "$(jq -r '.skipped' <<<"$cases")" \
-    "$(jq -r '.held' <<<"$cases")" "$(jq -r '.failed' <<<"$cases")"
+  written="$(jq -r '.written' <<<"$cases")" || return 1
+  skipped="$(jq -r '.skipped' <<<"$cases")" || return 1
+  held="$(jq -r '.held' <<<"$cases")" || return 1
+  failed="$(jq -r '.failed' <<<"$cases")" || return 1
+  end_cases_line "$written" "$skipped" "$held" "$failed"
 }
 
 # The question whether a kind may answer alone (settled 2026-10-01/02,
@@ -138,22 +142,27 @@ format_end_cases() {
 # score, each case it got wrong, plainly, and the question last, saying the
 # one answer that switches it. Nothing where none is due.
 format_end_switch() {
-  local switch="$1" failed="$2" kind score name summary
+  local switch="$1" failed="$2" kind score tries agreed count name summary misses
   if [ -n "$failed" ]; then
     end_switch_unread_line "$failed"
     return 0
   fi
   [ -n "$switch" ] || return 0
-  kind="$(jq -r '.kind' <<<"$switch")"
-  score="$(jq -c '.score' <<<"$switch")"
-  end_switch_heading "$kind" "$(jq -r '.tries' <<<"$score")" "$(jq -r '.agreed' <<<"$score")"
+  kind="$(jq -r '.kind' <<<"$switch")" || return 1
+  score="$(jq -c '.score' <<<"$switch")" || return 1
+  tries="$(jq -r '.tries' <<<"$score")" || return 1
+  agreed="$(jq -r '.agreed' <<<"$score")" || return 1
+  count="$(jq '.misses | length' <<<"$score")" || return 1
+  end_switch_heading "$kind" "$tries" "$agreed"
   end_switch_misses_heading
-  if [ "$(jq '.misses | length' <<<"$score")" -eq 0 ]; then
+  if [ "$count" -eq 0 ]; then
     end_none_line
   else
+    misses="$(jq -r --arg us "$END_US" '.misses[] | [.name, (.summary | gsub("\\s+"; " "))] | join($us)' <<<"$score")" || return 1
     while IFS="$END_US" read -r name summary; do
+      [ -n "$name" ] || continue
       end_switch_miss_line "$name" "$summary"
-    done < <(jq -r --arg us "$END_US" '.misses[] | [.name, (.summary | gsub("\\s+"; " "))] | join($us)' <<<"$score")
+    done <<<"$misses"
   fi
   end_switch_question "$kind" "$(trial_yes_words)"
 }
@@ -164,11 +173,12 @@ format_end_switch() {
 # where it did, and the kind due to be asked about with why none could be
 # found, as format_end_switch takes them.
 format_end_report() {
-  local lines="$1" closing="$2" form="$3" failed="$4" switch="${5:-}" switch_failed="${6:-}" briefs mine findings
-  briefs="$(jq -c '.briefs' <<<"$closing")"
-  mine="$(to_brief_log_lines "$lines" "$briefs")"
-  findings="$(to_closing_findings "$mine")"
-  end_report_heading "$(jq -r 'join(", ")' <<<"$briefs")"
+  local lines="$1" closing="$2" form="$3" failed="$4" switch="${5:-}" switch_failed="${6:-}" briefs names mine findings
+  briefs="$(jq -c '.briefs' <<<"$closing")" || return 1
+  names="$(jq -r 'join(", ")' <<<"$briefs")" || return 1
+  mine="$(to_brief_log_lines "$lines" "$briefs")" || return 1
+  findings="$(to_closing_findings "$mine")" || return 1
+  end_report_heading "$names"
   end_built_line
   format_end_check "$form" "$failed"
   format_end_silent "$mine"

@@ -370,12 +370,12 @@ all_three() {
 }
 
 # A command of the suite's own in place of the one named, which fails, saying
-# so on stderr, where any of its arguments holds the words given, and runs the
-# real one otherwise.
+# so on stderr, where any of its arguments holds the words given, taken
+# literally and holding no single quote, and runs the real one otherwise.
 fail_command_on() {
   local real
   real="$(command -v "$1")"
-  printf '#!/usr/bin/env bash\nfor a in "$@"; do case "$a" in *%s*) echo "%s: refused by the suite" >&2; exit 5 ;; esac; done\nexec %s "$@"\n' \
+  printf '#!/usr/bin/env bash\nfor a in "$@"; do case "$a" in *'\''%s'\''*) echo "%s: refused by the suite" >&2; exit 5 ;; esac; done\nexec %s "$@"\n' \
     "$2" "$1" "$real" >"$fakebin/$1"
   chmod +x "$fakebin/$1"
 }
@@ -1818,6 +1818,20 @@ organizer_done() {
 # said done, the full check as given.
 finished_form() { jq -c --arg proof "$1" '.claims_done = true | .proof = $proof' <<<"$(no_question_form)"; }
 finished_reply="Committed. The brief built the end report; the full check passed: 470 tests."
+
+# regression: bash turned errexit off inside command substitutions, so the
+# end report, made in one, carried on past a step that failed and showed the
+# operator a report missing the brief's decisions as if it were whole.
+@test "an end report whose step fails is no report: the operator is told the reply was not judged, and why" {
+  closing_ground
+  add_log_lines "$history" "$(log_line 1 "$OUTCOME_SETTLED" session-3 2026-10-06T07:00:00Z five '["file-trash"]')"
+  sweep_round "$(look_form)" "$(look_form)"
+  fail_command_on jq 'any($briefs[]; . == $b)'
+  answer_for reader "$(finished_form passed)"
+  run_gate true "$finished_reply"
+  [ "$status" -eq 0 ]
+  [ "$(message)" = "$(gate_broken_note "jq: refused by the suite")" ]
+}
 
 @test "a finished brief's end report shows every part, from the log and the organizer's own output" {
   closing_ground

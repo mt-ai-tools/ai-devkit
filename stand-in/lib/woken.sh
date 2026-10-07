@@ -61,9 +61,10 @@ is_wait_over() {
 
 # What the wait was for, in words, given a mark.
 format_waited_words() {
-  local on
-  on="$(jq -r '.on' <<<"$1")"
-  if [ "$(jq -r '.kind' <<<"$1")" = "$WAIT_BRIEF" ]; then
+  local on kind
+  on="$(jq -r '.on' <<<"$1")" || return 1
+  kind="$(jq -r '.kind' <<<"$1")" || return 1
+  if [ "$kind" = "$WAIT_BRIEF" ]; then
     wait_brief_words "$on"
   else
     wait_repository_words "$on"

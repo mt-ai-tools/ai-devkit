@@ -196,7 +196,8 @@ to_names() {
 # none, or where one has no summary to be sorted by. A kind's name is its
 # file's, as the operator sees it in the folder.
 list_kinds() {
-  local folder="$1/$PRESET_KINDS_FOLDER" entry name summary kinds=""
+  local folder="$1/$PRESET_KINDS_FOLDER" entry name summary kinds="" found
+  found="$(list_collection_entries "$folder")" || return 1
   while IFS= read -r entry; do
     [ -n "$entry" ] || continue
     name="$(basename "$entry" .md)"
@@ -206,7 +207,7 @@ list_kinds() {
       return 1
     fi
     kinds+="$(jq -cn --arg name "$name" --arg summary "$summary" '{name: $name, summary: $summary}')"$'\n' || return 1
-  done < <(list_collection_entries "$folder")
+  done <<<"$found"
   if [ -z "$kinds" ]; then
     refuse_no_kinds_note "$folder" >&2
     return 1
@@ -222,13 +223,14 @@ list_kinds() {
 # guessing ladder would let a question the operator keeps for themselves pass
 # without them.
 get_kind_entry() {
-  local preset="$1" name="$2" file summary route challenge second
+  local preset="$1" name="$2" file fields summary route challenge second
   file="$preset/$PRESET_KINDS_FOLDER/$name.md"
   if [ ! -f "$file" ] || [ ! -r "$file" ]; then
     refuse_unreadable_file_note "$file" >&2
     return 1
   fi
-  IFS="$HEADER_US" read -r summary route challenge second < <(read_header_fields "$file" summary route challenge second-challenge)
+  fields="$(read_header_fields "$file" summary route challenge second-challenge)" || return 1
+  IFS="$HEADER_US" read -r summary route challenge second <<<"$fields"
   if ! is_route "$route"; then
     refuse_kind_route_note "$name" "$route" "$(to_routes_line)" >&2
     return 1
@@ -312,7 +314,8 @@ read_opener() {
 # non-zero status where an entry cannot be read, or more than one kind takes
 # the route: which of them a step is would be a guess.
 find_go_kind() {
-  local preset="$1" folder="$1/$PRESET_KINDS_FOLDER" entry route found=""
+  local preset="$1" folder="$1/$PRESET_KINDS_FOLDER" entries entry route found=""
+  entries="$(list_collection_entries "$folder")" || return 1
   while IFS= read -r entry; do
     [ -n "$entry" ] || continue
     route="$(read_header_fields "$entry" route)" || return 1
@@ -322,7 +325,7 @@ find_go_kind() {
       return 1
     fi
     found="$(basename "$entry" .md)"
-  done < <(list_collection_entries "$folder")
+  done <<<"$entries"
   [ -n "$found" ] || return 0
   get_kind_entry "$preset" "$found"
 }

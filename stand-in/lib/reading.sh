@@ -58,9 +58,10 @@ to_reading_settings() {
 # question, its options as a JSON array, and the rules' and conventions'
 # folders, which the advisor reads the laws in.
 to_reading_prompt() {
-  local prose="$1" command="$2" question="$3" options="$4" rules="$5" conventions="$6" values
+  local prose="$1" command="$2" question="$3" options="$4" rules="$5" conventions="$6" listed values
+  listed="$(jq -r '.[] | "- \(.)"' <<<"$options")" || return 1
   values="$(jq -cn --arg command "$command" --arg question "$question" \
-    --arg options "$(jq -r '.[] | "- \(.)"' <<<"$options")" \
+    --arg options "$listed" \
     --arg rules "$rules" --arg conventions "$conventions" \
     '{command: $command, question: $question, options: $options, rules: $rules, conventions: $conventions}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/reading.md" "$prose" "$values"

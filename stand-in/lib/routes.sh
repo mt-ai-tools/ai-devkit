@@ -30,7 +30,7 @@ STAND_IN_LOADED_ROUTES=1
 # agent has already answered for it, and a send-back would only start the
 # challenge over.
 derive_route() {
-  local form="$1" sort="$2" entry="$3" risks="$4" kept="$5" recommended name route lines="" risk words
+  local form="$1" sort="$2" entry="$3" risks="$4" kept="$5" recommended name route lines="" risk words names
   recommended="$(jq -r '.recommended' <<<"$form")"
   if [ -z "$recommended" ] && [ "$kept" != true ]; then
     to_route agent "$(gate_no_recommendation_note)"
@@ -39,14 +39,18 @@ derive_route() {
   name="$(jq -r '.name' <<<"$entry")"
   route="$(jq -r '.route' <<<"$entry")"
   case "$route" in
-    "$ROUTE_ASK") lines+="$(gate_kind_line "$name" "$(jq -r '.summary' <<<"$entry")")"$'\n' ;;
+    "$ROUTE_ASK")
+      summary="$(jq -r '.summary' <<<"$entry")" || return 1
+      lines+="$(gate_kind_line "$name" "$summary")"$'\n'
+      ;;
     "$ROUTE_GO") lines+="$(gate_go_kind_line "$name")"$'\n' ;;
   esac
+  names="$(jq -r '.risks[]' <<<"$sort")" || return 1
   while IFS= read -r risk; do
     [ -n "$risk" ] || continue
     words="$(jq -r --arg risk "$risk" '.[] | select(.name == $risk) | .words' <<<"$risks")"
     lines+="$(gate_risk_line "$recommended" "$risk" "$words")"$'\n'
-  done < <(jq -r '.risks[]' <<<"$sort")
+  done <<<"$names"
   if jq -e '.unsure' >/dev/null <<<"$sort"; then
     lines+="$(gate_unsure_line "$name")"$'\n'
   fi

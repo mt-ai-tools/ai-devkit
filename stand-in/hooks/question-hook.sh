@@ -27,6 +27,8 @@
 # Before the tool is known to be the box, any failure is silent: a hook that
 # cannot tell which tool it was handed must not speak up for every tool.
 set -euo pipefail
+# Errexit kept inside command substitutions; why beside the gate's own line.
+shopt -s inherit_errexit
 
 # Kept outside every function, for the trap below to read: the file every
 # part's refusal is gathered in, and whether the tool is the question box.

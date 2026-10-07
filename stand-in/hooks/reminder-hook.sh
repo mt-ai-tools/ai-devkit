@@ -18,6 +18,8 @@
 # cannot be told, the operator and the agent are both told why, and the turn
 # goes on.
 set -euo pipefail
+# Errexit kept inside command substitutions; why beside the gate's own line.
+shopt -s inherit_errexit
 
 reasons=""
 

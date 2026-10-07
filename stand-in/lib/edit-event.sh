@@ -47,7 +47,7 @@ to_edit_session() {
 # event says the session stood in where the name is not absolute; a refusal
 # on stderr and a non-zero status where it names none.
 to_edited_path() {
-  local path
+  local path cwd
   path="$(jq -r --argjson tools "$EDIT_TOOLS" \
     '.tool_input[$tools[.tool_name]] // empty | strings' 2>/dev/null <<<"$1")" || path=""
   if [ -z "$path" ]; then
@@ -56,7 +56,10 @@ to_edited_path() {
   fi
   case "$path" in
     /*) printf '%s\n' "$path" ;;
-    *) printf '%s/%s\n' "$(jq -r '.cwd // empty | strings' <<<"$1")" "$path" ;;
+    *)
+      cwd="$(jq -r '.cwd // empty | strings' <<<"$1")" || return 1
+      printf '%s/%s\n' "$cwd" "$path"
+      ;;
   esac
 }
 

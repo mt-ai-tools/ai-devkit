@@ -77,7 +77,7 @@ check_case_secrets() {
 # the line is not written again, and counts as written: its path is printed
 # again, for a run that stopped half-way to be run again whole.
 write_one_case() {
-  local dir="$1" line="$2" number id path form text state why
+  local dir="$1" line="$2" number id path form text state date title slug why
   number="$(jq -r '.number' <<<"$line")"
   id="$(jq -r '.id' <<<"$line")"
   path="$(find_case_path "$dir" "$id")"
@@ -109,8 +109,9 @@ write_one_case() {
     printf '%s\n' "$CASE_HELD"
     return 0
   fi
-  if ! path="$(find_free_case_path "$dir" "$(to_case_date "$line")" \
-    "$(to_case_slug "$(jq -r '.title' <<<"$form")")" "$id" 2>"$why")" \
+  if ! date="$(to_case_date "$line")" || ! title="$(jq -r '.title' <<<"$form")" \
+    || ! slug="$(to_case_slug "$title")" \
+    || ! path="$(find_free_case_path "$dir" "$date" "$slug" "$id" 2>"$why")" \
     || ! write_case_file "$path" "$text" 2>"$why"; then
     tell_case_unwritten "$number" "$why"
     rm -f "$why"
@@ -128,7 +129,7 @@ write_one_case() {
 # record or the log cannot be read; and where the counts cannot be kept,
 # after the cases are written, since the end report would then say none was.
 run_write_cases() {
-  local history="$1" session="$2" record_file record closing briefs lines dir line ended path
+  local history="$1" session="$2" record_file record closing briefs lines dir line ended path counts
   local written=0 skipped=0 held=0 failed=0
   record_file="$(to_record_path "$history" "$session")"
   record="$(read_session_record "$record_file")" || return 1
@@ -151,6 +152,7 @@ run_write_cases() {
       *) failed=$((failed + 1)) ;;
     esac
   done <<<"$lines"
-  record="$(with_closing_cases "$record" "$(to_case_counts "$written" "$skipped" "$held" "$failed")")"
+  counts="$(to_case_counts "$written" "$skipped" "$held" "$failed")" || return 1
+  record="$(with_closing_cases "$record" "$counts")" || return 1
   write_session_record "$record_file" "$record"
 }

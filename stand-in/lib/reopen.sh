@@ -118,21 +118,24 @@ format_reopened_fixed() {
 # answers as given stand in its place, as they do in the gate's message; a
 # go shows the problems fixed before it.
 format_reopened() {
-  local line="$1" exchange="$2" number when session briefs ladder summary reading answer
+  local line="$1" exchange="$2" number when session briefs where question approved ladder summary reading answer
   number="$(jq -r '.number' <<<"$line")" || return 1
   when="$(jq -r --arg format "$SETTLED_DAY_TIME_FORMAT" '.when | fromdateiso8601 | strflocaltime($format)' <<<"$line")" || return 1
   session="$(jq -r '.session' <<<"$line")" || return 1
   briefs="$(jq -r '(.briefs // []) | join(", ")' <<<"$line")" || return 1
+  where="$(format_settled_where "$session" "$briefs")" || return 1
+  question="$(jq -r '.retold // .question' <<<"$line")" || return 1
   if is_settled_line "$line"; then
-    reopen_heading "$number" "$when" "$(format_settled_where "$session" "$briefs")"
-    reopen_question_line "$(jq -r '.retold // .question' <<<"$line")"
-    reopen_settled_line "$(jq -r '.approved' <<<"$line")"
+    approved="$(jq -r '.approved' <<<"$line")" || return 1
+    reopen_heading "$number" "$when" "$where"
+    reopen_question_line "$question"
+    reopen_settled_line "$approved"
   elif is_dropped_line "$line"; then
-    reopen_dropped_heading "$number" "$when" "$(format_settled_where "$session" "$briefs")"
-    reopen_question_line "$(jq -r '.retold // .question' <<<"$line")"
+    reopen_dropped_heading "$number" "$when" "$where"
+    reopen_question_line "$question"
   else
-    reopen_decided_heading "$number" "$when" "$(format_settled_where "$session" "$briefs")"
-    reopen_question_line "$(jq -r '.retold // .question' <<<"$line")"
+    reopen_decided_heading "$number" "$when" "$where"
+    reopen_question_line "$question"
     answer="$(jq -r '.answer' <<<"$line")" || return 1
     if [ -n "$answer" ]; then reopen_answered_line "$answer"; else reopen_unanswered_line; fi
   fi
@@ -176,21 +179,25 @@ is_dropped_line() {
 # keeps since it never climbed a ladder. A decision of a round adds that
 # building waits until it is settled again.
 format_reopened_agent_note() {
-  local line="$1" listed="${2:-false}" number question options
+  local line="$1" listed="${2:-false}" number question step options kept
   number="$(jq -r '.number' <<<"$line")" || return 1
-  question="$(jq -r '.question' <<<"$line")"
-  if jq -e '.step != null' >/dev/null <<<"$line"; then
+  question="$(jq -r '.question' <<<"$line")" || return 1
+  step="$(jq -r '.step != null' <<<"$line")" || return 1
+  if [ "$step" = true ]; then
     reopen_go_agent_note "$number" "$question"
     return 0
   fi
   options="$(jq -r --arg separator "$LADDER_OPTION_SEPARATOR" \
-    '(.ladder.first.options // .dropped.options // []) | join($separator)' <<<"$line")"
+    '(.ladder.first.options // .dropped.options // []) | join($separator)' <<<"$line")" || return 1
   if is_settled_line "$line"; then
-    reopen_agent_note "$number" "$question" "$options" "$(jq -r '.approved' <<<"$line")"
+    kept="$(jq -r '.approved' <<<"$line")" || return 1
+    reopen_agent_note "$number" "$question" "$options" "$kept"
   elif is_dropped_line "$line"; then
-    reopen_dropped_agent_note "$number" "$question" "$options" "$(jq -r '.dropped.recommended // ""' <<<"$line")"
+    kept="$(jq -r '.dropped.recommended // ""' <<<"$line")" || return 1
+    reopen_dropped_agent_note "$number" "$question" "$options" "$kept"
   else
-    reopen_decided_agent_note "$number" "$question" "$options" "$(jq -r '.answer' <<<"$line")"
+    kept="$(jq -r '.answer' <<<"$line")" || return 1
+    reopen_decided_agent_note "$number" "$question" "$options" "$kept"
   fi
   [ "$listed" != true ] || reopen_round_waits_note
 }

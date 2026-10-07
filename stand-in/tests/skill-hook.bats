@@ -159,6 +159,22 @@ three_lines() {
   [ "$(note)" = "$(reopen_agent_note 3 "Five retries or ten? (3)" "five${LADDER_OPTION_SEPARATOR}ten" five)" ]
 }
 
+# regression: the question was shown from a command substitution whose
+# status nobody read, after it was already marked reopened, so a part that
+# failed showed the user less than the whole and the reopen stood anyway.
+@test "a reopened question that cannot be shown is refused, saying why, and nothing is marked reopened" {
+  three_lines
+  real="$(command -v jq)"
+  printf '#!/usr/bin/env bash\nfor a in "$@"; do case "$a" in *'\''fromdateiso8601 | strflocaltime'\''*) echo "jq: refused by the suite" >&2; exit 5 ;; esac; done\nexec %s "$@"\n' \
+    "$real" >"$fakebin/jq"
+  chmod +x "$fakebin/jq"
+  run_hook devkit-stand-in-reopen 3
+  [ "$(shown)" = "jq: refused by the suite" ]
+  [ "$(note)" = "$(skill_refusal_shown_note)" ]
+  [ "$(jq -r 'select(.number == 3) | .reopened' "$history/log/questions.jsonl")" = null ]
+  [ ! -e "$record_file" ]
+}
+
 @test "a reopened question shows its exchange word for word on request, and its reading where one ran" {
   add_log_lines "$history" "$(jq -c '.reading = "Ten is safer."' <<<"$(log_line 3 "$OUTCOME_SETTLED" session-2 2026-10-06T14:05:00Z)")"
   run_hook devkit-stand-in-reopen "3 exchange"

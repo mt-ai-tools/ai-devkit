@@ -51,12 +51,13 @@ list_major_labels() {
 # sorter's checked labelling and the labels as list_major_labels gives them;
 # and a line where the sorter could not tell, which counts as major.
 derive_major_lines() {
-  local sort="$1" labels="$2" problem label words
+  local sort="$1" labels="$2" problem label words rows
+  rows="$(jq -r --arg us "$STEP_US" '.majors[] | [.problem, .label] | map(gsub("\\s+"; " ")) | join($us)' <<<"$sort")" || return 1
   while IFS="$STEP_US" read -r problem label; do
     [ -n "$label" ] || continue
     words="$(jq -r --arg label "$label" '.[] | select(.name == $label) | .words' <<<"$labels")"
     gate_major_line "$problem" "$label" "$words"
-  done < <(jq -r --arg us "$STEP_US" '.majors[] | [.problem, .label] | map(gsub("\\s+"; " ")) | join($us)' <<<"$sort")
+  done <<<"$rows"
   if jq -e '.unsure' >/dev/null <<<"$sort"; then
     gate_major_unsure_line
   fi
@@ -94,14 +95,14 @@ derive_step_sendback() {
 # what it can: whether a brief is held at all, and whether the step named is
 # the first; what the next step does is read off the reply, never guessed.
 derive_always_yours_lines() {
-  local form="$1" briefs="$2" proof from number mark
-  proof="$(jq -r '.proof' <<<"$form")"
+  local form="$1" briefs="$2" proof from count number mark marks
+  proof="$(jq -r '.proof' <<<"$form")" || return 1
   case "$proof" in
     "$STEP_PROOF_PASSED") ;;
     "$STEP_PROOF_FAILED") gate_proof_failed_line ;;
     *) gate_proof_unsaid_line ;;
   esac
-  from="$(jq -r '.next_step_from' <<<"$form")"
+  from="$(jq -r '.next_step_from' <<<"$form")" || return 1
   case "$from" in
     "$STEP_FROM_BRIEF") ;;
     "$STEP_FROM_NEW_WORK") gate_new_work_line ;;
@@ -109,10 +110,11 @@ derive_always_yours_lines() {
   esac
   if [ "$briefs" = null ]; then
     gate_briefs_unknown_line
-  elif [ "$(jq 'length' <<<"$briefs")" -eq 0 ]; then
-    gate_no_brief_line
+  else
+    count="$(jq 'length' <<<"$briefs")" || return 1
+    [ "$count" -ne 0 ] || gate_no_brief_line
   fi
-  number="$(jq -r '.next_step_number' <<<"$form")"
+  number="$(jq -r '.next_step_number' <<<"$form")" || return 1
   if [ "$from" = "$STEP_FROM_BRIEF" ]; then
     if [ "$number" -eq 0 ]; then
       gate_step_number_unsaid_line
@@ -123,10 +125,11 @@ derive_always_yours_lines() {
   # What the next step does is read off the report alone, never cut out of
   # the brief: the operator chose to trust the report (2026-10-06), so a
   # report silent about a push or a delete lets that step's go through.
+  marks="$(jq -r '.next_step_marks | unique[]' <<<"$form")" || return 1
   while IFS= read -r mark; do
     [ -n "$mark" ] || continue
     gate_step_mark_line "$(step_mark_words "$mark")"
-  done < <(jq -r '.next_step_marks | unique[]' <<<"$form")
+  done <<<"$marks"
 }
 
 # What follows a step's report, as JSON {next, words}: next is "operator",
@@ -162,7 +165,9 @@ to_step_next() {
 # the settled list shows it: whether to go on to the next step the reply
 # names.
 to_step_question() {
-  gate_step_question "$(jq -r '.next_step | gsub("\\s+"; " ")' <<<"$1")"
+  local next
+  next="$(jq -r '.next_step | gsub("\\s+"; " ")' <<<"$1")" || return 1
+  gate_step_question "$next"
 }
 
 # The lines listing the problems fixed in passing, under their heading;

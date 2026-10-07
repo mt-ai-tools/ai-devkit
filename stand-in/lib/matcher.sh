@@ -27,9 +27,10 @@ STAND_IN_LOADED_MATCHER=1
 # asked, its options as a JSON array, and the reply. The question is handed
 # too, since whether a reply still asks it cannot be told from the options.
 to_matcher_prompt() {
-  local prose="$1" question="$2" options="$3" reply="$4" values
+  local prose="$1" question="$2" options="$3" reply="$4" listed values
+  listed="$(jq -r '.[] | "- \(.)"' <<<"$options")" || return 1
   values="$(jq -cn --arg question "$question" \
-    --arg options "$(jq -r '.[] | "- \(.)"' <<<"$options")" \
+    --arg options "$listed" \
     --rawfile reply <(printf '%s' "$reply") \
     '{question: $question, options: $options, reply: $reply}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/matcher.md" "$prose" "$values"

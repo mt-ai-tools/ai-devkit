@@ -23,6 +23,8 @@
 # misses an answer is worth a line; a turn refused for it would cost the
 # operator their work.
 set -euo pipefail
+# Errexit kept inside command substitutions; why beside the gate's own line.
+shopt -s inherit_errexit
 
 reasons=""
 

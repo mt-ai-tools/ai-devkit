@@ -34,6 +34,8 @@
 # refusal goes the same way. A config file the kit refuses stops it with the
 # config reader's own reason.
 set -euo pipefail
+# Errexit kept inside command substitutions; why beside the gate's own line.
+shopt -s inherit_errexit
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 tool_root="$(cd "$here/.." && pwd)"

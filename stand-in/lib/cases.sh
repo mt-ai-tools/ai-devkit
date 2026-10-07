@@ -107,9 +107,10 @@ to_case_date() {
 # A case file's whole text, given the log line and the case-writer's checked
 # form. Every header value is held to one line, whatever the log holds.
 to_case_text() {
-  local line="$1" form="$2" alone picked_recommended security fields
+  local line="$1" form="$2" outcome alone picked_recommended security fields
+  outcome="$(jq -r '.outcome' <<<"$line")" || return 1
   alone="$(case_no_words)"
-  [ "$(jq -r '.outcome' <<<"$line")" != "$OUTCOME_WOULD_HAVE_APPROVED" ] || alone="$(case_yes_words)"
+  [ "$outcome" != "$OUTCOME_WOULD_HAVE_APPROVED" ] || alone="$(case_yes_words)"
   picked_recommended="$(case_no_words)"
   ! jq -e '.picked != "" and .picked == .recommended' >/dev/null <<<"$form" || picked_recommended="$(case_yes_words)"
   security="$(case_no_words)"
@@ -186,12 +187,17 @@ to_header_list() {
 # the exam, and for the score, is theirs to say.
 to_case() {
   local name="$1" text="$2" kind="$3" picked="$4" tuning="$5" brief="$6" route="$7" findings="$8" breaks="$9"
-  local security="${10}" summary="${11}"
+  local security="${10}" summary="${11}" listed broken reply
+  # Each made here, where its failure is seen; the reply's trailing "x" keeps
+  # its last newline, which a command substitution would strip.
+  listed="$(to_header_list "$findings")" || return 1
+  broken="$(to_header_list "$breaks")" || return 1
+  reply="$(to_case_reply "$text" && printf x)" || return 1
   jq -cn --arg name "$name" --arg kind "$kind" --arg picked "$picked" --arg tuning "$tuning" \
     --arg security "$security" --arg summary "$summary" \
     --arg used "$(case_tuning_used_words)" --arg brief "$brief" --arg route "$route" \
-    --argjson findings "$(to_header_list "$findings")" --argjson breaks "$(to_header_list "$breaks")" \
-    --rawfile reply <(to_case_reply "$text") '{
+    --argjson findings "$listed" --argjson breaks "$broken" \
+    --rawfile reply <(printf '%s' "${reply%x}") '{
       name: $name, kind: $kind, picked_recommended: $picked,
       tuning_used: (($tuning | split(" ") | .[0] // "") == $used),
       briefs: ($brief | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))),
@@ -205,11 +211,12 @@ to_case() {
 # in the folder given; nothing where none is. Read off each case's header, so
 # a case renamed or moved by hand within the folder is still found.
 find_case_path() {
-  local dir="$1" id="$2" file
+  local dir="$1" id="$2" file logged
   [ -d "$dir" ] || return 0
   for file in "$dir"/*.md; do
     [ -f "$file" ] || continue
-    if [ "$(read_header_fields "$file" "$CASE_LOG_ID_FIELD")" = "$id" ]; then
+    logged="$(read_header_fields "$file" "$CASE_LOG_ID_FIELD")" || return 1
+    if [ "$logged" = "$id" ]; then
       printf '%s\n' "$file"
       return 0
     fi
@@ -232,14 +239,14 @@ list_case_files() {
 # header reader, by the names to_case_text writes them under, and the seed
 # cases' route, findings and breaks beside them.
 read_case() {
-  local file="$1" text kind picked tuning brief route findings breaks security summary
+  local file="$1" text fields kind picked tuning brief route findings breaks security summary
   if ! text="$(cat "$file" 2>/dev/null)"; then
     refuse_unreadable_file_note "$file" >&2
     return 1
   fi
-  IFS="$HEADER_US" read -r kind picked tuning brief route findings breaks security summary \
-    < <(read_header_fields "$file" "$CASE_KIND_FIELD" "$CASE_PICKED_FIELD" "$CASE_TUNING_FIELD" "$CASE_BRIEF_FIELD" \
-      "$CASE_ROUTE_FIELD" "$CASE_FINDINGS_FIELD" "$CASE_BREAKS_FIELD" "$CASE_SECURITY_FIELD" "$CASE_SUMMARY_FIELD")
+  fields="$(read_header_fields "$file" "$CASE_KIND_FIELD" "$CASE_PICKED_FIELD" "$CASE_TUNING_FIELD" "$CASE_BRIEF_FIELD" \
+    "$CASE_ROUTE_FIELD" "$CASE_FINDINGS_FIELD" "$CASE_BREAKS_FIELD" "$CASE_SECURITY_FIELD" "$CASE_SUMMARY_FIELD")" || return 1
+  IFS="$HEADER_US" read -r kind picked tuning brief route findings breaks security summary <<<"$fields"
   to_case "$(basename "$file")" "$text" "$kind" "$picked" "$tuning" "$brief" "$route" "$findings" "$breaks" \
     "$security" "$summary"
 }

@@ -59,13 +59,14 @@ get_wait_session() {
 # The briefs the session's own briefs wait on, as a JSON array of names, each
 # once; empty where none waits on any. Refused as the organizer refuses.
 list_session_waits() {
-  local session="$1" briefs brief awaited all=""
+  local session="$1" briefs brief awaited all="" names
   briefs="$(get_held_briefs "$session")" || return 1
+  names="$(jq -r '.[]' <<<"$briefs")" || return 1
   while IFS= read -r brief; do
     [ -n "$brief" ] || continue
     awaited="$(list_awaited_briefs "$brief")" || return 1
     all+="$awaited"$'\n'
-  done < <(jq -r '.[]' <<<"$briefs")
+  done <<<"$names"
   printf '%s' "$all" | jq -Rcn '[inputs | select(. != "")] | unique'
 }
 
@@ -73,9 +74,10 @@ list_session_waits() {
 # none, waiting otherwise. Refused as the organizer refuses, never read as
 # over.
 get_brief_wait_state() {
-  local waits
+  local waits count
   waits="$(list_session_waits "$1")" || return 1
-  if [ "$(jq 'length' <<<"$waits")" -eq 0 ]; then
+  count="$(jq 'length' <<<"$waits")" || return 1
+  if [ "$count" -eq 0 ]; then
     printf '%s\n' "$WAIT_OVER"
   else
     printf '%s\n' "$WAIT_WAITING"
@@ -116,15 +118,18 @@ run_until_over() {
 # the session holds none, as the organizer refuses, and where the organizer
 # cannot write it: a wait nobody wrote down would be watched for nothing.
 write_session_wait() {
-  local session="$1" on="$2" briefs brief
+  local session="$1" on="$2" briefs count brief names
   briefs="$(get_held_briefs "$session")" || return 1
-  if [ "$(jq 'length' <<<"$briefs")" -eq 0 ]; then
+  count="$(jq 'length' <<<"$briefs")" || return 1
+  if [ "$count" -eq 0 ]; then
     refuse_wait_no_brief_note >&2
     return 1
   fi
+  names="$(jq -r '.[]' <<<"$briefs")" || return 1
   while IFS= read -r brief; do
+    [ -n "$brief" ] || continue
     write_brief_wait "$brief" "$on" || return 1
-  done < <(jq -r '.[]' <<<"$briefs")
+  done <<<"$names"
 }
 
 # Watch the session's wait of the kind given, on the brief or the
@@ -149,7 +154,7 @@ watch_wait() {
 # behind. A mark that cannot be written is refused as well: the gate then
 # cannot learn the wait ended, and the agent, woken, reads why.
 run_wait() {
-  local history="$1" session="$2" kind="$3" on="$4" reasons mark out status=0
+  local history="$1" session="$2" kind="$3" on="$4" reasons mark waited out status=0
   exec {out}>&1
   reasons="$(watch_wait "$session" "$kind" "$on" 2>&1 >&"$out")" || status=1
   exec {out}>&-
@@ -161,5 +166,6 @@ run_wait() {
   fi
   write_woken_mark "$history" "$session" "$mark" || return 1
   [ "$status" -eq 0 ] || return 1
-  wait_over_note "$(format_waited_words "$mark")"
+  waited="$(format_waited_words "$mark")" || return 1
+  wait_over_note "$waited"
 }

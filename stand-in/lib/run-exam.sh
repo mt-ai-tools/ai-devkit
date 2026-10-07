@@ -26,14 +26,15 @@ STAND_IN_LOADED_RUN_EXAM=1
 # One case file's result: read, judged whether it can be judged, and
 # replayed; given its path and what every replay is handed.
 examine_case() {
-  local file="$1" go="$2" preset="$3" entries="$4" risks="$5" case problem
+  local file="$1" go="$2" preset="$3" entries="$4" risks="$5" case problem name
   if ! case="$(read_case "$file" 2>/dev/null)"; then
     to_unjudged_result "$(basename "$file")" "$(exam_case_unreadable_words)"
     return 0
   fi
-  problem="$(derive_case_problem "$case")"
+  problem="$(derive_case_problem "$case")" || return 1
   if [ -n "$problem" ]; then
-    to_unjudged_result "$(jq -r '.name' <<<"$case")" "$problem"
+    name="$(jq -r '.name' <<<"$case")" || return 1
+    to_unjudged_result "$name" "$problem"
     return 0
   fi
   replay_best_of "$case" "$go" "$preset" "$entries" "$risks"
@@ -68,7 +69,7 @@ clear_owed_mark() {
 run_exam() {
   local history="$1" session="$2" preset="$3" rules="$4" conventions="$5"
   local dir files last before="" entries risks go="" file result names="[]" total=0 passed=0 drops=0
-  local case rows="" scores
+  local case name rows="" scores results
   # Its total time is printed last, so a slow exam is seen (settled
   # 2026-10-07): each case asks every part once per replay.
   local started="$SECONDS"
@@ -93,10 +94,11 @@ run_exam() {
       rows+="$(to_score_row "$case" "$result")"$'\n'
     fi
     total=$((total + 1))
+    name="$(jq -r '.name' <<<"$result")" || return 1
     if is_case_passed "$result"; then
       passed=$((passed + 1))
-      names="$(jq -c --arg name "$(jq -r '.name' <<<"$result")" '. + [$name]' <<<"$names")"
-    elif is_case_drop "$(jq -r '.name' <<<"$result")" "$last"; then
+      names="$(jq -c --arg name "$name" '. + [$name]' <<<"$names")" || return 1
+    elif is_case_drop "$name" "$last"; then
       drops=$((drops + 1))
     fi
     format_case_lines "$result" "$last"
@@ -107,8 +109,10 @@ run_exam() {
     exam_time_line "$((SECONDS - started))"
     return 1
   fi
-  scores="$(to_kind_scores "$(printf '%s' "$rows" | jq -cs .)")"
-  if ! write_exam_results "$history" "$(to_exam_results "$names" "$scores")"; then
+  scores="$(printf '%s' "$rows" | jq -cs .)" || return 1
+  scores="$(to_kind_scores "$scores")" || return 1
+  results="$(to_exam_results "$names" "$scores")" || return 1
+  if ! write_exam_results "$history" "$results"; then
     exam_time_line "$((SECONDS - started))"
     return 1
   fi

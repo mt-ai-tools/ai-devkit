@@ -111,7 +111,11 @@ derive_fallback_reopens() {
 # True if the kind given is back on trial since the yes given, given the
 # log's lines.
 is_fallen_back() {
-  [ "$(derive_fallback_reopens "$1" "$2" "$3")" -ge "$TRIAL_FALLBACK_REOPENS" ]
+  local reopens
+  # A count that cannot be made reads as fallen back: a kind whose silence
+  # cannot be checked goes back to the operator rather than staying silent.
+  reopens="$(derive_fallback_reopens "$1" "$2" "$3")" || return 0
+  [ "$reopens" -ge "$TRIAL_FALLBACK_REOPENS" ]
 }
 
 # The notice that a reopen sent the kind back to the trial, given the log's
@@ -175,11 +179,12 @@ list_trusted_kinds() {
 # True if no kind stands switched, given the stand-in's working folder: none
 # was given a yes, or each one that was is back on trial.
 is_every_kind_on_trial() {
-  local kind
+  local kind kinds
+  kinds="$(list_trusted_kinds "$1")" || return 1
   while IFS= read -r kind; do
     [ -n "$kind" ] || continue
     is_on_trial "$1" "$kind" || return 1
-  done < <(list_trusted_kinds "$1")
+  done <<<"$kinds"
 }
 
 # --- Writes.

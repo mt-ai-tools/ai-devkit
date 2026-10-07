@@ -225,11 +225,12 @@ format_finish_failed() {
 # The round's findings as the operator reads them, each with its sort in
 # words and, for a hand-off, the briefs it goes into.
 format_closing_findings() {
-  local findings="$1" finding sort briefs words
+  local findings="$1" finding sort briefs words rows
+  rows="$(jq -r --arg us "$CLOSING_US" '.[] | [.finding, .sort, (.briefs | join(", "))] | map(gsub("\\s+"; " ")) | join($us)' <<<"$findings")" || return 1
   while IFS="$CLOSING_US" read -r finding sort briefs; do
     [ -n "$finding" ] || continue
     words="$(closing_sort_words "$sort")"
     [ -z "$briefs" ] || words+=", $(closing_into_words "$briefs")"
     closing_finding_line "$finding" "$words"
-  done < <(jq -r --arg us "$CLOSING_US" '.[] | [.finding, .sort, (.briefs | join(", "))] | map(gsub("\\s+"; " ")) | join($us)' <<<"$findings")
+  done <<<"$rows"
 }

@@ -157,9 +157,10 @@ is_look_held() {
 # moved: the operator is told of all of them, and whether the agent came back
 # to its first answer is part of what they read.
 derive_ladder_step() {
-  local rungs
+  local rungs picks
   rungs="$(to_ladder_rungs "$1")" || return 1
-  if [ "$(jq '.picks | length' <<<"$1")" -lt "$((rungs - 1))" ]; then
+  picks="$(jq '.picks | length' <<<"$1")" || return 1
+  if [ "$picks" -lt "$((rungs - 1))" ]; then
     printf '%s\n' "$LADDER_CLIMB"
   elif is_ladder_held "$1"; then
     printf '%s\n' "$LADDER_HELD"
@@ -173,7 +174,7 @@ derive_ladder_step() {
 to_rung_message_name() {
   local picks challenges
   challenges="$(to_ladder_challenges "$1")" || return 1
-  picks="$(jq '.picks | length' <<<"$1")"
+  picks="$(jq '.picks | length' <<<"$1")" || return 1
   sed -n "$((picks + 1))p" <<<"$challenges"
 }
 
@@ -182,14 +183,16 @@ to_rung_message_name() {
 to_why_lines() {
   local lines extra
   lines="$1"$'\n'
-  extra="$(jq -r '.lines' <<<"$2")"
+  extra="$(jq -r '.lines' <<<"$2")" || return 1
   [ -z "$extra" ] || lines+="$extra"$'\n'
   printf '%s' "$lines"
 }
 
 # Why answers that held still came to the operator.
 to_held_why() {
-  to_why_lines "$(gate_trial_line "$(jq -r '.kind' <<<"$1")")" "$1"
+  local kind
+  kind="$(jq -r '.kind' <<<"$1")" || return 1
+  to_why_lines "$(gate_trial_line "$kind")" "$1"
 }
 
 # Why answers that moved came to the operator.
@@ -208,7 +211,7 @@ to_looked_held_why() {
 # picked it, those after the rungs marked as the answer to the bigger look
 # around and to "are you sure?" once more.
 derive_answer_lines() {
-  local ladder="$1" recommended options n number pick item
+  local ladder="$1" recommended options n number pick item picks
   recommended="$(jq -r '.first.recommended' <<<"$ladder")" || return 1
   options="$(jq -r --arg separator "$LADDER_OPTION_SEPARATOR" '.first.options | join($separator) | gsub("\\s+"; " ")' <<<"$ladder")" || return 1
   if [ -z "$recommended" ]; then
@@ -217,6 +220,7 @@ derive_answer_lines() {
     gate_answer_line 1 "$recommended" "$options"
   fi
   n=1
+  picks="$(jq -r --arg us "$LADDER_US" '.picks[] | [.pick, .item] | map(gsub("\\s+"; " ")) | join($us)' <<<"$ladder")" || return 1
   while IFS="$LADDER_US" read -r pick item; do
     [ -n "$pick" ] || continue
     n=$((n + 1))
@@ -231,5 +235,5 @@ derive_answer_lines() {
       "$MATCH_NEW") gate_pick_new_line "$number" ;;
       *) gate_answer_gone_line "$number" ;;
     esac
-  done < <(jq -r --arg us "$LADDER_US" '.picks[] | [.pick, .item] | map(gsub("\\s+"; " ")) | join($us)' <<<"$ladder")
+  done <<<"$picks"
 }

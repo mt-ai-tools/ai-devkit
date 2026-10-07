@@ -22,6 +22,8 @@
 # settled question has, a log it cannot read — is shown to the user as the
 # answer, never left silent. So is a reopen whose mark cannot be made.
 set -euo pipefail
+# Errexit kept inside command substitutions; why beside the gate's own line.
+shopt -s inherit_errexit
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 tool_root="$(cd "$here/.." && pwd)"
@@ -157,18 +159,26 @@ refuse_unmarked() {
 # operator was shown as a decision: a settled question, or one a round's list
 # laid out before building.
 show_reopened() {
-  local request number line listed=false notice shown
+  local request number reopenable line listed=false exchange shown note notice
   request="$(to_reopen_request "$args" 2>"$why")" || answer_refused "$why"
   number="$(jq -r '.number' <<<"$request")"
   read_settled
-  line="$(to_reopened_line "$(to_reopenable_lines "$logged")" "$number" 2>"$why")" || answer_refused "$why"
+  reopenable="$(to_reopenable_lines "$logged")"
+  line="$(to_reopened_line "$reopenable" "$number" 2>"$why")" || answer_refused "$why"
   ! is_round_listed "$logged" "$number" || listed=true
+  # Made before anything is marked, and refused as any other step is: a
+  # question that cannot be shown is never reopened behind the user's back.
+  # The trailing "x" keeps the last newline, which a command substitution
+  # would strip.
+  exchange="$(jq -r '.exchange' <<<"$request")"
+  shown="$(format_reopened "$line" "$exchange" 2>"$why" && printf x)" || answer_refused "$why"
+  shown="${shown%x}"
+  note="$(format_reopened_agent_note "$line" "$listed" 2>"$why")" || answer_refused "$why"
   mark_reopened "$number"
   mark_log_reopened "$number"
   notice="$(find_fallback_notice "$line")"
-  shown="$(format_reopened "$line" "$(jq -r '.exchange' <<<"$request")"; [ -z "$notice" ] || printf '%s\n' "$notice"; printf x)"
-  shown="${shown%x}"
-  to_skill_answer "$shown" "$(format_reopened_agent_note "$line" "$listed")"
+  [ -z "$notice" ] || shown+="$notice"$'\n'
+  to_skill_answer "$shown" "$note"
 }
 
 event="$(cat)"

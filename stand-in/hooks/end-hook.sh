@@ -27,6 +27,8 @@
 # has ended never reaches the gate again; removing on a guess could switch the
 # stand-in off for a session still working.
 set -euo pipefail
+# Errexit kept inside command substitutions; why beside the gate's own line.
+shopt -s inherit_errexit
 
 session=""
 

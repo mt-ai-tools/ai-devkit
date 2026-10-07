@@ -42,13 +42,18 @@ to_operator_message_parts() {
 # none ran). Shared by the gate's message and a reopened question, so both
 # show the operator the same parts in the same order.
 format_summary_parts() {
-  local summary="$1" reading="$2"
-  gate_problem_part "$(jq -r '.problem' <<<"$summary")"
-  gate_first_recommendation_part "$(jq -r '.first_recommendation' <<<"$summary")"
-  gate_what_moved_part "$(jq -r '.what_moved_it' <<<"$summary")"
-  gate_recommends_now_part "$(jq -r '.recommends_now' <<<"$summary")"
+  local summary="$1" reading="$2" problem first moved now call
+  problem="$(jq -r '.problem' <<<"$summary")" || return 1
+  first="$(jq -r '.first_recommendation' <<<"$summary")" || return 1
+  moved="$(jq -r '.what_moved_it' <<<"$summary")" || return 1
+  now="$(jq -r '.recommends_now' <<<"$summary")" || return 1
+  call="$(jq -r '.operators_call' <<<"$summary")" || return 1
+  gate_problem_part "$problem"
+  gate_first_recommendation_part "$first"
+  gate_what_moved_part "$moved"
+  gate_recommends_now_part "$now"
   [ -z "$reading" ] || printf '%s\n' "$reading"
-  gate_operator_call_part "$(jq -r '.operators_call' <<<"$summary")"
+  gate_operator_call_part "$call"
 }
 
 # What follows why the question came to the operator, given the message's

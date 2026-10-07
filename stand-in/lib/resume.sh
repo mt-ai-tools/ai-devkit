@@ -31,19 +31,26 @@ RESUME_MESSAGES=("$RESUME_LOOK_AROUND")
 # mark: the words as the preset quotes them, what the wait was for, and how
 # to report.
 format_resume_note() {
+  local waited
+  waited="$(format_waited_words "$2")" || return 1
   gate_challenge_note "$1"
-  wait_over_note "$(format_waited_words "$2")"
+  wait_over_note "$waited"
   resume_report_note
 }
 
 # What the operator is shown under the session's report, given the wait as
 # the record keeps it.
 format_resumed_note() {
-  resume_reported_note "$(format_waited_words "$1")"
+  local waited
+  waited="$(format_waited_words "$1")" || return 1
+  resume_reported_note "$waited"
 }
 
 # What the operator is shown where the wait could not be watched, given its
 # mark.
 format_wait_refused_note() {
-  resume_refused_note "$(format_waited_words "$1")" "$(jq -r '.why' <<<"$1")"
+  local waited why
+  waited="$(format_waited_words "$1")" || return 1
+  why="$(jq -r '.why' <<<"$1")" || return 1
+  resume_refused_note "$waited" "$why"
 }

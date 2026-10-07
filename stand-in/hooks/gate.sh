@@ -72,6 +72,12 @@
 # lets the reply stop with a message naming why. A gate that held the reply
 # on its own failure could hold the agent forever, unseen.
 set -euo pipefail
+# Bash turns errexit off inside every command substitution unless told to keep
+# it, so a function called as x="$(f)" would carry on past a step that failed
+# and hand back whatever its last step said. Kept on here, and in every other
+# entry of the stand-in, which points here: a refusal inside a substitution
+# then ends it, as everywhere else, and reaches the operator.
+shopt -s inherit_errexit
 
 # The file every part's refusal is gathered in, read by the trap below. No
 # function may declare a local of this name: the trap runs inside whichever
@@ -378,10 +384,11 @@ start_ladder() {
 # how many times it held, and is counted toward the trial; once switched, it
 # is settled without them.
 answer_held() {
-  local ladder="$1" question recommended why held
+  local ladder="$1" question recommended kind why held
   question="$(jq -r '.question' <<<"$ladder")"
   recommended="$(jq -r '.first.recommended' <<<"$ladder")"
-  if is_on_trial "$history" "$(jq -r '.kind' <<<"$ladder")"; then
+  kind="$(jq -r '.kind' <<<"$ladder")"
+  if is_on_trial "$history" "$kind"; then
     why="$(to_held_why "$ladder")"
     held="$(to_ladder_rungs "$ladder")"
     bring_operator "$question" "$why" "$recommended" "" "" "$held"
@@ -475,7 +482,7 @@ match_reply() {
 # The reply to a rung: matched and kept, then the next rung's challenge sent,
 # or the ladder's outcome taken on.
 climb_ladder() {
-  local question step name words
+  local question step name words route
   match_reply
   question="$(jq -r '.question' <<<"$ladder")"
   step="$(derive_ladder_step "$ladder")"
@@ -487,7 +494,8 @@ climb_ladder() {
       ;;
     "$LADDER_HELD") answer_held "$ladder" ;;
     *)
-      if [ "$(jq -r '.route' <<<"$ladder")" = "$ROUTE_LIGHT" ]; then
+      route="$(jq -r '.route' <<<"$ladder")"
+      if [ "$route" = "$ROUTE_LIGHT" ]; then
         answer_light_moved "$ladder"
       fi
       answer_changed
@@ -519,10 +527,12 @@ answer_sure_again() {
 # came to them, one reason a line, and how it ended. The report joins the
 # exchange first, as the last reply. Prints what log_let_go prints.
 log_step() {
-  local form="$1" sort="$2" entry="$3" question="$4" approved="$5" why="$6" outcome="$7" parts step
+  local form="$1" sort="$2" entry="$3" question="$4" approved="$5" why="$6" outcome="$7" parts name details step
   parts="$(to_operator_message_parts "$question" "$approved" "$why" "" "")"
-  step="$(jq -cn --arg kind "$(jq -r '.name' <<<"$entry")" --arg outcome "$outcome" \
-    --argjson step "$(to_step_details "$form" "$sort")" '{kind: $kind, outcome: $outcome, step: $step}')"
+  name="$(jq -r '.name' <<<"$entry")"
+  details="$(to_step_details "$form" "$sort")"
+  step="$(jq -cn --arg kind "$name" --arg outcome "$outcome" \
+    --argjson step "$details" '{kind: $kind, outcome: $outcome, step: $step}')"
   record="$(with_turn "$record" "$EXCHANGE_AGENT" "$reply")"
   log_let_go "$parts" "$why" "" "$step"
 }
@@ -571,11 +581,12 @@ send_step_back() {
 # is listed and can be reopened; a go that cannot be logged is never given,
 # since nobody could list or reopen it, and goes to the operator instead.
 answer_go() {
-  local form="$1" sort="$2" entry="$3" question fixed why logged
+  local form="$1" sort="$2" entry="$3" question fixed name why logged
   question="$(to_step_question "$form")"
   fixed="$(derive_fixed_lines "$form")"
-  if is_on_trial "$history" "$(jq -r '.name' <<<"$entry")"; then
-    why="$(gate_trial_line "$(jq -r '.name' <<<"$entry")")"
+  name="$(jq -r '.name' <<<"$entry")"
+  if is_on_trial "$history" "$name"; then
+    why="$(gate_trial_line "$name")"
     logged="$(log_step "$form" "$sort" "$entry" "$question" "$(step_go_words)" "$why" "$OUTCOME_WOULD_HAVE_APPROVED")"
     let_stop_told "$(to_go_message "$question" "$why" "$fixed")" "$logged"
   fi
@@ -594,7 +605,7 @@ answer_go() {
 # brought to the operator, as the forms decide. A preset with no kind for the
 # step go lets the report stop as it is.
 answer_step() {
-  local form="$1" entry sort reopened briefs labels step words
+  local form="$1" entry sort reopened briefs labels step words next
   entry="$(find_go_kind "$preset")"
   [ -n "$entry" ] || let_stop
   sort="$(get_step_sort "$form" "$reply" "$preset")"
@@ -609,7 +620,8 @@ answer_step() {
   labels="$(list_major_labels "$labels")"
   step="$(derive_step_go "$form" "$sort" "$briefs" "$labels")"
   words="$(jq -r '.words' <<<"$step")"
-  case "$(jq -r '.next' <<<"$step")" in
+  next="$(jq -r '.next' <<<"$step")"
+  case "$next" in
     "$STEP_NEXT_AGENT") send_step_back "$words" "$form" "$sort" "$entry" ;;
     "$STEP_NEXT_OPERATOR") step_to_operator "$form" "$sort" "$entry" "$words" ;;
     "$STEP_NEXT_GO") answer_go "$form" "$sort" "$entry" ;;
@@ -626,10 +638,11 @@ answer_step() {
 # request up: where it fails, each decision is shown as the log keeps it,
 # saying why.
 answer_round() {
-  local lines decisions answer="" failed="" why shown message parts details logged
+  local lines decisions count answer="" failed="" why shown message parts details logged
   lines="$(list_log_lines "$(to_log_dir "$history")")"
   decisions="$(derive_round_decisions "$lines" "$session")"
-  if [ "$(jq 'length' <<<"$decisions")" -gt 0 ]; then
+  count="$(jq 'length' <<<"$decisions")"
+  if [ "$count" -gt 0 ]; then
     why="$(mktemp)"
     if ! answer="$(get_round_answer "$decisions" 2>"$why")"; then
       answer=""
@@ -679,7 +692,7 @@ send_look() {
 # told, the operator is told the loop was not started, rather than the claim
 # passing as if it had been swept.
 start_closing() {
-  local why briefs failed
+  local why briefs failed count
   why="$(mktemp)"
   if ! briefs="$(get_held_briefs "$session" 2>"$why")"; then
     failed="$(cat "$why")"
@@ -687,7 +700,8 @@ start_closing() {
     let_stop_told "$(closing_briefs_unknown_note "$failed")" ""
   fi
   rm -f "$why"
-  [ "$(jq 'length' <<<"$briefs")" -gt 0 ] || let_stop
+  count="$(jq 'length' <<<"$briefs")"
+  [ "$count" -gt 0 ] || let_stop
   record="$(with_closing "$record" "$briefs")"
   send_look "$CLOSING_CLEANUP_LOOK"
 }
@@ -710,11 +724,15 @@ ask_whole_done() {
 # holds a brief to be done with. Asked once: a second report naming no next
 # step is weighed as any step's, and reaches the operator saying so.
 is_whole_done_unasked() {
-  local briefs
-  [ -z "$(jq -r '.next_step' <<<"$1")" ] || return 1
+  local next briefs count
+  # Called as a condition, where errexit is off: a step that fails ends the
+  # gate here, rather than reading as a "no".
+  next="$(jq -r '.next_step' <<<"$1")" || exit 1
+  [ -z "$next" ] || return 1
   ! is_round_sent "$record" "$CLOSING_WHOLE_DONE" || return 1
   briefs="$(get_held_briefs "$session" 2>/dev/null)" || return 1
-  [ "$(jq 'length' <<<"$briefs")" -gt 0 ]
+  count="$(jq 'length' <<<"$briefs")" || exit 1
+  [ "$count" -gt 0 ]
 }
 
 # The checks code makes of each finding the agent would fix in passing, left
@@ -724,16 +742,22 @@ is_whole_done_unasked() {
 # answer ends the gate: a fix in passing nobody could check is never let
 # through.
 check_findings() {
-  local form="$1" quick index files held uncommitted
+  local form="$1" quicks quick index paths files held uncommitted check
   checks="{}"
+  quicks="$(to_quick_files "$form")"
+  quicks="$(jq -c '.[]' <<<"$quicks")"
   while IFS= read -r quick; do
+    [ -n "$quick" ] || continue
     index="$(jq -r '.index' <<<"$quick")"
-    readarray -t files < <(jq -r '.files[]' <<<"$quick")
+    paths="$(jq -r '.files[]' <<<"$quick")"
+    files=()
+    [ -z "$paths" ] || readarray -t files <<<"$paths"
     held="$(list_taken_briefs "${files[@]}")"
     held="$(to_other_briefs "$held" "$session")"
     uncommitted="$(list_uncommitted_paths "$root" "${files[@]}")"
-    checks="$(with_finding_check "$checks" "$index" "$(to_finding_check "$held" "$uncommitted")")"
-  done < <(jq -c '.[]' <<<"$(to_quick_files "$form")")
+    check="$(to_finding_check "$held" "$uncommitted")"
+    checks="$(with_finding_check "$checks" "$index" "$check")"
+  done <<<"$quicks"
 }
 
 # Write a closing round to the log, given the decision it put, why it came to
@@ -807,19 +831,22 @@ finish_round() {
 # changed before it and the round's findings: nobody is told to commit a
 # finish half made.
 finish_briefs() {
-  local briefs="$1" findings="$2" brief why printed finished="" failed message
+  local briefs="$1" findings="$2" names brief why printed finished="" failed message
+  names="$(jq -r '.[]' <<<"$briefs")"
   why="$(mktemp)"
   while IFS= read -r brief; do
+    [ -n "$brief" ] || continue
     # The trailing "x" keeps the last newline of what the organizer printed,
     # which a command substitution would strip; it is printed only where
     # done finished.
     if ! printed="$(finish_brief "$brief" 2>"$why" && printf x)"; then
       failed="$(cat "$why")"
       rm -f "$why"
-      let_stop_told "$(format_finish_failed "$failed" "$finished" "$findings")" ""
+      message="$(format_finish_failed "$failed" "$finished" "$findings")"
+      let_stop_told "$message" ""
     fi
     finished+="${printed%x}"
-  done < <(jq -r '.[]' <<<"$briefs")
+  done <<<"$names"
   rm -f "$why"
   message="$(format_closing_agent_note "$findings" "$finished" "$cases_command")"
   record="$(with_closing_finished "$record" "$finished")"
@@ -934,13 +961,14 @@ bring_reopened() {
 
 # Take the route the question's forms decide.
 route_question() {
-  local form="$1" sort="$2" entry="$3" kept="$4" risks route words question name
+  local form="$1" sort="$2" entry="$3" kept="$4" risks route taken words question name
   question="$(jq -r '.question' <<<"$form")"
   name="$(jq -r '.name' <<<"$entry")"
   risks="$(list_risks "$preset")"
   route="$(derive_route "$form" "$sort" "$entry" "$risks" "$kept")"
   words="$(jq -r '.words' <<<"$route")"
-  case "$(jq -r '.route' <<<"$route")" in
+  taken="$(jq -r '.route' <<<"$route")"
+  case "$taken" in
     agent) send_back "$words" "$question" ;;
     operator) bring_operator "$question" "$words" ;;
     "$ROUTE_LADDER") start_ladder "$form" "$name" "$ROUTE_LADDER" "$words" ;;
@@ -949,7 +977,7 @@ route_question() {
     # A route no case takes would let the reply stop unjudged and unseen, so
     # it is refused, which brings the reply to the operator with why.
     *)
-      refuse_kind_route_note "$name" "$(jq -r '.route' <<<"$route")" "$(to_routes_line)" >&2
+      refuse_kind_route_note "$name" "$taken" "$(to_routes_line)" >&2
       exit 1
       ;;
   esac
@@ -996,15 +1024,17 @@ resume_message() {
 # look around's words are read before that, so a preset missing them leaves
 # the mark for the next stop and tells the operator.
 answer_woken() {
-  local mark="$1" words
+  local mark="$1" words message
   if ! is_wait_over "$mark"; then
     remove_woken_mark "$history" "$session"
-    let_stop_told "$(format_wait_refused_note "$mark")" ""
+    message="$(format_wait_refused_note "$mark")"
+    let_stop_told "$message" ""
   fi
   words="$(resume_message "$RESUME_LOOK_AROUND")"
+  message="$(format_resume_note "$words" "$mark")"
   remove_woken_mark "$history" "$session"
   record="$(with_resumed "$record" "$mark")"
-  hold_reply "$(format_resume_note "$words" "$mark")"
+  hold_reply "$message"
 }
 
 # A reply asking the operator nothing, from a session woken from a wait: its
@@ -1014,8 +1044,10 @@ answer_woken() {
 # longer hold, and the operator says whether work resumes (settled
 # 2026-10-06).
 answer_resumed() {
+  local message
+  message="$(format_resumed_note "$1")"
   record="$(without_resumed "$record")"
-  let_stop_told "$(format_resumed_note "$1")" ""
+  let_stop_told "$message" ""
 }
 
 # A wait that ended is acted on at the first stop where the gate holds
@@ -1059,7 +1091,8 @@ if [ -n "$challenge" ]; then
   challenged="$(jq -c '.form' <<<"$challenge")"
   question="$(jq -r '.question' <<<"$challenged")"
   words="$(jq -r '.words' <<<"$step")"
-  case "$(jq -r '.next' <<<"$step")" in
+  next="$(jq -r '.next' <<<"$step")"
+  case "$next" in
     # Dropped: logged, and the reply is read on as any other, since it may
     # go on to ask something else.
     drop) drop_proposal "$challenged" ;;
@@ -1068,7 +1101,9 @@ if [ -n "$challenge" ]; then
       send_back "$(gate_challenge_note "$words")" "$question"
       ;;
     routes)
-      route_question "$challenged" "$(jq -c '.sort' <<<"$challenge")" "$(jq -c '.entry' <<<"$challenge")" true
+      sort="$(jq -c '.sort' <<<"$challenge")"
+      entry="$(jq -c '.entry' <<<"$challenge")"
+      route_question "$challenged" "$sort" "$entry" true
       ;;
     *) bring_operator "$question" "$(gate_unanswered_line "$words")" ;;
   esac
@@ -1114,7 +1149,8 @@ sendback="$(derive_checker_sendback "$checked" "$entries")"
 
 sort="$(get_sorter_answer "$form" "$reply" "$preset")"
 record="$(with_sort "$record" "$sort")"
-entry="$(get_kind_entry "$preset" "$(jq -r '.kind' <<<"$sort")")"
+kind="$(jq -r '.kind' <<<"$sort")"
+entry="$(get_kind_entry "$preset" "$kind")"
 reopened="$(to_reopened "$record")"
 [ -z "$reopened" ] || bring_reopened "$question" "$reopened"
 first="$(jq -r '.challenge' <<<"$entry")"

@@ -270,7 +270,8 @@ append_numbered_line() {
     refuse_log_unreadable_note "$file" >&2
     return 1
   fi
-  if ! { printf '%s\n' "$(with_log_number "$line" "$number")" >>"$file"; } 2>/dev/null; then
+  line="$(with_log_number "$line" "$number")" || return 1
+  if ! { printf '%s\n' "$line" >>"$file"; } 2>/dev/null; then
     refuse_log_unwritable_note "$(dirname "$file")" >&2
     return 1
   fi
@@ -298,7 +299,7 @@ write_log_answer() {
 # call write_log_answer runs under the lock. Every line goes through jq, which
 # writes them back as jq wrote them, so only the answered line changes.
 write_answer_line() {
-  local file="$1" session="$2" answer="$3" lines last draft
+  local file="$1" session="$2" answer="$3" lines last id draft
   # Read whole, then cut: piped straight into tail, a log jq refused would
   # read as one with no line for the session, wherever pipefail is off.
   if ! lines="$(jq -c --arg session "$session" 'select(.session == $session)' "$file" 2>/dev/null)"; then
@@ -312,7 +313,8 @@ write_answer_line() {
   # Stderr is sent away before the draft is opened: redirections apply in
   # order, and the shell's own refusal to open a draft in a folder it cannot
   # write would otherwise reach the operator ahead of the refusal below.
-  if ! jq -c --arg id "$(jq -r '.id' <<<"$last")" --rawfile answer <(printf '%s' "$answer") \
+  id="$(jq -r '.id' <<<"$last")" || return 1
+  if ! jq -c --arg id "$id" --rawfile answer <(printf '%s' "$answer") \
     'if .id == $id then .answer = $answer else . end' "$file" 2>/dev/null >"$draft" \
     || ! mv -f "$draft" "$file" 2>/dev/null; then
     rm -f "$draft" 2>/dev/null || true

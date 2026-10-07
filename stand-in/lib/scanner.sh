@@ -78,8 +78,8 @@ SCAN_FOUND="found"
 # way, never read as clean. The folder is the caller's to make and remove:
 # a read leaves it as it found it.
 get_scan_state() {
-  local text="$1" folder="$2" status=0 carried=()
-  if [ ! -d "$folder" ] || [ -n "$(ls -A "$folder" 2>/dev/null)" ]; then
+  local text="$1" folder="$2" status=0 carried=() listed
+  if [ ! -d "$folder" ] || ! listed="$(ls -A "$folder" 2>/dev/null)" || [ -n "$listed" ]; then
     refuse_scanner_folder_note >&2
     return 1
   fi

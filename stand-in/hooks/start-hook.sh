@@ -33,6 +33,8 @@
 # session. The skill then finds no note, and tells the operator the hook did
 # not act.
 set -euo pipefail
+# Errexit kept inside command substitutions; why beside the gate's own line.
+shopt -s inherit_errexit
 
 # Kept outside every function, for the trap below to read: the file every
 # part's refusal is gathered in, whether the prompt was the command, and the

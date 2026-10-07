@@ -37,20 +37,23 @@ to_entry_names() {
 # found nothing. Every broken entry is named with where it lies, so the agent
 # reads the entry itself rather than a summary of it.
 derive_checker_sendback() {
-  local answer="$1" entries="$2" lines="" name why collection path what called actually
+  local answer="$1" entries="$2" lines="" name why collection path what called actually paths breaks miscalled
+  breaks="$(jq -r '.breaks[] | [.entry, .why] | map(gsub("\\s+"; " ")) | join("\u001f")' <<<"$answer")" || return 1
   while IFS=$'\037' read -r name why; do
     [ -n "$name" ] || continue
+    paths="$(jq -r --arg name "$name" '.[] | select(.name == $name) | [.collection, .path] | join("\u001f")' <<<"$entries")" || return 1
     while IFS=$'\037' read -r collection path; do
       [ -n "$path" ] || continue
       what="$(convention_words)"
       [ "$collection" = "$CHECK_RULES" ] && what="$(rule_words)"
       lines+="$(gate_breaks_line "$what" "$name" "$path" "$why")"$'\n'
-    done < <(jq -r --arg name "$name" '.[] | select(.name == $name) | [.collection, .path] | join("\u001f")' <<<"$entries")
-  done < <(jq -r '.breaks[] | [.entry, .why] | map(gsub("\\s+"; " ")) | join("\u001f")' <<<"$answer")
+    done <<<"$paths"
+  done <<<"$breaks"
+  miscalled="$(jq -r '.miscalled[] | [.called, .actually] | map(gsub("\\s+"; " ")) | join("\u001f")' <<<"$answer")" || return 1
   while IFS=$'\037' read -r called actually; do
     [ -n "$called" ] || continue
     lines+="$(gate_miscalled_line "$called" "$actually")"$'\n'
-  done < <(jq -r '.miscalled[] | [.called, .actually] | map(gsub("\\s+"; " ")) | join("\u001f")' <<<"$answer")
+  done <<<"$miscalled"
   if jq -e '.explains_code' >/dev/null <<<"$answer"; then
     lines+="$(gate_explains_code_line)"$'\n'
   fi
@@ -66,15 +69,16 @@ derive_checker_sendback() {
 # may keep no conventions, and is checked against its rules alone; a check
 # with no rule to read would pass every question unread.
 list_check_entries() {
-  local rules="$1" conventions="$2" collection dir entry rows="" entries
+  local rules="$1" conventions="$2" collection dir entry rows="" entries found
   for collection in "$CHECK_RULES" "$CHECK_CONVENTIONS"; do
     dir="$rules"
     [ "$collection" = "$CHECK_RULES" ] || dir="$conventions"
+    found="$(list_collection_entries "$dir")" || return 1
     while IFS= read -r entry; do
       [ -n "$entry" ] || continue
       rows+="$(jq -cn --arg name "$(basename "$entry")" --arg path "$entry" --arg collection "$collection" \
         '{name: $name, path: $path, collection: $collection}')"$'\n' || return 1
-    done < <(list_collection_entries "$dir")
+    done <<<"$found"
   done
   entries="$(printf '%s' "$rows" | jq -cs .)" || return 1
   if ! jq -e --arg rules "$CHECK_RULES" 'any(.[]; .collection == $rules)' >/dev/null <<<"$entries"; then

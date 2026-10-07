@@ -63,31 +63,39 @@ ask_part() {
 # sorted, as in the gate. The sorter is still asked where the case names a
 # kind, so the kind it gives is judged whatever the check found.
 replay_question() {
-  local case="$1" form="$2" preset="$3" entries="$4" risks="$5" reply checked sendback sort="" entry route
-  reply="$(jq -r '.reply' <<<"$case")"
+  local case="$1" form="$2" preset="$3" entries="$4" risks="$5" reply checked faults sendback kind sort="" entry
+  local challenge name step route
+  reply="$(jq -r '.reply' <<<"$case")" || return 1
   ask_part "$(exam_checker_words)" get_checker_answer "$form" "$reply" "$entries" || return 0
   checked="$part_answer"
-  add_fault "$(derive_checker_faults "$case" "$checked")"
-  sendback="$(derive_checker_sendback "$checked" "$entries")"
-  if [ -z "$sendback" ] || [ -n "$(to_case_kind "$case")" ]; then
+  faults="$(derive_checker_faults "$case" "$checked")" || return 1
+  add_fault "$faults"
+  sendback="$(derive_checker_sendback "$checked" "$entries")" || return 1
+  kind="$(to_case_kind "$case")" || return 1
+  if [ -z "$sendback" ] || [ -n "$kind" ]; then
     ask_part "$(exam_sorter_words)" get_sorter_answer "$form" "$reply" "$preset" || return 0
     sort="$part_answer"
-    add_fault "$(derive_kind_fault "$case" "$sort")"
+    faults="$(derive_kind_fault "$case" "$sort")" || return 1
+    add_fault "$faults"
   fi
   if [ -n "$sendback" ]; then
     replay_route="$EXAM_TO_AGENT"
     return 0
   fi
-  ask_part "$(exam_preset_words)" get_kind_entry "$preset" "$(jq -r '.kind' <<<"$sort")" || return 0
+  kind="$(jq -r '.kind' <<<"$sort")" || return 1
+  ask_part "$(exam_preset_words)" get_kind_entry "$preset" "$kind" || return 0
   entry="$part_answer"
   # A kind with a challenge sends the question back to the agent before any
   # route, as the gate does; what the agent answers it is no part of a case.
-  if [ -n "$(jq -r '.challenge' <<<"$entry")" ]; then
-    add_note "$(exam_challenged_note "$(jq -r '.name' <<<"$entry")")"
+  challenge="$(jq -r '.challenge' <<<"$entry")" || return 1
+  if [ -n "$challenge" ]; then
+    name="$(jq -r '.name' <<<"$entry")" || return 1
+    add_note "$(exam_challenged_note "$name")"
     replay_route="$EXAM_TO_AGENT"
     return 0
   fi
-  route="$(jq -r '.route' <<<"$(derive_route "$form" "$sort" "$entry" "$risks" false)")"
+  step="$(derive_route "$form" "$sort" "$entry" "$risks" false)" || return 1
+  route="$(jq -r '.route' <<<"$step")" || return 1
   # No case holds the agent's replies to the ladder's rungs yet, so the
   # matcher has nothing to match, and a climb is taken as held, the outcome
   # that would let the answer stand without the operator.
@@ -101,13 +109,14 @@ replay_question() {
 # folder and the preset's risks: labelled, then weighed for the go, with the
 # case's own brief as the one the session held.
 replay_step() {
-  local case="$1" form="$2" preset="$3" risks="$4" reply sort briefs labels next
-  reply="$(jq -r '.reply' <<<"$case")"
+  local case="$1" form="$2" preset="$3" risks="$4" reply sort briefs labels go next
+  reply="$(jq -r '.reply' <<<"$case")" || return 1
   ask_part "$(exam_labeller_words)" get_step_sort "$form" "$reply" "$preset" || return 0
   sort="$part_answer"
-  briefs="$(jq -c '.briefs' <<<"$case")"
-  labels="$(list_major_labels "$risks")"
-  next="$(jq -r '.next' <<<"$(derive_step_go "$form" "$sort" "$briefs" "$labels")")"
+  briefs="$(jq -c '.briefs' <<<"$case")" || return 1
+  labels="$(list_major_labels "$risks")" || return 1
+  go="$(derive_step_go "$form" "$sort" "$briefs" "$labels")" || return 1
+  next="$(jq -r '.next' <<<"$go")" || return 1
   replay_route="$(to_exam_step_route "$next")"
 }
 
@@ -115,12 +124,13 @@ replay_step() {
 # the preset's kind whose route is the step go (empty for none), the preset's
 # folder, the rules and conventions entries and the preset's risks.
 replay_case() {
-  local case="$1" go="$2" preset="$3" entries="$4" risks="$5" step=false form fault
+  local case="$1" go="$2" preset="$3" entries="$4" risks="$5" step=false reply form fault
   replay_faults=""
   replay_notes=""
   replay_route=""
   ! is_step_case "$case" "$go" || step=true
-  if ask_part "$(exam_reader_words)" get_reader_form "$(jq -r '.reply' <<<"$case")"; then
+  reply="$(jq -r '.reply' <<<"$case")" || return 1
+  if ask_part "$(exam_reader_words)" get_reader_form "$reply"; then
     form="$part_answer"
     fault="$(derive_reading_fault "$step" "$form")"
     add_fault "$fault"
@@ -130,7 +140,10 @@ replay_case() {
       replay_question "$case" "$form" "$preset" "$entries" "$risks"
     fi
   fi
-  [ -z "$replay_route" ] || add_fault "$(derive_route_fault "$case" "$replay_route")"
+  if [ -n "$replay_route" ]; then
+    fault="$(derive_route_fault "$case" "$replay_route")" || return 1
+    add_fault "$fault"
+  fi
   to_case_result "$case" "$replay_route" "$replay_faults" "$replay_notes"
 }
 
