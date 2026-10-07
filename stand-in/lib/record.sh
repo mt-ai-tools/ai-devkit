@@ -25,9 +25,14 @@
 # checker's answer each time the question was checked, in order. sort: the
 # sorter's answer the question was routed on, or null. closing: the closing
 # loop's round under way — the briefs it sweeps for, every finding its looks
-# have brought so far, each as code checked it, and, once a round came back
-# empty and the briefs were finished, what finishing them printed — or null;
-# the look whose reply is awaited is the round, as a fixed round's is.
+# have brought so far, each as code checked it, once a round came back empty
+# and the briefs were finished, what finishing them printed, and once the
+# agent ran the case-writer, how many cases it wrote, skipped, held back and
+# failed to write — or null; the look whose reply is awaited is the round, as
+# a fixed round's is. The case-writer writes those counts here, the one part
+# of the record not written by the gate: it runs as the agent's command
+# between two stops, while the gate is not running, and the end report at the
+# next stop reads them (settled 2026-10-07).
 #
 # And, across questions: reopened, the numbers of the decisions the operator
 # reopened that the session has not asked again yet, in the order reopened,
@@ -92,7 +97,9 @@ RECORD_SHAPE='
   and (.sort | type == "null" or type == "object")
   and (.closing | type == "null"
     or (type == "object" and (.briefs | type == "array") and (.findings | type == "array")
-      and (.finished | type == "null" or type == "string")))
+      and (.finished | type == "null" or type == "string")
+      and (.cases | type == "null"
+        or (type == "object" and ([.written, .skipped, .held, .failed] | all(.[]; type == "number" and . >= 0))))))
   and (.reopened | type == "null" or (type == "array" and length > 0 and all(.[]; type == "number")))
   and (.resumed | type == "null"
     or (type == "object" and (.kind | type == "string") and (.on | type == "string")))'
@@ -256,6 +263,12 @@ to_closing() {
 # round, as printed.
 with_closing_finished() {
   jq -c --arg finished "$2" '.closing.finished = $finished' <<<"$1"
+}
+
+# The record with the case-writer's counts kept on its closing round, given
+# as JSON {written, skipped, held, failed}.
+with_closing_cases() {
+  jq -c --argjson cases "$2" '.closing.cases = $cases' <<<"$1"
 }
 
 # The record marked with the number of one more decision the operator

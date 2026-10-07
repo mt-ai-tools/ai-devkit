@@ -185,14 +185,15 @@ format_closing_tasks() {
   fi
 }
 
-# What the agent is told once a round is over, given its findings and what
-# finishing the briefs printed: where something belongs here, to ask about
-# each, one question at a time, through the gate as any question; where
-# nothing does, that the sweep is done, and to commit exactly what finishing
-# the briefs printed, run the full check and say how it went. Either way,
-# what to do with the rest.
+# What the agent is told once a round is over, given its findings, what
+# finishing the briefs printed, and the case-writer's command as the agent
+# types it: where something belongs here, to ask about each, one question at
+# a time, through the gate as any question; where nothing does, that the
+# sweep is done, to run the case-writer, and to commit exactly what finishing
+# the briefs printed and the cases it wrote, run the full check and say how
+# it went. Either way, what to do with the rest.
 format_closing_agent_note() {
-  local findings="$1" finished="$2" rows finding briefs moved
+  local findings="$1" finished="$2" cases_command="$3" rows finding briefs moved
   if is_closing_here "$findings"; then
     closing_here_note
     rows="$(derive_finding_rows "$findings" "$FINDING_HERE")"
@@ -202,7 +203,7 @@ format_closing_agent_note() {
   fi
   closing_swept_note
   format_closing_tasks "$findings"
-  closing_commit_line
+  closing_commit_line "$cases_command"
   printf '%s' "$finished"
 }
 

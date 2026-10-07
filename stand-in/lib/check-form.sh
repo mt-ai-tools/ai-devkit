@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # The form check: whether a reader's form, or a sorter's, checker's, reading's,
 # matcher's, summary's or round reader's answer, the sorter's labelling of a
-# step's report, or the closing reader's form, is whole and means one thing, decided in code and never by
-# a model. Every function here is a transform. Sourced, never executed.
+# step's report, the closing reader's form, the case-writer's form or the
+# secret check's answer, is whole and means one thing, decided in code and
+# never by a model. Every function here is a transform. Sourced, never executed.
 #
 # A form that fails is refused with every reason found, never repaired or
 # guessed at: a guessed field is a decision taken by nobody, and a refused
@@ -217,6 +218,33 @@ CHECK_LOOK_RULES='
   (select((.nothing_left | not) and $here_count == 0) | ["here-none-but-left"])
   | join($us)'
 
+# What is wrong with the case-writer's form whose shape is right. A form
+# saying the answer does not answer, yet holding a case, contradicts itself,
+# and which half is true would be a guess. One saying it does must hold the
+# case whole: a name, a summary, the reply and the answer in words, the title
+# and summary on one line each, since each stands as a line of the case's
+# header; at least two options, each a short label, since a replay asks which
+# of them the stand-in would pick; the recommendation, where there is one,
+# and the operator's pick, where there is one, each among them, never matched
+# to the nearest. The why may be empty: an answer with no reason is still an
+# answer. A reply holding a line the case file marks its reply with is
+# refused, since a replay could not tell where the reply ends.
+CHECK_CASE_RULES='
+  def blank: test("^\\s*$");
+  (select((.answers | not)
+      and (.title != "" or .summary != "" or .reply != "" or .options != [] or .recommended != ""
+        or .answered != "" or .picked != "" or .why != ""))
+    | ["case-skipped-but"]),
+  (select(.answers)
+    | (("title", "summary", "reply", "answered") as $part | select(.[$part] | blank) | ["case-part-empty", $part]),
+      (("title", "summary") as $part | select(.[$part] | test("\n")) | ["case-line", $part]),
+      (select(.reply | split("\n") | any(.[]; . == $start or . == $end)) | ["case-marker"]),
+      (select(any(.options[]; type != "string" or blank or test("\n"))) | ["case-option"]),
+      (select((.options | length) < 2) | ["case-options-few"]),
+      (.recommended as $r | select($r != "" and (any(.options[]; . == $r) | not)) | ["case-recommended", $r]),
+      (.picked as $p | select($p != "" and (any(.options[]; . == $p) | not)) | ["case-picked", $p]))
+  | join($us)'
+
 # The input as one compact JSON value; a non-zero status where it is not
 # exactly one. Two values one after the other are refused like none: which of
 # them is the form would be a guess.
@@ -349,6 +377,18 @@ derive_look_form_problems() {
     --arg unsorted "$FINDING_UNSORTED" --arg us "$CHECK_US" "$CHECK_LOOK_RULES" <<<"$1"
 }
 
+# Every problem of the case-writer's form, one row each.
+derive_case_form_problems() {
+  local shape
+  shape="$(derive_shape_problems "$1" "$CASE_FORM_FIELDS")"
+  if [ -n "$shape" ]; then
+    printf '%s\n' "$shape"
+    return 0
+  fi
+  jq -r --arg start "$CASE_REPLY_START" --arg end "$CASE_REPLY_END" --arg us "$CHECK_US" \
+    "$CHECK_CASE_RULES" <<<"$1"
+}
+
 # The words for each problem row, the form called by the label given.
 to_problem_notes() {
   local label="$1" code arg type
@@ -398,6 +438,14 @@ to_problem_notes() {
       quick-no-files) refuse_quick_no_files_note "$arg" ;;
       left-but-here) refuse_left_but_here_note ;;
       here-none-but-left) refuse_here_none_but_left_note ;;
+      case-skipped-but) refuse_case_skipped_but_note ;;
+      case-part-empty) refuse_case_part_empty_note "$arg" ;;
+      case-line) refuse_case_line_note "$arg" ;;
+      case-marker) refuse_case_marker_note ;;
+      case-option) refuse_case_option_note ;;
+      case-options-few) refuse_case_options_few_note ;;
+      case-recommended) refuse_case_recommended_note "$arg" ;;
+      case-picked) refuse_case_picked_note "$arg" ;;
     esac
   done
 }
@@ -558,6 +606,41 @@ refuse_bad_look_form() {
     return 1
   fi
   printf '%s\n' "$form"
+}
+
+# The case-writer's form, compact, where it is whole; every reason it is not
+# on stderr and a non-zero status otherwise.
+refuse_bad_case_form() {
+  local form problems label
+  label="$(case_form_words)"
+  if ! form="$(to_one_json_value "$1")"; then
+    refuse_not_json_note "$label" >&2
+    return 1
+  fi
+  problems="$(derive_case_form_problems "$form")"
+  if [ -n "$problems" ]; then
+    to_problem_notes "$label" <<<"$problems" >&2
+    return 1
+  fi
+  printf '%s\n' "$form"
+}
+
+# The secret check's answer, compact, where it is whole; every reason it is
+# not on stderr and a non-zero status otherwise. Its one field is a yes or a
+# no, so its shape is all there is to check.
+refuse_bad_secret_answer() {
+  local answer problems label
+  label="$(secret_answer_words)"
+  if ! answer="$(to_one_json_value "$1")"; then
+    refuse_not_json_note "$label" >&2
+    return 1
+  fi
+  problems="$(derive_shape_problems "$answer" "$SECRET_ANSWER_FIELDS")"
+  if [ -n "$problems" ]; then
+    to_problem_notes "$label" <<<"$problems" >&2
+    return 1
+  fi
+  printf '%s\n' "$answer"
 }
 
 # The reader's form, checked again and holding a question; a refusal on

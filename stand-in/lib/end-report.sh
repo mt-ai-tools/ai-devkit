@@ -2,7 +2,8 @@
 # The end report: what the operator is shown once the closing sweep came back
 # empty and the brief was finished — whether the full check passed, the
 # decisions the stand-in settled without them, what was fixed in passing,
-# what was dropped, what was parked, and what finishing the brief changed.
+# what was dropped, what was parked, how many test cases were written from
+# the brief's answers, and what finishing the brief changed.
 # Every function here is a transform. Sourced, never executed.
 #
 # Made from the question log and the work organizer's own output alone, never
@@ -24,15 +25,6 @@ STAND_IN_LOADED_END_REPORT=1
 # The separator between a row's parts: the ASCII unit separator, which no
 # question or answer is expected to hold and bash never collapses.
 END_US=$'\037'
-
-# The log's lines of the briefs given as a JSON array, one per line, in log
-# order: each whose session held any of them as it was written. Of the brief,
-# never only of the session finishing it: a brief may be worked across
-# sessions, and each session's decisions under it are the brief's.
-to_brief_log_lines() {
-  [ -n "$1" ] || return 0
-  jq -c --argjson briefs "$2" 'select(any((.briefs // [])[]; . as $b | any($briefs[]; . == $b)))' <<<"$1"
-}
 
 # Every finding of the closing rounds among the lines given, as one JSON
 # array, in log order.
@@ -123,6 +115,22 @@ format_end_parked() {
   done <<<"$rows"
 }
 
+# How many test cases the case-writer wrote from the brief's answers,
+# skipped, held back and failed to write, as it kept them on the closing
+# round; or, where it kept nothing, that it never ran (settled 2026-10-07):
+# the agent is told to run it, and only code reading the record can say it
+# did.
+format_end_cases() {
+  local cases
+  cases="$(jq -c '.cases // empty' <<<"$1")"
+  if [ -z "$cases" ]; then
+    end_cases_never_line
+    return 0
+  fi
+  end_cases_line "$(jq -r '.written' <<<"$cases")" "$(jq -r '.skipped' <<<"$cases")" \
+    "$(jq -r '.held' <<<"$cases")" "$(jq -r '.failed' <<<"$cases")"
+}
+
 # The end report, given the log's lines, the closing round as the record
 # keeps it — the briefs swept for and what finishing them printed — and the
 # reader's form of the agent's last reply with why it failed, the form empty
@@ -139,6 +147,7 @@ format_end_report() {
   format_end_fixed "$findings"
   format_end_dropped "$mine" "$findings"
   format_end_parked "$findings"
+  format_end_cases "$closing"
   # Shown as the organizer printed it, every byte: the list of what finishing
   # freed is its own, and a list made from it here would be a second copy.
   end_freed_heading

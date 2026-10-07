@@ -19,5 +19,7 @@ over, the stand-in sends you the resume look-around.
 
 When the brief is built, say so plainly: the stand-in then runs the
 closing loop with you. When it comes back empty, the stand-in finishes
-the brief with the organizer's done: commit the paths it hands you, then
-say what the brief built and whether the full check passed.
+the brief with the organizer's done: run the case-writer it names, which
+writes the brief's test cases from the operator's answers, commit the
+paths it hands you and the case files the case-writer printed, then say
+what the brief built and whether the full check passed.

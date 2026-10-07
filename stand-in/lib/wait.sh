@@ -38,24 +38,19 @@ WAIT_REPOSITORY_COMMAND="wait-repository"
 # machine may each be waiting at once, every one on a watch of its own.
 WAIT_LOOK_SECONDS=30
 
-# The variable Claude Code sets, in the environment of every command the
-# agent runs, to the session's id: the id its hooks' events carry (seen live
-# 2026-10-07, Claude Code 2.1.292). The watch reads it there because the
-# agent is never told its session's id, and a mark must be the session's own
-# for the gate to read it at that session's stop and no other.
-WAIT_SESSION_VARIABLE="CLAUDE_CODE_SESSION_ID"
-
 # What a look answers while the wait is not over; over is the mark's own word.
 WAIT_WAITING="waiting"
 
 # --- Reads.
 
 # The session's id, from the environment; a refusal on stderr and a non-zero
-# status where it is missing, or is no id that may name a file.
+# status where it is missing, or is no id that may name a file. Read there
+# because the agent is never told its session's id, and a mark must be the
+# session's own for the gate to read it at that session's stop and no other.
 get_wait_session() {
-  local session="${!WAIT_SESSION_VARIABLE:-}"
+  local session="${!SESSION_ID_VARIABLE:-}"
   if ! is_session_id "$session"; then
-    refuse_wait_session_note "$WAIT_SESSION_VARIABLE" >&2
+    refuse_wait_session_note "$SESSION_ID_VARIABLE" >&2
     return 1
   fi
   printf '%s\n' "$session"

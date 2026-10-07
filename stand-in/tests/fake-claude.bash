@@ -21,8 +21,10 @@ setup_fake_claude() {
   # FAKE_ENVELOPE, when set, is printed as it stands in place of the envelope;
   # FAKE_STATUS is the status the fake ends with; FAKE_SLEEP holds it up. Where
   # one run asks several jobs, each job's answer and status may be given apart,
-  # by answer_for and status_for: the job is told by the first field its
-  # schema requires, since two jobs may run on one model. Every call is logged
+  # by answer_for and status_for, and a job asked several times in one run
+  # may be given an answer for each call apart, by answer_for_call: the job
+  # is told by the first field its schema requires, since two jobs may run on
+  # one model. Every call is logged
   # in turn as "<job> <model>", and its arguments, its prompt, the text added
   # to Claude Code's own instructions where one was, and the folder it ran in
   # kept under the job's name.
@@ -45,9 +47,12 @@ case "$(jq -r '.required[0] // empty' <<<"$schema" 2>/dev/null)" in
   majors) job=step-sorter ;;
   decisions) job=round ;;
   findings) job=closing ;;
+  answers) job=case-writer ;;
+  holds_secret) job=secret ;;
   *) job=other ;;
 esac
 printf '%s %s\n' "$job" "$model" >>"$FAKE_CALLS"
+turn="$(grep -c "^$job " "$FAKE_CALLS")"
 printf '%s\n' "$@" >"$FAKE_ARGS"
 cp "$FAKE_ARGS" "$FAKE_ARGS.$job"
 cat >"$FAKE_PROMPT"
@@ -61,6 +66,7 @@ if [ -n "${FAKE_ENVELOPE+set}" ]; then
 else
   answer="${FAKE_ANSWER:-null}"
   [ -f "$FAKE_ANSWERS/$job" ] && answer="$(cat "$FAKE_ANSWERS/$job")"
+  [ -f "$FAKE_ANSWERS/$job.$turn" ] && answer="$(cat "$FAKE_ANSWERS/$job.$turn")"
   jq -cn --argjson answer "$answer" \
     '{type: "result", is_error: false, result: ($answer | tojson), structured_output: $answer}'
 fi
@@ -71,9 +77,16 @@ FAKE
 }
 
 # The answer the fake gives when the job named is asked: reader, checker,
-# sorter, reading, matcher, summary, step-sorter, round or closing.
+# sorter, reading, matcher, summary, step-sorter, round, closing, case-writer
+# or secret.
 answer_for() {
   printf '%s' "$2" >"$FAKE_ANSWERS/$1"
+}
+
+# The answer the fake gives the job named on its call of the number given,
+# counted from 1, over the job's answer for every call.
+answer_for_call() {
+  printf '%s' "$3" >"$FAKE_ANSWERS/$1.$2"
 }
 
 # The status the fake ends with when the job named is asked, answering

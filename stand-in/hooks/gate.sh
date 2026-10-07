@@ -151,6 +151,7 @@ switch="$(find_switch "$history" "$session")"
 . "$tool_root/lib/closing-reader.sh"
 . "$tool_root/lib/changes.sh"
 . "$tool_root/lib/end-report.sh"
+. "$tool_root/lib/cases.sh"
 . "$tool_root/lib/woken.sh"
 . "$tool_root/lib/resume.sh"
 
@@ -159,6 +160,10 @@ rules="$(get_config_path AIDK_RULES)"
 conventions="$(get_config_path AIDK_CONVENTIONS)"
 reply="$(to_event_reply "$event")"
 root="$(get_project_root)"
+# The case-writer's command, as the agent is told to type it once a brief is
+# finished: the entry by its whole path, since the agent runs it from
+# wherever its shell stands.
+cases_command="$tool_root/bin/stand-in.sh $CASES_COMMAND"
 record_file="$(to_record_path "$history" "$session")"
 saved="$(read_session_record "$record_file")"
 record="$saved"
@@ -775,7 +780,7 @@ finish_round() {
     let_stop_told "$(closing_unlogged_note "$number"; format_closing_findings "$findings")" "$logged"
   fi
   is_closing_here "$findings" || finish_briefs "$briefs" "$findings"
-  message="$(format_closing_agent_note "$findings" "")"
+  message="$(format_closing_agent_note "$findings" "" "$cases_command")"
   record="$(with_chain_reset "$record")"
   keep_record
   to_block_answer "$message"
@@ -806,7 +811,7 @@ finish_briefs() {
     finished+="${printed%x}"
   done < <(jq -r '.[]' <<<"$briefs")
   rm -f "$why"
-  message="$(format_closing_agent_note "$findings" "$finished")"
+  message="$(format_closing_agent_note "$findings" "$finished" "$cases_command")"
   record="$(with_closing_finished "$record" "$finished")"
   record="$(with_round "$record" "$CLOSING_FINISHED")"
   keep_record

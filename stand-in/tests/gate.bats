@@ -37,6 +37,8 @@ setup() {
   record_file="$history/sessions/$session.json"
   switch_on "$session"
   reply="Should we use five retries or ten? I recommend five."
+  # The case-writer's command, as the agent is told to type it.
+  cases_command="$(cd "$BATS_TEST_DIRNAME/.." && pwd)/bin/stand-in.sh write-cases"
   answer_for reader "$(whole_form)"
   answer_for checker "$(clean_check)"
   answer_for sorter '{"kind":"defaults","unsure":false,"risks":[],"defers":false}'
@@ -1766,7 +1768,7 @@ organizer_done() {
   printed="$(organizer_done)"
   sweep_round "$(look_form)" "$(look_form)"
   [ "$(jq -r '.decision' <<<"$output")" = block ]
-  [ "$(reason)" = "$(closing_swept_note; closing_commit_line; printf '%s\n' "$printed")" ]
+  [ "$(reason)" = "$(closing_swept_note; closing_commit_line "$cases_command"; printf '%s\n' "$printed")" ]
   [ "$printed" = "$project/aidk-plans/file-trash.md"$'\n'"$project/aidk-plans/waiter.md" ]
   [ ! -e "$project/aidk-plans/file-trash.md" ]
   grep -qxF -- "after: []" "$project/aidk-plans/waiter.md"
@@ -1791,7 +1793,7 @@ organizer_done() {
     gate_problem_line "media.ts builds the sizes by hand"
     closing_park_heading
     gate_problem_line "A settings screen of its own"
-    closing_commit_line
+    closing_commit_line "$cases_command"
     printf '%s\n' "$project/aidk-plans/file-trash.md")"
   [ "$(reason)" = "$expected" ]
 }
@@ -1851,6 +1853,7 @@ finished_reply="Committed. The brief built the end report; the full check passed
     end_parked_heading
     gate_problem_line "A settings screen of its own"
     closing_moved_line "sizes.ts repeats the table" "$(closing_moved_uncommitted_words)"
+    end_cases_never_line
     end_freed_heading
     printf '%s\n' "$printed")"
   # The organizer's list closes it as its own script prints it, read in a
@@ -1890,10 +1893,25 @@ finished_reply="Committed. The brief built the end report; the full check passed
       gate_fixed_heading; end_none_line
       end_dropped_heading; end_none_line
       end_parked_heading; end_none_line
+      end_cases_never_line
       end_freed_heading
       printf '%s\n' "$project/aidk-plans/file-trash.md")"
     [ "$(message)" = "$expected" ]
   done
+}
+
+@test "the end report shows how many test cases the case-writer wrote, skipped and held back, never what" {
+  closing_ground
+  sweep_round "$(look_form)" "$(look_form)"
+  # What the case-writer's command keeps on the record, run by the agent
+  # between the two stops.
+  jq -c '.closing.cases = {written: 3, skipped: 1, held: 2, failed: 1}' "$record_file" >"$record_file.new"
+  mv "$record_file.new" "$record_file"
+  answer_for reader "$(finished_form passed)"
+  run_gate true "$finished_reply"
+  [ "$status" -eq 0 ]
+  [ "$(message | grep '^Test cases:')" = "$(end_cases_line 3 1 2 1)" ]
+  [ "$(jq -c . "$record_file")" = "$EMPTY_RECORD" ]
 }
 
 @test "a done the organizer refuses lets the reply stop: the operator is told why, with the round's findings" {

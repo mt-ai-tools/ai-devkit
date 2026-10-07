@@ -420,3 +420,85 @@ others='["frozen-account"]'
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_not_json_note "$(look_form_words)")" ]
 }
+
+# A whole case-writer's form: an answer that picks the recommended option,
+# with a reason. A jq filter given is applied to it.
+case_form() {
+  jq -c "${1:-.}" <<<'{"answers":true,"title":"How many retries","summary":"How many times a failing call is tried.","reply":"A call fails now and then. Should it be tried five times or ten? I recommend five: ten holds the page too long.","options":["Five tries","Ten tries"],"recommended":"Five tries","answered":"Five tries.","picked":"Five tries","why":"Ten holds the page too long."}'
+}
+
+# The case-writer's form for an answer that does not answer.
+skipped_form='{"answers":false,"title":"","summary":"","reply":"","options":[],"recommended":"","answered":"","picked":"","why":""}'
+
+@test "a case-writer's form passes whole, with a pick or none, no recommendation, no why, or skipped" {
+  for filter in . '.picked = ""' '.recommended = ""' '.why = ""'; do
+    run refuse_bad_case_form "$(case_form "$filter")"
+    [ "$status" -eq 0 ]
+    [ "$output" = "$(case_form "$filter")" ]
+  done
+  run refuse_bad_case_form "$skipped_form"
+  [ "$status" -eq 0 ]
+}
+
+@test "a case-writer's form that skips yet holds a case, or holds one with a part missing, is refused" {
+  run --separate-stderr refuse_bad_case_form "$(jq -c '.why = "Because."' <<<"$skipped_form")"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_case_skipped_but_note)" ]
+  for part in title summary reply answered; do
+    run --separate-stderr refuse_bad_case_form "$(case_form ".$part = \"  \"")"
+    [ "$status" -eq 1 ]
+    [ "$stderr" = "$(refuse_case_part_empty_note "$part")" ]
+  done
+}
+
+@test "a case's header part over two lines, or a reply holding a marker line, is refused" {
+  for part in title summary; do
+    run --separate-stderr refuse_bad_case_form "$(case_form ".$part = \"One\\nTwo\"")"
+    [ "$status" -eq 1 ]
+    [ "$stderr" = "$(refuse_case_line_note "$part")" ]
+  done
+  for marker in "=====REPLY START=====" "=====REPLY END====="; do
+    run --separate-stderr refuse_bad_case_form "$(case_form ".reply = \"Five or ten?\\n$marker\\nYes.\"")"
+    [ "$status" -eq 1 ]
+    [ "$stderr" = "$(refuse_case_marker_note)" ]
+  done
+}
+
+@test "a case's options, recommendation and pick are held to the list, never matched to the nearest" {
+  run --separate-stderr refuse_bad_case_form "$(case_form '.options = ["Five tries"] | .recommended = "" | .picked = ""')"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_case_options_few_note)" ]
+  run --separate-stderr refuse_bad_case_form "$(case_form '.options += [" "]')"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_case_option_note)" ]
+  run --separate-stderr refuse_bad_case_form "$(case_form '.recommended = "Five"')"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_case_recommended_note Five)" ]
+  run --separate-stderr refuse_bad_case_form "$(case_form '.picked = "five tries"')"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_case_picked_note "five tries")" ]
+}
+
+@test "a case-writer's form missing a field, holding another, or not JSON is refused" {
+  run --separate-stderr refuse_bad_case_form "$(case_form 'del(.why)')"
+  [ "$stderr" = "$(refuse_missing_field_note "$(case_form_words)" why)" ]
+  run --separate-stderr refuse_bad_case_form "$(case_form '.secret = "x"')"
+  [ "$stderr" = "$(refuse_unknown_field_note "$(case_form_words)" secret)" ]
+  run --separate-stderr refuse_bad_case_form 'not json'
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_not_json_note "$(case_form_words)")" ]
+}
+
+@test "the secret check's answer passes as a yes or a no, and is refused as anything else" {
+  for answer in '{"holds_secret":true}' '{"holds_secret":false}'; do
+    run refuse_bad_secret_answer "$answer"
+    [ "$status" -eq 0 ]
+    [ "$output" = "$answer" ]
+  done
+  run --separate-stderr refuse_bad_secret_answer '{"holds_secret":"no"}'
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_wrong_type_note "$(secret_answer_words)" holds_secret boolean)" ]
+  run --separate-stderr refuse_bad_secret_answer '{"holds_secret":false,"what":"a key"}'
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_unknown_field_note "$(secret_answer_words)" what)" ]
+}

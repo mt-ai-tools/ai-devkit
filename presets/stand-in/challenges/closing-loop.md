@@ -50,10 +50,12 @@ Rounds repeat until both looks come back with nothing that belongs
 here. After three rounds that still find something belonging here, the
 operator is told, with the list; rounds whose findings all belong
 elsewhere do not count. When a round comes back empty, the stand-in
-finishes the brief with the organizer's done, the paths it prints are
-committed, and the end report lists what was built and whether the full
-check passed, the decisions settled silently, what was fixed in passing,
-dropped and parked, and what finishing freed.
+finishes the brief with the organizer's done, the agent runs the
+case-writer, the paths done prints and the cases written are committed,
+and the end report lists what was built and whether the full check
+passed, the decisions settled silently, what was fixed in passing,
+dropped and parked, how many test cases were written, skipped and held
+back, and what finishing freed.
 
 Each message the stand-in sends is the quote under its name, word for
 word.

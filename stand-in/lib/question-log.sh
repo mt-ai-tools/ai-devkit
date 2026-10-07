@@ -136,6 +136,15 @@ to_log_line() {
     }' <<<"$record"
 }
 
+# The log's lines of the briefs given as a JSON array, one per line, in log
+# order: each whose session held any of them as it was written. Of the brief,
+# never only of the session finishing it: a brief may be worked across
+# sessions, and each session's decisions under it are the brief's.
+to_brief_log_lines() {
+  [ -n "$1" ] || return 0
+  jq -c --argjson briefs "$2" 'select(any((.briefs // [])[]; . as $b | any($briefs[]; . == $b)))' <<<"$1"
+}
+
 # The line with its number given.
 with_log_number() {
   jq -c --argjson number "$2" '.number = $number' <<<"$1"

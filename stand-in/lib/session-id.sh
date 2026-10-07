@@ -7,6 +7,12 @@
 [ -z "${STAND_IN_LOADED_SESSION_ID:-}" ] || return 0
 STAND_IN_LOADED_SESSION_ID=1
 
+# The variable Claude Code sets, in the environment of every command the
+# agent runs, to the session's id: the id its hooks' events carry (seen live
+# 2026-10-07, Claude Code 2.1.292). The one way a command the agent runs can
+# tell which session it runs in.
+SESSION_ID_VARIABLE="CLAUDE_CODE_SESSION_ID"
+
 # True if the value is a session id as Claude Code hands it out: letters,
 # digits and hyphens. The id names the session's switch and its record, so
 # nothing else may reach a path: a slash or a dot could address a file outside

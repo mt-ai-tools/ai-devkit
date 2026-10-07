@@ -39,7 +39,9 @@ learns their names.
   sessions are working on, on this machine only. Worth ignoring from
   version control. The config file can move it.
 - `aidk-stand-in` is the stand-in's working folder. Its `answers` holds
-  real past cases, worth keeping in version control. Its `on` (which
+  real past cases, written by the stand-in's case-writer as each brief is
+  finished and read for secrets before each is saved, worth keeping in
+  version control. Its `on` (which
   sessions the stand-in is switched on for), `sessions` (where the gate
   stands with each), `woken` (the mark a session's wait leaves when it
   ends, until the gate reads it) and `log` (every question, step report and request to
@@ -80,6 +82,9 @@ stand-in on, the start hook is what carries it out, and without the end
 hook a session's switch outlives it. Last, it registers the stand-in's
 question hook for the before-tool event of Claude Code's question tool:
 without it, a question asked in the question box passes the gate unseen.
+The machine installs the stand-in's secret scanner through mise, at the
+release the stand-in pins: the case-writer never fetches it, and without
+it holds every case back, naming the command that installs it.
 
 ## Develop
 

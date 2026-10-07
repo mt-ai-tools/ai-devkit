@@ -151,13 +151,20 @@ teardown() {
   [ "$(to_closing "$record")" = '{"briefs":["file-trash"],"findings":[{"finding":"a"},{"finding":"b"}]}' ]
   record="$(with_closing_finished "$record" $'/p/aidk-plans/file-trash.md\n/p/aidk-plans/waiter.md\n')"
   [ "$(jq -r '.finished' <<<"$(to_closing "$record")")" = $'/p/aidk-plans/file-trash.md\n/p/aidk-plans/waiter.md' ]
+  record="$(with_closing_cases "$record" '{"written":2,"skipped":1,"held":1,"failed":0}')"
+  [ "$(jq -c '.cases' <<<"$(to_closing "$record")")" = '{"written":2,"skipped":1,"held":1,"failed":0}' ]
+  mkdir -p "$(dirname "$file")"
+  write_session_record "$file" "$record"
+  [ "$(read_session_record "$file")" = "$record" ]
   [ "$(with_chain_reset "$record")" = "$EMPTY_RECORD" ]
   [ -z "$(to_closing "$EMPTY_RECORD")" ]
 }
 
 @test "a record holding a broken closing round is refused" {
   mkdir -p "$(dirname "$file")"
-  for closing in '{"briefs": "file-trash", "findings": []}' '{"briefs": [], "findings": [], "finished": ["x"]}'; do
+  for closing in '{"briefs": "file-trash", "findings": []}' '{"briefs": [], "findings": [], "finished": ["x"]}' \
+    '{"briefs": [], "findings": [], "cases": {"written": 1}}' \
+    '{"briefs": [], "findings": [], "cases": {"written": -1, "skipped": 0, "held": 0, "failed": 0}}'; do
     jq -c --argjson closing "$closing" '.closing = $closing' <<<"$EMPTY_RECORD" >"$file"
     run --separate-stderr read_session_record "$file"
     [ "$status" -eq 1 ]

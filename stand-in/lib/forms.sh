@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # The fixed forms the stand-in's agents fill — the reader's, the sorter's and
 # its labelling of a step's report, the checker's, the matcher's, the
-# reading's, the summary's, the round reader's and the closing reader's — in
-# one place:
+# reading's, the summary's, the round reader's, the closing reader's, the
+# case-writer's and the secret check's — in one place:
 # every field and its JSON type, from which both the schema a model answers
 # to and the check in code are drawn, so the two can never disagree on what a
 # form holds. What each field means is the prompts' to say. Sourced, never
@@ -226,6 +226,44 @@ FINDING_PARK="park"
 FINDING_UNSORTED="unsorted"
 FINDING_SORTS="[\"$FINDING_HERE\", \"$FINDING_WRITTEN_DOWN\", \"$FINDING_NOT_SAME_JOB\", \"$FINDING_QUICK\", \"$FINDING_HAND_OFF\", \"$FINDING_PARK\", \"$FINDING_UNSORTED\"]"
 
+# The case-writer's form, for one answered question of a finished brief
+# (settled 2026-10-06, decision 6). answers: the operator's answer answers the
+# question clearly; false for an unclear answer, or one that asks or says
+# something else, which is skipped, never guessed. The rest is empty where it
+# does not, and otherwise the case in clean words: title, a short name for it;
+# summary, one line of what it is about; reply, the agent's question retold
+# whole enough to be read, checked and sorted again; options, its option
+# labels; recommended, the one the agent recommended; answered, the
+# operator's answer; picked, the option it picks, empty where it picks none of
+# them; why, the operator's reason, empty where neither they nor the exchange
+# give one. Retold, never copied: the log holds raw agent text and the
+# operator's typing, and a case is committed (settled 2026-10-01/02: meaning
+# only, never raw text).
+CASE_FORM_FIELDS='{
+  "answers": "boolean",
+  "title": "string",
+  "summary": "string",
+  "reply": "string",
+  "options": "array",
+  "recommended": "string",
+  "answered": "string",
+  "picked": "string",
+  "why": "string"
+}'
+
+# The lines a case file marks the agent's reply with, as the two seed cases
+# do: what lies between them is what a replay hands the reader, so a reply
+# holding either line is refused, never cut where it would be misread.
+CASE_REPLY_START="=====REPLY START====="
+CASE_REPLY_END="=====REPLY END====="
+
+# The secret check's answer: whether the case holds anything secret. A yes or
+# no alone, never what it found: an answer naming the secret would be one
+# more copy of it, kept wherever the answer goes.
+SECRET_ANSWER_FIELDS='{
+  "holds_secret": "boolean"
+}'
+
 # The fields of one item of each of the checker's lists, every one a string.
 CHECKER_BREAK_FIELDS='["entry", "why"]'
 CHECKER_MISCALLED_FIELDS='["called", "actually"]'
@@ -345,4 +383,14 @@ round_answer_schema() {
   decision="$(to_item_schema "$ROUND_DECISION_FIELDS" "$(jq -cn --argjson numbers "$1" \
     '{number: {type: "integer", enum: $numbers}}')")"
   to_form_schema "$ROUND_ANSWER_FIELDS" "$(jq -cn --argjson decision "$decision" '{decisions: {items: $decision}}')"
+}
+
+# The schema the case-writer answers to.
+case_form_schema() {
+  to_form_schema "$CASE_FORM_FIELDS" '{}'
+}
+
+# The schema the secret check answers to.
+secret_answer_schema() {
+  to_form_schema "$SECRET_ANSWER_FIELDS" '{}'
 }

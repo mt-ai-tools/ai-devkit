@@ -225,6 +225,38 @@ refuse_here_none_but_left_note() {
   printf 'The closing reader'\''s form says something is left for the brief, yet holds no finding that belongs to it.\n'
 }
 
+refuse_case_skipped_but_note() {
+  printf 'The case-writer'\''s form says the answer does not answer the question, yet holds a case.\n'
+}
+
+refuse_case_part_empty_note() {
+  printf 'The case-writer'\''s form says the answer answers the question, but its %s has no words.\n' "$1"
+}
+
+refuse_case_line_note() {
+  printf 'The case-writer'\''s %s runs over more than one line, so it cannot stand in a case'\''s header.\n' "$1"
+}
+
+refuse_case_marker_note() {
+  printf 'The case-writer'\''s reply holds a line the case file marks its reply with, so the reply could not be told apart in it.\n'
+}
+
+refuse_case_option_note() {
+  printf 'The case-writer'\''s form holds an option that is not a short label.\n'
+}
+
+refuse_case_options_few_note() {
+  printf 'The case-writer'\''s form holds fewer than two options, so there is nothing the operator chose between.\n'
+}
+
+refuse_case_recommended_note() {
+  printf 'The case-writer'\''s form recommends "%s", which is not among its options.\n' "$1"
+}
+
+refuse_case_picked_note() {
+  printf 'The case-writer'\''s form says the operator picked "%s", which is not among its options.\n' "$1"
+}
+
 # The names the refusals above call the forms by.
 reader_form_words() { printf "reader's form"; }
 sorter_answer_words() { printf "sorter's answer"; }
@@ -235,6 +267,8 @@ summary_answer_words() { printf "summary's answer"; }
 step_sort_words() { printf "sorter's labelling of the step"; }
 round_answer_words() { printf "round reader's answer"; }
 look_form_words() { printf "closing reader's form"; }
+case_form_words() { printf "case-writer's form"; }
+secret_answer_words() { printf "secret check's answer"; }
 
 # --- The rules and conventions.
 
@@ -299,9 +333,9 @@ refuse_unknown_placeholder_note() {
 
 # --- The entry.
 
-# The two waits' commands, as the agent types them.
+# The two waits' commands, then the case-writer's, as the agent types them.
 refuse_usage_note() {
-  printf 'Usage: read-reply (the reply on stdin) | sort <reader form> (the reply on stdin) | %s <brief> | %s <path>\n' "$1" "$2"
+  printf 'Usage: read-reply (the reply on stdin) | sort <reader form> (the reply on stdin) | %s <brief> | %s <path> | %s\n' "$1" "$2" "$3"
 }
 
 # --- The gate's event, switch and state.
@@ -794,9 +828,11 @@ closing_swept_note() {
 }
 
 # Under the round's tasks, once the stand-in finished the briefs, over the
-# paths finishing printed.
+# paths finishing printed, given the case-writer's command as the agent types
+# it: run in the foreground before the commit, since its cases are committed
+# with the paths finishing printed (settled 2026-10-07).
 closing_commit_line() {
-  printf 'The stand-in has finished the brief through the work organizer, which changed the paths below. Commit exactly those, run the project'\''s full check, then say plainly that the brief is done, what it built, and whether the full check passed:\n'
+  printf 'The stand-in has finished the brief through the work organizer, which changed the paths below. First run `%s` in the foreground: it writes the test cases of the brief from the operator'\''s answers, and prints each case file it wrote. Then commit exactly the paths below and the case files it printed, run the project'\''s full check, and say plainly that the brief is done, what it built, and whether the full check passed:\n' "$1"
 }
 
 closing_finish_failed_note() {
@@ -957,6 +993,69 @@ end_freed_heading() {
 
 end_none_line() {
   printf -- '- None.\n'
+}
+
+# The test cases written from the brief's answers: how many were written,
+# skipped as no clear answer, held back for holding something secret, and not
+# written because the writer or a check could not run. Never what was held
+# back: saying it would repeat the secret where the case was kept from it.
+end_cases_line() {
+  printf 'Test cases: %s written, %s skipped as no clear answer, %s held back for holding something secret, %s not written because the case-writer or a secret check could not run.\n' "$1" "$2" "$3" "$4"
+}
+
+end_cases_never_line() {
+  printf 'Test cases: the case-writer never ran, so no case was written from this brief'\''s answers.\n'
+}
+
+# --- The case-writer, run by the agent once the brief is finished.
+
+# Handed to the case-writer where the log kept no part of the kind asked for.
+case_none_kept_words() {
+  printf '(none kept)'
+}
+
+# A case's yes and no, as its header writes them.
+case_yes_words() { printf 'yes'; }
+case_no_words() { printf 'no'; }
+
+# A case's header value where the log kept no kind, and its tuning mark while
+# no prompt was adjusted on it.
+case_kind_unknown_words() { printf 'unknown'; }
+case_tuning_none_words() { printf 'none'; }
+
+# A case's why where the operator and the exchange gave none.
+case_no_why_words() {
+  printf 'No reason was given.'
+}
+
+refuse_cases_session_note() {
+  printf 'The environment carries no session id in %s, so which session'\''s finished brief to write cases for cannot be told; run it from inside the session.\n' "$1"
+}
+
+refuse_cases_unfinished_note() {
+  printf 'No brief was finished in this session since its last turn, so there is no brief to write cases for; it runs once the stand-in has finished the brief.\n'
+}
+
+refuse_cases_unwritable_note() {
+  printf 'A test case cannot be written in %s.\n' "$1"
+}
+
+refuse_case_bad_id_note() {
+  printf 'The question log holds a line whose id, "%s", cannot name a case, so its case was not written.\n' "$1"
+}
+
+# Why one case was not written, given the question's number in the log: the
+# reasons follow as the failing part gave them, none of them quoting the case.
+refuse_case_unwritten_note() {
+  printf 'The case of question %s was not written:\n' "$1"
+}
+
+refuse_scanner_unrun_note() {
+  printf 'The secret scanner, %s, could not be run through mise (status %s); install it with: mise install %s\n' "$1" "$2" "$1"
+}
+
+refuse_scanner_folder_note() {
+  printf 'The secret scanner was given no empty folder to run in, so files it reads from its folder could not be kept away from it.\n'
 }
 
 refuse_changes_unknown_note() {

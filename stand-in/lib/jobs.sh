@@ -59,6 +59,18 @@ CLOSING_MODEL="claude-sonnet-5-5"
 # it works the question itself rather than reading a reply; it never decides.
 READING_MODEL="claude-fable-5-1"
 
+# The case-writer turns one answered question of a finished brief into a test
+# case, cleaned to meaning. Opus rather than a reader's model (settled
+# 2026-10-06; Haiku was the first pick): a misread case skews the score that
+# decides whether a kind may go silent, and nobody rereads the cases.
+CASE_MODEL="claude-opus-5-5"
+
+# The secret check reads one case whole, in context, for anything secret a
+# scanner cannot see by its shape: a password in plain words, personal data.
+# The case-writer's model, since a secret it misses is committed and seen,
+# and a seen secret is rotated, never taken back.
+SECRET_MODEL="claude-opus-5-5"
+
 # The tools the reading may use: to read and search the project, never to
 # change it. The advisor works a question against the code, and a reading
 # with no code in reach is an opinion the operator could form alone; one
@@ -83,6 +95,14 @@ CLOSING_SECONDS=40
 # The reading reads code with tools, turn after turn, so it is given what its
 # stop has left beside the matcher. Measured 2026-10-05: 55 to 95 s.
 READING_SECONDS=120
+# The case-writer and the secret check run in a command the agent runs once
+# the brief is finished, never in a stop of the gate (settled 2026-10-07): a
+# brief's cases, one Opus call and one check each, outgrow any stop's limit.
+# So neither is held to the hook's limit below, and each is given room for a
+# whole exchange. Measured 2026-10-07 on two real answered questions: both
+# cases written and checked, every call together, in 29 s.
+CASE_SECONDS=180
+SECRET_SECONDS=90
 
 # The time limit, in seconds, a project registers the gate with. It must
 # outlast every job at its full limit, each with the grace a call that ignores

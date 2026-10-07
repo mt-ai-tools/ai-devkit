@@ -78,6 +78,23 @@ round that makes three finding something that belongs to the brief reaches
 the operator too, with its list, rounds whose findings all belong elsewhere
 not counting.
 
+Before that commit, the agent is told to run the stand-in's case-writer, a
+command of its own, never part of a stop, and to commit the case files it
+prints beside what finishing changed. It writes the brief the stand-in
+finished in the session, and no other, into test cases: each question of it
+that reached the operator and was answered becomes one file, retold by a
+fresh model in clean words — the question, its options and the one
+recommended, the operator's answer and why, whether the stand-in would have
+settled it alone and whether the operator picked what was recommended —
+never the raw text of the log. An answer that is unclear or answers
+something else is skipped, never guessed. Each case is read for secrets
+twice before it is saved, by a scanner for anything key-shaped and by a
+fresh model for what only context shows, such as a password in plain words;
+it is saved only where both find nothing, and held back where either finds
+something or cannot run. A case already written from a question is never
+written again. The end report says how many were written, skipped, held back
+and could not be written, never what, or that the case-writer never ran.
+
 A session that must wait on another session's work starts the stand-in's
 wait as a background command, and stops. Waiting for another brief to be
 finished, the wait is written into its own brief through the work organizer,
@@ -172,7 +189,8 @@ way, and an opener, what a session started with a brief is told first. Needs the
 where a project keeps them, and the kit's advisor, whose command a second
 reading runs. Needs a working folder of its own, holding a switch per
 session it is on for, its record of each, the mark a session's wait leaves,
-and its log, worth nothing beyond one machine. Needs the kit's work
+and its log, worth nothing beyond one machine, and the test cases, which a
+project commits. Needs the kit's work
 organizer, to show its list, to take a brief, to say which brief a session
 holds, and which briefs every session holds and where they work, to finish a
 brief, and to read and write what a brief waits on. Needs Claude Code to set
@@ -185,5 +203,8 @@ starts it; for its session-end event, to switch it off; for its
 before-tool event of the question tool, to keep questions in the reply;
 and for its after-tool event of the Skill tool, beside its two other
 skills, to show what they ask for. Needs the Claude Code
-command-line tool, signed in, to ask models through; and `bash`, `awk`,
-`jq`, `git` and util-linux's `flock`.
+command-line tool, signed in, to ask models through; the tool installer
+`mise`, called for one command at a time and never activated, with the
+Betterleaks secret scanner installed through it at the release the
+stand-in pins, which it never fetches by itself; and `bash`, `awk`, `jq`,
+`git` and util-linux's `flock`.
