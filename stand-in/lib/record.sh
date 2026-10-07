@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # The gate's record of one session: where the question it is holding stands,
-# and what it has seen dropped. One small JSON file per session in a folder of
-# the stand-in's own working folder, beside the switches rather than among
-# them, so a switch folder holds switches alone. Sourced, never executed.
+# and whether the operator reopened a decision the session's next question
+# must bring them. One small JSON file per session in a folder of the
+# stand-in's own working folder, beside the switches rather than among them,
+# so a switch folder holds switches alone; removed with the switch when the
+# session ends, since nothing in it is worth anything once no reply of the
+# session's can reach the gate. Sourced, never executed.
 #
 # The record holds, for the question the gate is holding: sent_back, how
 # many times in a row it has sent the question back to the agent to rethink
@@ -21,12 +24,21 @@
 # agent over the question, in order, each {from, text}, whole. checks: the
 # checker's answer each time the question was checked, in order. sort: the
 # sorter's answer the question was routed on, or null. closing: the closing
-# loop's round under way — the briefs it sweeps for and every finding its
-# looks have brought so far, each as code checked it — or null; the look
-# whose reply is awaited is the round, as a fixed round's is.
+# loop's round under way — the briefs it sweeps for, every finding its looks
+# have brought so far, each as code checked it, and, once a round came back
+# empty and the briefs were finished, what finishing them printed — or null;
+# the look whose reply is awaited is the round, as a fixed round's is.
 #
-# And, across questions: dropped, every proposal the agent dropped under a
-# challenge, {question, kind}, kept for the session's end report.
+# And, across questions: reopened, the numbers of the decisions the operator
+# reopened that the session has not asked again yet, in the order reopened,
+# or null for none. Each question the session asks reaches them while one
+# waits, whatever its kind and route, and takes one off (settled 2026-10-06):
+# a reopened decision asked again would otherwise go through the gate as any
+# question, and once its kind is switched be settled without them a second
+# time. One per reopen rather than one mark for all: two reopened in one turn
+# are asked as two questions, and one mark would let the second through.
+# Drops are kept in the question log, never here: this record goes with its
+# session, and the end report and reopen read the log.
 #
 # The question log is written from this record as a question is let go:
 # everything it holds of the exchange, the question as asked, its checks, its
@@ -54,7 +66,7 @@ EXCHANGE_AGENT="agent"
 EXCHANGE_STAND_IN="stand-in"
 
 # The record of a session the gate has not held anything for.
-EMPTY_RECORD='{"sent_back":0,"challenge":null,"ladder":null,"round":null,"rounds_sent":[],"asked":null,"operator":null,"exchange":[],"checks":[],"sort":null,"closing":null,"dropped":[]}'
+EMPTY_RECORD='{"sent_back":0,"challenge":null,"ladder":null,"round":null,"rounds_sent":[],"asked":null,"operator":null,"exchange":[],"checks":[],"sort":null,"closing":null,"reopened":null}'
 
 # What a record must be to be read: anything else was not written by the gate,
 # or not whole, and is refused rather than repaired.
@@ -73,8 +85,9 @@ RECORD_SHAPE='
   and (.checks | type == "array")
   and (.sort | type == "null" or type == "object")
   and (.closing | type == "null"
-    or (type == "object" and (.briefs | type == "array") and (.findings | type == "array")))
-  and (.dropped | type == "array")'
+    or (type == "object" and (.briefs | type == "array") and (.findings | type == "array")
+      and (.finished | type == "null" or type == "string")))
+  and (.reopened | type == "null" or (type == "array" and length > 0 and all(.[]; type == "number")))'
 
 # --- Transforms.
 
@@ -88,8 +101,9 @@ to_record_path() {
 # challenge, a round and the exchange do: a new turn may have changed what the
 # agent is asking, and rungs climbed before it would be compared with answers
 # to something else. So does a closing round under way: its looks' findings
-# were sorted against the work as it stood before the operator spoke. What
-# was dropped stays.
+# were sorted against the work as it stood before the operator spoke. A
+# reopened decision's mark stays: it waits for the session's next question,
+# whenever that comes.
 with_chain_reset() {
   jq -c '.sent_back = 0 | .challenge = null | .ladder = null | .round = null | .rounds_sent = []
     | .asked = null | .operator = null | .exchange = [] | .checks = [] | .sort = null | .closing = null' <<<"$1"
@@ -230,10 +244,29 @@ to_closing() {
   jq -c '.closing // empty' <<<"$1"
 }
 
-# The record with the challenged proposal noted as dropped and the question
-# let go.
-with_dropped() {
-  with_chain_reset "$(jq -c '.dropped += [{question: .challenge.form.question, kind: .challenge.entry.name}]' <<<"$1")"
+# The record with what finishing the swept briefs printed kept on its closing
+# round, as printed.
+with_closing_finished() {
+  jq -c --arg finished "$2" '.closing.finished = $finished' <<<"$1"
+}
+
+# The record marked with the number of one more decision the operator
+# reopened; one already waiting is not marked twice.
+with_reopened() {
+  jq -c --argjson number "$2" \
+    '.reopened = ((.reopened // []) | if any(.[]; . == $number) then . else . + [$number] end)' <<<"$1"
+}
+
+# The record with the first reopened decision taken off: a question has been
+# brought to the operator for it.
+without_first_reopened() {
+  jq -c '.reopened = ((.reopened // [])[1:] | if length == 0 then null else . end)' <<<"$1"
+}
+
+# The number of the first reopened decision the record waits on; nothing
+# where it waits on none.
+to_reopened() {
+  jq -r '.reopened[0] // empty' <<<"$1"
 }
 
 # --- Reads.
@@ -267,4 +300,14 @@ write_session_record() {
     refuse_state_unwritable_note "$dir" >&2
     return 1
   fi
+}
+
+# Remove a session's record. A session the gate never held anything for has
+# none, which is no failure. A record that stands and cannot be removed is
+# refused on stderr with a non-zero status.
+remove_session_record() {
+  local file="$1"
+  rm -f "$file" 2>/dev/null && [ ! -e "$file" ] && return 0
+  refuse_state_unremovable_note "$file" >&2
+  return 1
 }

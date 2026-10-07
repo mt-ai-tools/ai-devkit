@@ -65,10 +65,18 @@ fixed in passing where another session's brief works becomes a hand-off into
 that brief, and one whose files hold changes nobody committed is parked.
 What belongs to the brief goes back to the agent to be asked, one question
 at a time, through the gate as any question. A round finding nothing that
-belongs to the brief ends the loop, and the agent is told to finish the
-brief through the work organizer and commit what that prints; the round that
-makes three finding something that does reaches the operator instead, with
-its list, rounds whose findings all belong elsewhere not counting.
+belongs to the brief ends the loop: the stand-in finishes the brief through
+the work organizer, and the agent is told to commit exactly what that
+printed and say whether the full check passed. Its reply brings the operator
+the end report, made from the log and never retold by a model: what was
+built, left in the agent's own words, and whether the full check passed, as
+read off that reply; the decisions settled without them; what the sweep
+fixed in passing, dropped and parked, and the proposals the agent dropped
+under a challenge; and what finishing changed, as the organizer printed it.
+A finish the organizer refuses reaches the operator instead, with why. The
+round that makes three finding something that belongs to the brief reaches
+the operator too, with its list, rounds whose findings all belong elsewhere
+not counting.
 
 It is switched on for a session by a command the operator types, and in no
 other way. With a brief's name, the brief is taken through the work
@@ -77,7 +85,8 @@ else; with a word asking for no brief, it is switched on and nothing is
 taken; bare, the organizer's list is shown to pick from, and nothing
 changes. A command that cannot be carried out is refused whole, in the
 organizer's own words where the organizer refused it, and leaves nothing
-switched on and nothing taken. It is switched off when the session ends.
+switched on and nothing taken. It is switched off, and its record of the
+session removed, when the session ends.
 
 In a session it is on for, Claude Code's question box is refused, and the
 agent is told to ask in its reply instead, where the gate reads it; in every
@@ -103,13 +112,17 @@ step's report it weighs, with what it said of its problems, its proof and its
 next step, and what was found major; a go is listed and reopened as a
 settled question is. So does every request to start building, with the
 round's list as the operator was shown it, and every round of the closing
-loop, with each finding and its sort. Lines from sessions
-writing at once never interleave. The first thing the operator types after a
-question reached them is kept as their answer to it. Asked in plain words,
-it shows the operator the questions it settled without them, and brings any
-of them, or any decision a round's list laid out, back in full, word for
-word on request, for the agent to ask again;
-both are shown through a hook, exactly as written, never retold by a model.
+loop, with each finding and its sort. So does every proposal the agent
+drops under a challenge, though it never reached the operator. Lines from
+sessions writing at once never interleave. The first thing the operator
+types after a question reached them is kept as their answer to it, a
+command they type never. Asked in plain words, it shows the operator the
+questions it settled without them, and brings any of them, any decision a
+round's list laid out, or any proposal dropped, back in full, word for word
+on request, for the agent to ask again; the session's next question then
+reaches the operator whatever its kind, and until it has, no go is given on
+a step's report. Both are shown through a hook, exactly as written, never
+retold by a model.
 
 Models read; code decides. A form counts only once a check in code has
 passed it: every field there and of its type, the recommendation among the
@@ -144,7 +157,7 @@ reading runs. Needs a working folder of its own, holding a switch per
 session it is on for, its record of each and its log, worth nothing beyond
 one machine. Needs the kit's work organizer, to show its list, to take a
 brief, to say which brief a session holds, and which briefs every session
-holds and where they work. Needs registering for Claude
+holds and where they work, and to finish a brief. Needs registering for Claude
 Code's end-of-reply event, with a time limit no shorter than the one it
 declares; for its turn-start event, to keep the operator's answers, and
 again, beside the skill that offers the command, to act on the command that

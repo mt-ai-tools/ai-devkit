@@ -21,8 +21,10 @@
 # round, for a request to start building, every decision of the round as the
 # operator was shown it, each {number, by, decision}, null otherwise; closing,
 # for a round of the closing loop, its number and every finding of its two
-# looks as code checked it, null otherwise; answer, the operator's, empty
-# until they give one.
+# looks as code checked it, null otherwise; dropped, for a proposal the agent
+# dropped under its kind's challenge, the options it offered and the one it
+# recommended, {options, recommended}, null otherwise; answer, the
+# operator's, empty until they give one.
 #
 # A step's report is logged like a question, its decision being whether to go
 # on: the go the stand-in would give is counted toward its kind's trial as a
@@ -32,7 +34,11 @@
 # the numbers its list holds are ones the operator may reopen. So is a round
 # of the closing loop, its decision being whether anything is left that
 # belongs to the brief: its line is how the rounds are counted, and what the
-# end report lists as fixed in passing, dropped and parked.
+# end report lists as fixed in passing, dropped and parked. So is a proposal
+# the agent dropped under its kind's challenge, its decision being the one it
+# let go: the line is the drop's only home (settled 2026-10-06), so the end
+# report lists it and the operator can reopen it, though it never reached
+# them.
 #
 # Every write takes one lock, a file of its own beside the log: two sessions
 # letting a question go at once must leave two whole lines, and bash writes a
@@ -62,13 +68,16 @@ LOG_LOCK_NAME=".questions.jsonl.lock"
 LOG_LOCK_SECONDS=10
 
 # How a question ended: brought to the operator; brought to them though its
-# answer held, while its kind is on trial; settled without them; or, for a
-# round of the closing loop, handed back to the agent with what to do next,
-# which never awaits the operator's answer and is never theirs to reopen.
+# answer held, while its kind is on trial; settled without them; for a round
+# of the closing loop, handed back to the agent with what to do next, which
+# never awaits the operator's answer and is never theirs to reopen; or
+# dropped by the agent under its kind's challenge, which never reached them,
+# so awaits no answer either, but is theirs to reopen.
 OUTCOME_TO_OPERATOR="to-operator"
 OUTCOME_WOULD_HAVE_APPROVED="would-have-approved"
 OUTCOME_SETTLED="settled"
 OUTCOME_TO_AGENT="to-agent"
+OUTCOME_DROPPED="dropped"
 
 # --- Transforms.
 
@@ -90,10 +99,11 @@ to_log_path() {
 # alone, kind, outcome and step, which no record holds, since the report is
 # let go in the stop that read it; for a request to start building, outcome
 # and round, for the same reason; for a round of the closing loop, outcome
-# and closing; and for a question settled without the operator, its outcome. Its number is given as the line is
-# written, and its answer is empty until the operator gives one. The record
-# reaches jq on stdin, never as an argument: its exchange can outgrow what one
-# may hold.
+# and closing; for a proposal dropped under a challenge, outcome and dropped;
+# and for a question settled without the operator, its outcome. Its number
+# is given as the line is written, and its answer is empty until the operator
+# gives one. The record reaches jq on stdin, never as an argument: its
+# exchange can outgrow what one may hold.
 to_log_line() {
   local record="$1" parts="$2" details="$3"
   jq -c --argjson parts "$parts" --argjson details "$details" \
@@ -121,6 +131,7 @@ to_log_line() {
       step: ($details.step // null),
       round: ($details.round // null),
       closing: ($details.closing // null),
+      dropped: ($details.dropped // null),
       answer: ""
     }' <<<"$record"
 }

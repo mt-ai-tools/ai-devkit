@@ -58,7 +58,9 @@ CHECK_ITEM_DEF='
 # A form claiming no question while holding one, or a question with no words,
 # contradicts itself; which half is true would be a guess. So does one
 # claiming no step ended while saying what the step found, proved or comes
-# next.
+# next; but for the proof of a reply saying the whole work is done, which is
+# whether the project's full check passed, and what the end report is told
+# (settled 2026-10-06).
 #
 # An option label holding "recommend", in any case, carries the agent's own
 # pick, which has its field: the options are what the cold second reading is
@@ -100,7 +102,7 @@ CHECK_READER_RULES="$CHECK_ITEM_DEF"'
   (select(.next_step_number < 0 or .next_step_number != (.next_step_number | floor))
     | ["bad-step-number", (.next_step_number | tostring)]),
   (select((.ends_step | not)
-      and (.problems != [] or .proof != "" or .next_step != "" or .next_step_number != 0
+      and (.problems != [] or (.proof != "" and (.claims_done | not)) or .next_step != "" or .next_step_number != 0
         or .next_step_from != "" or .next_step_marks != []))
     | ["no-step-but"]),
   (select(.closes_round and .ends_step) | ["round-and-step"])

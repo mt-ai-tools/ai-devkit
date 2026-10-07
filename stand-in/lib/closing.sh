@@ -30,6 +30,12 @@ CLOSING_WHOLE_DONE="whole-brief-done"
 # sent, as the ladder's are.
 CLOSING_MESSAGES=("$CLOSING_CLEANUP_LOOK" "$CLOSING_USE_LOOK" "$CLOSING_WHOLE_DONE")
 
+# The fixed round awaiting the reply after a round came back empty and the
+# briefs were finished: the agent commits what finishing printed and says how
+# the full check went, and its reply brings the end report. The stand-in's
+# own round, never the preset's: nothing in it is the operator's words.
+CLOSING_FINISHED="brief-finished"
+
 # How many rounds finding something that belongs to the brief the loop runs
 # before the operator is told, with the list (settled 2026-10-06). Fixed in
 # code rather than read off the preset, as the ladder's rungs are: it is the
@@ -179,12 +185,14 @@ format_closing_tasks() {
   fi
 }
 
-# What the agent is told once a round is over: where something belongs here,
-# to ask about each, one question at a time, through the gate as any
-# question; where nothing does, that the sweep is done and the brief is to be
-# finished with the organizer's done. Either way, what to do with the rest.
+# What the agent is told once a round is over, given its findings and what
+# finishing the briefs printed: where something belongs here, to ask about
+# each, one question at a time, through the gate as any question; where
+# nothing does, that the sweep is done, and to commit exactly what finishing
+# the briefs printed, run the full check and say how it went. Either way,
+# what to do with the rest.
 format_closing_agent_note() {
-  local findings="$1" rows finding briefs moved
+  local findings="$1" finished="$2" rows finding briefs moved
   if is_closing_here "$findings"; then
     closing_here_note
     rows="$(derive_finding_rows "$findings" "$FINDING_HERE")"
@@ -194,7 +202,23 @@ format_closing_agent_note() {
   fi
   closing_swept_note
   format_closing_tasks "$findings"
-  closing_finish_line
+  closing_commit_line
+  printf '%s' "$finished"
+}
+
+# What the operator is told where finishing the briefs failed, given why, as
+# the organizer said, what it printed before it failed, and the round's
+# findings: the reply stops, and the paths already changed are theirs to see,
+# since nobody has been told to commit them.
+format_finish_failed() {
+  local why="$1" finished="$2" findings="$3"
+  closing_finish_failed_note "$why"
+  if [ -n "$finished" ]; then
+    closing_finish_partial_heading
+    printf '%s' "$finished"
+  fi
+  closing_round_findings_heading
+  format_closing_findings "$findings"
 }
 
 # The round's findings as the operator reads them, each with its sort in

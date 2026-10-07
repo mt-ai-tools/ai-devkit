@@ -34,6 +34,16 @@ to_prompt_text() {
   printf '%s\n' "$prompt"
 }
 
+# True if the prompt is a command typed to Claude Code, which opens with a
+# slash: never an answer to a question (settled 2026-10-06), since what it
+# says is addressed to Claude Code or a tool, the stand-in's own start
+# command among them, not to the question waiting. Only the slash is read:
+# anything else typed is kept, and whatever does not answer is the
+# case-writer's to skip, never this hook's to guess.
+is_command_prompt() {
+  [[ "$1" == /* ]]
+}
+
 # --- Answering.
 
 # The answer that refuses the prompt: it never reaches the model, and the

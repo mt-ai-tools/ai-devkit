@@ -46,8 +46,10 @@ Fill in the form from what the reply says, in its own terms:
     otherwise.
   None when it names none, or when ends_step is false.
 - proof: "passed" if the reply says the step's proof (its tests or checks)
-  passed; "failed" if it says the proof failed or could not be run. Empty
-  when it says neither, or when ends_step is false.
+  passed, or, for a reply saying the whole work is done, that the project's
+  full check passed; "failed" if it says that proof or check failed or could
+  not be run. Empty when it says neither, or when both ends_step and
+  claims_done are false.
 - next_step: the step the reply proposes to do next, in a few words, as it
   names it. Empty when it proposes none, or when ends_step is false.
 - next_step_number: that step's number in the brief, where the reply gives

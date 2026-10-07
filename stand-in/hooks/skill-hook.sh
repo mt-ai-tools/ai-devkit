@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Claude Code after-tool hook for the Skill tool — the thin orchestrator that
 # shows the user what the stand-in's two skills ask for: the list of the
-# questions it settled without them, or one of those, or a decision a round's
-# list laid out before building, brought back in full.
+# questions it settled without them, or one of those, a decision a round's
+# list laid out before building, or a proposal the agent dropped under a
+# challenge, brought back in full. A question brought back marks the
+# session's record, so its next question reaches the user.
 # Silent for every other skill. One hook for both, as the organizer has one
 # for its skill: each skill is told apart by the name its own file declares.
 #
@@ -16,7 +18,7 @@
 # Hook contract (Claude Code): the event arrives as JSON on stdin; the answer
 # is JSON on stdout. A refusal — words it does not understand, a number no
 # settled question has, a log it cannot read — is shown to the user as the
-# answer, never left silent.
+# answer, never left silent. So is a reopen whose mark cannot be made.
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -26,6 +28,8 @@ tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/words.sh"
 . "$tool_root/lib/skill-event.sh"
 . "$tool_root/lib/question-log.sh"
+. "$tool_root/lib/switch.sh"
+. "$tool_root/lib/record.sh"
 . "$tool_root/lib/settled.sh"
 . "$tool_root/lib/reopen.sh"
 
@@ -80,6 +84,35 @@ show_settled() {
   to_skill_answer "$shown" "$(skill_settled_shown_note "$(printf '%s' "$shown" | awk 'END { print NR }')")"
 }
 
+# Mark the session's record with the number reopened, where the stand-in is
+# on for the session: the gate then brings the session's next question to the
+# user whatever its kind and route (settled 2026-10-06), since asked again it
+# would otherwise pass the gate as any question, and once its kind is switched
+# be settled without them a second time. A mark that cannot be made refuses
+# the reopen whole, for the same reason. Where the stand-in is off, the gate
+# reads nothing of the session, the question reaches the user as the agent
+# asks it, and nothing is marked.
+mark_reopened() {
+  local number="$1" session history switch file record
+  session="$(to_skill_session "$event" 2>"$why")" || refuse_unmarked "$number"
+  history="$(get_config_path AIDK_STAND_IN_HISTORY 2>"$why")" || refuse_unmarked "$number"
+  switch="$(find_switch "$history" "$session" 2>"$why")" || refuse_unmarked "$number"
+  [ -n "$switch" ] || return 0
+  file="$(to_record_path "$history" "$session")"
+  record="$(read_session_record "$file" 2>"$why")" || refuse_unmarked "$number"
+  record="$(with_reopened "$record" "$number")"
+  write_session_record "$file" "$record" 2>"$why" || refuse_unmarked "$number"
+}
+
+# Show the user that the question numbered so was not reopened, with the
+# reason the failing part wrote, and tell the model so.
+refuse_unmarked() {
+  local reason
+  reason="$(cat "$why")"
+  reopen_unmarked_note "$1" "$reason" >"$why"
+  answer_refused "$why"
+}
+
 # The words are read before the log, so a request it cannot understand is
 # refused as such, whatever the log holds. What may be reopened is what the
 # operator was shown as a decision: a settled question, or one a round's list
@@ -91,6 +124,7 @@ show_reopened() {
   read_settled
   line="$(to_reopened_line "$(to_reopenable_lines "$logged")" "$number" 2>"$why")" || answer_refused "$why"
   ! is_round_listed "$logged" "$number" || listed=true
+  mark_reopened "$number"
   shown="$(format_reopened "$line" "$(jq -r '.exchange' <<<"$request")"; printf x)"
   shown="${shown%x}"
   to_skill_answer "$shown" "$(format_reopened_agent_note "$line" "$listed")"

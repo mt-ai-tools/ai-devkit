@@ -1,9 +1,9 @@
 bats_require_minimum_version 1.5.0
 
 # Behavior tests for the answer hook: silent where the stand-in is off; where
-# it is on, the prompt kept as the answer to the session's last question;
-# and, where it cannot be kept, one line for the model with the turn let
-# through.
+# it is on, the prompt kept as the answer to the session's last question,
+# never a typed command; and, where it cannot be kept, one line for the model
+# with the turn let through.
 
 load fake-claude
 load question-log
@@ -46,6 +46,19 @@ run_hook() {
   [ "$status" -eq 0 ]
   [ -z "$output" ]
   [ "$(jq -r '.answer' "$file")" = "Five, but log every retry." ]
+}
+
+@test "a typed command is never kept as the answer: the next prompt that is not one is" {
+  mkdir -p "$history/on"
+  : >"$history/on/session-1"
+  for command in "/devkit-stand-in file-trash" "/clear"; do
+    run_hook "$(turn_event session-1 "$command")"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+    [ "$(jq -r '.answer' "$file")" = "" ]
+  done
+  run_hook "$(turn_event session-1 "Ten, and see /tmp for why.")"
+  [ "$(jq -r '.answer' "$file")" = "Ten, and see /tmp for why." ]
 }
 
 @test "an answer that cannot be kept is one line for the model, and the turn goes on" {

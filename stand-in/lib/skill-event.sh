@@ -6,12 +6,27 @@
 # Loaded once, however many of the stand-in's parts source it, as words.sh is.
 [ -z "${STAND_IN_LOADED_SKILL_EVENT:-}" ] || return 0
 STAND_IN_LOADED_SKILL_EVENT=1
+. "$(dirname "${BASH_SOURCE[0]}")/words.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/session-id.sh"
 
 # The name of the skill the event loaded; nothing where the event is not a
 # skill loading, or not JSON at all.
 to_skill_loaded() {
   jq -r 'if .tool_name == "Skill" then (.tool_input.skill // "") else "" end | strings' \
     2>/dev/null <<<"$1" || true
+}
+
+# The session id the event carries; a refusal on stderr and a non-zero status
+# where it carries none that may name a file, the event not being JSON
+# included.
+to_skill_session() {
+  local session
+  session="$(jq -r '.session_id // empty | strings' 2>/dev/null <<<"$1")" || session=""
+  if ! is_session_id "$session"; then
+    refuse_skill_session_note >&2
+    return 1
+  fi
+  printf '%s\n' "$session"
 }
 
 # The words the skill was loaded with, as the model passed them; nothing where

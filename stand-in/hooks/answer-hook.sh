@@ -9,7 +9,9 @@
 # with the question shown, so whatever the operator types next is what they
 # said to it. Only the session's last question can take an answer, and only
 # once, so a later prompt never overwrites it, and a question settled without
-# the operator never takes one.
+# the operator never takes one. A command typed instead is not what they
+# said to it, so it is skipped, and the next prompt that is not one still
+# answers.
 #
 # Hook contract (Claude Code): the event arrives as JSON on stdin; stdout is
 # added to the model's context before the turn begins. Never blocks a turn,
@@ -63,5 +65,6 @@ switch="$(find_switch "$history" "$session")"
 [ -n "$switch" ] || exit 0
 
 prompt="$(to_prompt_text "$event")"
+! is_command_prompt "$prompt" || exit 0
 log_dir="$(to_log_dir "$history")"
 write_log_answer "$log_dir" "$session" "$prompt"

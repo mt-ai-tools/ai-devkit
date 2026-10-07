@@ -3,7 +3,9 @@ bats_require_minimum_version 1.5.0
 # Behavior tests for the stand-in's skill hook: silent for any other skill;
 # the settled list empty with its plain line during the trial; a settled
 # question listed by its number, today's by default; one reopened in full,
-# with its exchange on request, and handed to the agent; and a number, words
+# with its exchange on request, and handed to the agent; a proposal the agent
+# dropped reopened the same way; a reopen marking the session's record where
+# the stand-in is on, and refused whole where it cannot; and a number, words
 # or a log it cannot use refused plainly.
 
 load fake-claude
@@ -25,6 +27,12 @@ setup() {
   printf '#!/usr/bin/env bash\nprintf "%%s\\n" "2026-10-06"\n' >"$datebin/date"
   chmod +x "$datebin/date"
   answer="$BATS_TEST_TMPDIR/answer.json"
+  session="session-9"
+  record_file="$history/sessions/$session.json"
+}
+
+teardown() {
+  [ ! -d "$history/sessions" ] || chmod u+rwx "$history/sessions"
 }
 
 # The summary's parts of the log line numbered so, as the suite's log lines
@@ -39,9 +47,11 @@ reopened_parts() {
   gate_operator_call_part "Five or ten; no risk was named."
 }
 
-# A skill-loading event, as Claude Code hands it to an after-tool hook.
+# A skill-loading event, as Claude Code hands it to an after-tool hook, in
+# the suite's session.
 skill_event() {
-  jq -cn --arg skill "$1" --arg args "${2:-}" '{tool_name: "Skill", tool_input: ({skill: $skill} + (if $args == "" then {} else {args: $args} end))}'
+  jq -cn --arg skill "$1" --arg args "${2:-}" --arg session "$session" \
+    '{session_id: $session, tool_name: "Skill", tool_input: ({skill: $skill} + (if $args == "" then {} else {args: $args} end))}'
 }
 
 # The hook, run on a skill loading; its answer goes to a file so every byte
@@ -143,6 +153,59 @@ three_lines() {
     gate_reading_note "Ten is safer."
     reopen_exchange_hint)"
   [ "$(shown)" = "$expected" ]
+}
+
+# A proposal dropped under a challenge, as the gate logs it: never retold,
+# never summarised, never on a ladder, with the options it offered.
+dropped_line() {
+  jq -c '.retold = null | .summary = null | .ladder = null | .approved = ""
+    | .dropped = {options: ["five", "ten"], recommended: "five"}' \
+    <<<"$(log_line "$1" "$OUTCOME_DROPPED" session-2 2026-10-06T14:05:00Z five '["file-trash"]')"
+}
+
+@test "a dropped proposal is reopened in full, and handed to the agent with the options it offered" {
+  add_log_lines "$history" "$(dropped_line 4)"
+  run_hook devkit-stand-in-reopen 4
+  expected="$(reopen_dropped_heading 4 "2026-10-06 14:05" "$(settled_where_brief_words session-2 file-trash)"
+    reopen_question_line "Five retries or ten? (4)"
+    reopen_exchange_hint)"
+  [ "$(shown)" = "$expected" ]
+  [ "$(note)" = "$(reopen_dropped_agent_note 4 "Five retries or ten? (4)" "five${LADDER_OPTION_SEPARATOR}ten" five)" ]
+}
+
+# The stand-in switched on for the suite's session.
+switch_on() {
+  mkdir -p "$history/on"
+  : >"$history/on/$session"
+}
+
+@test "a reopen marks the session's record where the stand-in is on, keeping what it held, and nothing where it is off" {
+  . "$lib/record.sh"
+  three_lines
+  run_hook devkit-stand-in-reopen 3
+  [ "$(note)" = "$(reopen_agent_note 3 "Five retries or ten? (3)" "five${LADDER_OPTION_SEPARATOR}ten" five)" ]
+  [ ! -e "$record_file" ]
+  switch_on
+  write_session_record "$record_file" "$(with_send_back "$EMPTY_RECORD")"
+  run_hook devkit-stand-in-reopen 3
+  [ "$(note)" = "$(reopen_agent_note 3 "Five retries or ten? (3)" "five${LADDER_OPTION_SEPARATOR}ten" five)" ]
+  [ "$(jq -c '{sent_back, reopened}' "$record_file")" = '{"sent_back":1,"reopened":[3]}' ]
+}
+
+@test "a reopen whose mark cannot be made is refused whole, shown to the user" {
+  . "$lib/record.sh"
+  three_lines
+  switch_on
+  mkdir -p "$history/sessions"
+  chmod a-w "$history/sessions"
+  run_hook devkit-stand-in-reopen 3
+  [ "$(shown)" = "$(reopen_unmarked_note 3 "$(refuse_state_unwritable_note "$history/sessions")")" ]
+  [ "$(note)" = "$(skill_refusal_shown_note)" ]
+  chmod u+w "$history/sessions"
+  session="../escape"
+  run_hook devkit-stand-in-reopen 3
+  [ "$(shown)" = "$(reopen_unmarked_note 3 "$(refuse_skill_session_note)")" ]
+  [ ! -e "$history/sessions/session-9.json" ]
 }
 
 @test "a number no settled question has is refused plainly, one that reached the operator included" {

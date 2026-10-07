@@ -33,7 +33,7 @@ teardown() {
 
 @test "a record that is not one the gate writes is refused" {
   mkdir -p "$(dirname "$file")"
-  for text in 'not json' '{"sent_back":-1,"challenge":null,"dropped":[]}' '{"sent_back":0,"challenge":"x","dropped":[]}'; do
+  for text in 'not json' '{"sent_back":-1,"challenge":null}' '{"sent_back":0,"challenge":"x"}'; do
     printf '%s\n' "$text" >"$file"
     run --separate-stderr read_session_record "$file"
     [ "$status" -eq 1 ]
@@ -50,12 +50,38 @@ teardown() {
   [ -z "$(ls -A "$(dirname "$file")")" ]
 }
 
-@test "a dropped proposal is noted with its question and kind, and the question let go" {
-  record="$(with_challenge "$(with_send_back "$EMPTY_RECORD")" '{"name":"naming"}' 1 "$(whole_form)" '{}')"
-  run with_dropped "$record"
+@test "every decision reopened is marked once, kept through a question let go, and taken off first to last" {
+  record="$(with_reopened "$(with_send_back "$EMPTY_RECORD")" 7)"
+  record="$(with_reopened "$(with_reopened "$record" 4)" 7)"
+  [ "$(jq -c '.reopened' <<<"$record")" = '[7,4]' ]
+  [ "$(to_reopened "$record")" = 7 ]
+  record="$(with_chain_reset "$record")"
+  [ "$(to_reopened "$record")" = 7 ]
+  record="$(without_first_reopened "$record")"
+  [ "$(to_reopened "$record")" = 4 ]
+  [ "$(without_first_reopened "$record")" = "$EMPTY_RECORD" ]
+  [ -z "$(to_reopened "$EMPTY_RECORD")" ]
+  mkdir -p "$(dirname "$file")"
+  for reopened in '"7"' '[]' '["7"]'; do
+    jq -c --argjson reopened "$reopened" '.reopened = $reopened' <<<"$EMPTY_RECORD" >"$file"
+    run --separate-stderr read_session_record "$file"
+    [ "$status" -eq 1 ]
+  done
+}
+
+@test "a record is removed, none is no failure, and one that cannot be removed is refused" {
+  write_session_record "$file" "$EMPTY_RECORD"
+  run remove_session_record "$file"
   [ "$status" -eq 0 ]
-  [ "$(jq -c '.dropped' <<<"$output")" = '[{"question":"Five retries or ten?","kind":"naming"}]' ]
-  [ "$(jq -c '.dropped = []' <<<"$output")" = "$EMPTY_RECORD" ]
+  [ ! -e "$file" ]
+  run remove_session_record "$file"
+  [ "$status" -eq 0 ]
+  write_session_record "$file" "$EMPTY_RECORD"
+  chmod a-w "$(dirname "$file")"
+  run --separate-stderr remove_session_record "$file"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_state_unremovable_note "$file")" ]
+  [ -f "$file" ]
 }
 
 @test "a ladder holds its question, kind, lines, first answer and each pick, and ends any challenge" {
@@ -123,14 +149,18 @@ teardown() {
   record="$(with_closing_findings "$record" '[{"finding":"a"}]')"
   record="$(with_closing_findings "$record" '[{"finding":"b"}]')"
   [ "$(to_closing "$record")" = '{"briefs":["file-trash"],"findings":[{"finding":"a"},{"finding":"b"}]}' ]
+  record="$(with_closing_finished "$record" $'/p/aidk-plans/file-trash.md\n/p/aidk-plans/waiter.md\n')"
+  [ "$(jq -r '.finished' <<<"$(to_closing "$record")")" = $'/p/aidk-plans/file-trash.md\n/p/aidk-plans/waiter.md' ]
   [ "$(with_chain_reset "$record")" = "$EMPTY_RECORD" ]
   [ -z "$(to_closing "$EMPTY_RECORD")" ]
 }
 
 @test "a record holding a broken closing round is refused" {
   mkdir -p "$(dirname "$file")"
-  jq -c '.closing = {"briefs": "file-trash", "findings": []}' <<<"$EMPTY_RECORD" >"$file"
-  run --separate-stderr read_session_record "$file"
-  [ "$status" -eq 1 ]
-  [ "$stderr" = "$(refuse_state_unreadable_note "$file")" ]
+  for closing in '{"briefs": "file-trash", "findings": []}' '{"briefs": [], "findings": [], "finished": ["x"]}'; do
+    jq -c --argjson closing "$closing" '.closing = $closing' <<<"$EMPTY_RECORD" >"$file"
+    run --separate-stderr read_session_record "$file"
+    [ "$status" -eq 1 ]
+    [ "$stderr" = "$(refuse_state_unreadable_note "$file")" ]
+  done
 }

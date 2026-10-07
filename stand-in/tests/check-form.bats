@@ -282,6 +282,13 @@ $(refuse_guidance_outside_note maybe)" ]
     [ "$status" -eq 1 ]
     [ "$stderr" = "$(refuse_no_step_but_note)" ]
   done
+  # The full check, said of the whole work done, is no step's proof.
+  run refuse_bad_reader_form "$(jq -c '.asks_operator = false | .question = "" | .options = [] | .recommended = ""
+    | .claims_done = true | .proof = "passed"' <<<"$(whole_form)")"
+  [ "$status" -eq 0 ]
+  run --separate-stderr refuse_bad_reader_form "$(jq -c '.asks_operator = false | .question = "" | .options = [] | .recommended = ""
+    | .claims_done = true | .next_step = "step 9"' <<<"$(whole_form)")"
+  [ "$status" -eq 1 ]
 }
 
 @test "the sorter's labelling of a step passes with labels it was handed, and is refused with any other" {

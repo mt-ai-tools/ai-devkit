@@ -6,8 +6,9 @@ bats_require_minimum_version 1.5.0
 # plain retelling before every question reaches the operator and the
 # summary's parts under it, the loop guard, the step go, the round's
 # decisions laid out before building, the kinds accepted as they stand and
-# those given one challenge, the trial and the switched kind, and every way
-# the gate itself can fail letting the reply stop with a reason.
+# those given one challenge, the trial and the switched kind, a proposal
+# dropped and a decision reopened, the closing loop and its end report, and
+# every way the gate itself can fail letting the reply stop with a reason.
 # Claude Code is the suite's own fake, answering each model apart.
 
 load fake-claude
@@ -231,7 +232,7 @@ all_three() {
   grep -qF -- '"enum":["convention-one.md","rule-one.md"]' "$FAKE_ARGS.checker"
 }
 
-@test "a kind with a challenge is challenged first, and a drop lets the reply stop, noted" {
+@test "a kind with a challenge is challenged first, and a drop is logged and lets the reply stop" {
   kind naming ask "Do we really need it?" "Have you read them?"
   answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
   run_gate
@@ -239,12 +240,36 @@ all_three() {
   [ "$(reason)" = "$(gate_challenge_note "Do we really need it?")" ]
   answer_for reader "$(no_question_form drop)"
   rm "$FAKE_CALLS"
-  run_gate true
+  run_gate true "Dropped: the default stands."
   [ "$status" -eq 0 ]
   [ -z "$output" ]
   [ "$(calls)" = "reader $READER_MODEL" ]
-  [ "$(jq -c '.dropped' "$record_file")" = '[{"question":"Five retries or ten?","kind":"naming"}]' ]
-  [ "$(jq -c '.challenge' "$record_file")" = null ]
+  # A line of its own, never awaiting the operator's answer, with the options
+  # it offered for whoever reopens it.
+  [ "$(jq -c '{number, question, kind, outcome, approved, reasons, retold, summary, dropped, answer}' "$(log_file)")" = \
+    '{"number":1,"question":"Five retries or ten?","kind":"naming","outcome":"dropped","approved":"","reasons":[],"retold":null,"summary":null,"dropped":{"options":["five","ten"],"recommended":"five"},"answer":""}' ]
+  [ "$(jq -c '[.exchange[] | .text]' "$(log_file)")" = \
+    "$(jq -cn --arg a "$reply" --arg b "$(gate_challenge_note "Do we really need it?")" '[$a, $b, "Dropped: the default stands."]')" ]
+  [ "$(jq -c . "$record_file")" = "$EMPTY_RECORD" ]
+  run "$BATS_TEST_DIRNAME/../hooks/answer-hook.sh" <<<"$(jq -cn --arg s "$session" '{session_id: $s, hook_event_name: "UserPromptSubmit", prompt: "fine"}')"
+  [ "$(jq -r '.answer' "$(log_file)")" = "" ]
+  # A drop is no decision of the round laid out before building.
+  answer_for reader "$(jq -c '.asks_operator = false | .question = "" | .options = [] | .recommended = "" | .closes_round = true' <<<"$(whole_form)")"
+  run_gate false "Shall I start building?"
+  [ "$(message)" = "$(round_heading; round_empty_line; round_hint)" ]
+}
+
+@test "a drop that cannot be logged lets the reply stop, the operator told it is listed nowhere" {
+  kind naming ask "Do we really need it?"
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
+  run_gate
+  mkdir -p "$history/log"
+  chmod a-w "$history/log"
+  answer_for reader "$(no_question_form drop)"
+  run_gate true
+  [ "$status" -eq 0 ]
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(message)" = "$(gate_drop_unlogged_note "Five retries or ten?"; gate_log_failed_line "$(refuse_log_unwritable_note "$history/log")")" ]
 }
 
 @test "a proposal kept is challenged a second time, and kept again goes to the operator" {
@@ -1118,9 +1143,11 @@ switch_kinds() {
   gate="$kit/stand-in/hooks/gate.sh"
 }
 
-# The skill hook of the kit given, run on the skill and words given.
+# The skill hook of the kit given, run on the skill and words given, in the
+# suite's session.
 run_skill() {
-  jq -cn --arg skill "$2" --arg args "$3" '{tool_name: "Skill", tool_input: {skill: $skill, args: $args}}' \
+  jq -cn --arg skill "$2" --arg args "$3" --arg session "$session" \
+    '{session_id: $session, tool_name: "Skill", tool_input: {skill: $skill, args: $args}}' \
     | "$1/stand-in/hooks/skill-hook.sh"
 }
 
@@ -1281,12 +1308,12 @@ round_message() {
   answer="$(run_skill "$kit" devkit-stand-in-reopen 6)"
   [ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$answer")" = \
     "$(reopen_agent_note 6 "Five retries or ten? (6)" "five${LADDER_OPTION_SEPARATOR}ten" five; reopen_round_waits_note)" ]
-  # The agent asks it again, and it reaches the operator as a normal question.
+  # The agent asks it again, and it reaches the operator, marked reopened.
   answer_for reader "$(whole_form)"
   answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
   run_gate false
   retell
-  [ "$(message)" = "$(operator_message "$(gate_kind_line naming "The naming kind.")")" ]
+  [ "$(message)" = "$(operator_message "$(gate_reopened_line 4)")" ]
   # Asked to build again, the operator sees the decision taken anew alone:
   # what they did not reopen was laid out already, and stands.
   answer_for reader "$(round_form)"
@@ -1394,6 +1421,60 @@ accepted_message() {
   [ ! -s "$record_file" ] || [ "$(jq -c . "$record_file")" = "$EMPTY_RECORD" ]
   shown="$(run_skill "$kit" devkit-stand-in-settled all | jq -r '.systemMessage')"
   grep -qxF -- "$(settled_item_line 1 "$question")" <<<"$shown"
+}
+
+@test "a reopened decision asked again reaches the operator under a switched kind, whatever its route, and only once" {
+  . "$lib/reopen.sh"
+  switch_kinds
+  kind step-timing accept
+  question="Fold step 4 into step 3?"
+  answer_for reader "$(asking "$question" yes no)"
+  answer_for sorter "$(sorted step-timing)"
+  # Settled without the operator once its kind is switched, and reopened.
+  run_gate
+  [ "$(reason)" = "$(gate_settled_note yes)" ]
+  answer="$(run_skill "$kit" devkit-stand-in-reopen 1)"
+  [ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$answer")" = "$(reopen_agent_note 1 "$question" "" yes)" ]
+  [ "$(jq -c '.reopened' "$record_file")" = '[1]' ]
+  # Asked again, it reaches the operator, saying they reopened it, and is
+  # logged as theirs.
+  rm "$FAKE_CALLS"
+  run_gate false
+  [ "$(reason)" = "$(retelling)" ]
+  [ "$(calls)" = "$(all_three)" ]
+  [ "$(jq -c '.reopened' "$record_file")" = null ]
+  retell
+  [ "$(message)" = "$(operator_message "$(gate_reopened_line 1)")" ]
+  [ "$(last_line | jq -c '{number, kind, outcome, approved, reasons}')" = \
+    "$(jq -cn --arg why "$(gate_reopened_line 1)" '{number: 2, kind: "step-timing", outcome: "to-operator", approved: "", reasons: [$why]}')" ]
+  # The mark is spent: the next question of the kind is settled again.
+  answer_for reader "$(asking "$question" yes no)"
+  run_gate false
+  [ "$(reason)" = "$(gate_settled_note yes)" ]
+}
+
+@test "a reopened decision is never challenged away: a kind with a challenge reaches the operator at once" {
+  kind naming ask "Do we really need it?"
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
+  mkdir -p "$(dirname "$record_file")"
+  jq -c '.reopened = [5]' <<<"$EMPTY_RECORD" >"$record_file"
+  run_gate
+  [ "$(reason)" = "$(retelling)" ]
+  retell
+  [ "$(message)" = "$(operator_message "$(gate_reopened_line 5)")" ]
+}
+
+@test "while a reopened decision waits, a step's report under a switched kind gets no go: it reaches the operator, the mark kept" {
+  . "$lib/step-go.sh"
+  switch_kinds
+  step_report
+  mkdir -p "$(dirname "$record_file")"
+  jq -c '.reopened = [3]' <<<"$EMPTY_RECORD" >"$record_file"
+  run_gate false "$step_reply"
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(message)" = "$(gate_step_operator_note "$step_question" "$(gate_reopened_step_line 3)")" ]
+  [ "$(jq -c '.reopened' "$record_file")" = '[3]' ]
+  [ "$(last_line | jq -r '.outcome')" = to-operator ]
 }
 
 @test "\"leave it for later?\" reaches the operator, even once through the trial: work put off is theirs" {
@@ -1657,13 +1738,43 @@ here_finding="$(finding "The README still calls the loop beta" here '["aidk-plan
   [ "$(message)" = "$(gate_broken_note "$(refuse_changes_unknown_note monoframe/mf-media/src/media.ts)")" ]
 }
 
-@test "an empty round ends the loop: the sweep is done, and the brief is finished with done and committed" {
+# A brief waiting on the suite's brief, and one waiting on nothing, so
+# finishing the suite's brief frees one and leaves the other as it was.
+waiter_ground() {
+  printf -- '---\nsummary: Waiter.\nafter: [file-trash]\ntouches: [aidk-plans]\ncreates: []\n---\n\n# waiter\n' \
+    >"$project/aidk-plans/waiter.md"
+  printf -- '---\nsummary: Alone.\nafter: []\ntouches: [aidk-plans]\ncreates: []\n---\n\n# alone\n' \
+    >"$project/aidk-plans/alone.md"
+  git -C "$project" add -A
+  git -C "$project" -c user.name=suite -c user.email=suite@example.invalid commit -qm waiters
+}
+
+# What the organizer's own script prints finishing the suite's brief, read in
+# a copy of the project as it stands and spelled for the project itself.
+organizer_done() {
+  local twin="$BATS_TEST_TMPDIR/twin"
+  rm -rf "$twin"
+  cp -r "$project" "$twin"
+  CLAUDE_PROJECT_DIR="$twin" "$BATS_TEST_DIRNAME/../../organizer/bin/organizer.sh" done file-trash \
+    | sed "s|^$twin/|$project/|"
+}
+
+@test "an empty round ends the loop: the stand-in finishes the brief with done, and the agent is told to commit what it printed" {
   closing_ground
+  waiter_ground
+  printed="$(organizer_done)"
   sweep_round "$(look_form)" "$(look_form)"
   [ "$(jq -r '.decision' <<<"$output")" = block ]
-  [ "$(reason)" = "$(closing_swept_note; closing_finish_line)" ]
+  [ "$(reason)" = "$(closing_swept_note; closing_commit_line; printf '%s\n' "$printed")" ]
+  [ "$printed" = "$project/aidk-plans/file-trash.md"$'\n'"$project/aidk-plans/waiter.md" ]
+  [ ! -e "$project/aidk-plans/file-trash.md" ]
+  grep -qxF -- "after: []" "$project/aidk-plans/waiter.md"
+  [ -z "$(git -C "$project" status --porcelain -- aidk-plans/alone.md)" ]
+  [ ! -e "$project/aidk-organizer/taken/file-trash" ]
   [ "$(last_line | jq -c '{outcome, closing: (.closing | {number, findings})}')" = \
     '{"outcome":"to-agent","closing":{"number":1,"findings":[]}}' ]
+  [ "$(jq -c '{round, finished: .closing.finished}' "$record_file")" = \
+    "$(jq -cn --arg f "$printed"$'\n' '{round: "brief-finished", finished: $f}')" ]
   # A round is no decision of a round of questions laid out before building.
   answer_for reader "$(jq -c '.asks_operator = false | .question = "" | .options = [] | .recommended = "" | .closes_round = true' <<<"$(whole_form)")"
   run_gate false "Shall I start building?"
@@ -1679,8 +1790,125 @@ here_finding="$(finding "The README still calls the loop beta" here '["aidk-plan
     gate_problem_line "media.ts builds the sizes by hand"
     closing_park_heading
     gate_problem_line "A settings screen of its own"
-    closing_finish_line)"
+    closing_commit_line
+    printf '%s\n' "$project/aidk-plans/file-trash.md")"
   [ "$(reason)" = "$expected" ]
+}
+
+# The reader's form of the reply after the brief was finished: the brief
+# said done, the full check as given.
+finished_form() { jq -c --arg proof "$1" '.claims_done = true | .proof = $proof' <<<"$(no_question_form)"; }
+finished_reply="Committed. The brief built the end report; the full check passed: 470 tests."
+
+@test "a finished brief's end report shows every part, from the log and the organizer's own output" {
+  closing_ground
+  waiter_ground
+  # A proposal the agent dropped under its kind's challenge, through the gate.
+  kind naming ask "Do we really need it?"
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
+  run_gate
+  answer_for reader "$(no_question_form drop)"
+  run_gate true
+  # A decision the stand-in settled under this brief in an earlier session,
+  # and one under another brief, which is not this report's.
+  add_log_lines "$history" \
+    "$(log_line 2 "$OUTCOME_SETTLED" session-3 2026-10-06T07:00:00Z five '["file-trash"]')" \
+    "$(log_line 3 "$OUTCOME_SETTLED" session-3 2026-10-06T07:30:00Z ten '["other-brief"]')"
+  # A round finding something here, beside every other sort, one moved by code.
+  printf 'edited\n' >>"$project/monoframe/mf-media/src/sizes.ts"
+  sweep_round \
+    "$(look_form "$here_finding" \
+      "$(finding "A typo the notes already hold" written-down)" \
+      "$(finding "A settings screen of its own" park)")" \
+    "$(look_form \
+      "$(finding "media.ts builds the sizes by hand" quick '["monoframe/mf-media/src/media.ts"]')" \
+      "$(finding "sizes.ts repeats the table" quick '["monoframe/mf-media/src/sizes.ts"]')" \
+      "$(finding "mf-users could take it" hand-off '[]' frozen-account)" \
+      "$(finding "It could also be used for logging" not-same-job)")"
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  # Then an empty round: the brief is finished, and the agent's reply after
+  # committing brings the report.
+  printed="$(organizer_done)"
+  sweep_round "$(look_form)" "$(look_form)"
+  answer_for reader "$(finished_form passed)"
+  rm "$FAKE_CALLS"
+  run_gate true "$finished_reply"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(calls)" = "reader $READER_MODEL" ]
+  expected="$(end_report_heading file-trash
+    end_built_line
+    end_check_passed_line
+    end_silent_heading
+    end_silent_line 2 "Should a call be tried five or ten times? (2)" five
+    gate_fixed_heading
+    gate_problem_line "media.ts builds the sizes by hand"
+    end_dropped_heading
+    closing_finding_line "A typo the notes already hold" "$(closing_sort_words written-down)"
+    closing_finding_line "It could also be used for logging" "$(closing_sort_words not-same-job)"
+    end_dropped_line 1 "Five retries or ten?"
+    end_parked_heading
+    gate_problem_line "A settings screen of its own"
+    closing_moved_line "sizes.ts repeats the table" "$(closing_moved_uncommitted_words)"
+    end_freed_heading
+    printf '%s\n' "$printed")"
+  # The organizer's list closes it as its own script prints it, read in a
+  # copy of the project before the gate finished the brief.
+  [ "$(message)" = "$expected" ]
+  [ "$(jq -c . "$record_file")" = "$EMPTY_RECORD" ]
+  # The dropped proposal the report lists reopens by its number.
+  answer="$(run_skill "$BATS_TEST_DIRNAME/../.." devkit-stand-in-reopen 1)"
+  [ "$(jq -r '.systemMessage' <<<"$answer" | head -n 1)" = "$(reopen_dropped_heading 1 when where | head -n 1)" ]
+  [ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$answer")" = \
+    "$(reopen_dropped_agent_note 1 "Five retries or ten?" "five${LADDER_OPTION_SEPARATOR}ten" five)" ]
+}
+
+@test "the end report says plainly where the check failed, was not said, or the reply could not be read, and every empty part" {
+  closing_ground
+  for proof in failed "" broken; do
+    git -C "$project" checkout -q -- aidk-plans
+    hold_brief
+    rm -f "$(log_file)"
+    sweep_round "$(look_form)" "$(look_form)"
+    if [ "$proof" = broken ]; then
+      status_for reader 3
+    else
+      answer_for reader "$(finished_form "$proof")"
+    fi
+    run_gate true "$finished_reply"
+    rm -f "$FAKE_ANSWERS/reader.status"
+    case "$proof" in
+      failed) check="$(end_check_failed_line)" ;;
+      "") check="$(end_check_unsaid_line)" ;;
+      broken) check="$(end_check_unread_line "$(refuse_model_exit_note "$READER_MODEL" 3)")" ;;
+    esac
+    expected="$(end_report_heading file-trash
+      end_built_line
+      printf '%s\n' "$check"
+      end_silent_heading; end_none_line
+      gate_fixed_heading; end_none_line
+      end_dropped_heading; end_none_line
+      end_parked_heading; end_none_line
+      end_freed_heading
+      printf '%s\n' "$project/aidk-plans/file-trash.md")"
+    [ "$(message)" = "$expected" ]
+  done
+}
+
+@test "a done the organizer refuses lets the reply stop: the operator is told why, with the round's findings" {
+  closing_ground
+  start_sweep
+  look_reply "$(look_form "$(finding "A settings screen of its own" park)")"
+  printf 'not a header\n' >"$project/aidk-plans/broken.md"
+  look_reply "$(look_form)"
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  why="$(. "$BATS_TEST_DIRNAME/../../organizer/lib/words.sh"; refuse_header_unreadable_note broken)"
+  expected="$(closing_finish_failed_note "$why"
+    closing_round_findings_heading
+    closing_finding_line "A settings screen of its own" "$(closing_sort_words park)")"
+  [ "$(message)" = "$expected" ]
+  [ -e "$project/aidk-plans/file-trash.md" ]
+  [ "$(jq -c . "$record_file")" = "$EMPTY_RECORD" ]
 }
 
 @test "a third round still finding something that belongs here tells the operator, with the list" {
@@ -1718,13 +1946,16 @@ closing_line() {
 
 @test "rounds whose findings belong elsewhere, other briefs' rounds and other sessions' do not count toward the notice" {
   closing_ground
+  # A round of this brief whose findings all belonged elsewhere ended its
+  # loop and finished the brief, so only the log shows one beside rounds
+  # that go on.
   add_log_lines "$history" \
     "$(closing_line 1 "$session" '["other-brief"]' here)" \
     "$(closing_line 2 session-2 '["file-trash"]' here)" \
-    "$(closing_line 3 "$session" '["other-brief"]' here)"
+    "$(closing_line 3 "$session" '["other-brief"]' here)" \
+    "$(closing_line 4 "$session" '["file-trash"]' park)"
   here_round="$(look_form "$here_finding")"
   sweep_round "$here_round" "$(look_form)"
-  sweep_round "$(look_form "$(finding "A settings screen of its own" park)")" "$(look_form)"
   [ "$(last_line | jq -r '.closing.number')" -eq 2 ]
   sweep_round "$here_round" "$(look_form)"
   # The third round of this brief, the second finding something here: still the agent's.

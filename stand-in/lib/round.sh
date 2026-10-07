@@ -49,17 +49,19 @@ ROUND_US=$'\037'
 # round. A step's report and a request to build are no decision of a round,
 # only where one ends; a round of the closing loop is none either, since the
 # operator decides nothing in it: what it finds that belongs to the brief is
-# asked again as questions, which are.
+# asked again as questions, which are. Nor is a proposal the agent dropped
+# under a challenge: neither the operator nor the stand-in decided it, and
+# the end report lists it.
 derive_round_decisions() {
   local lines="$1" session="$2"
   [ -n "$lines" ] || { printf '[]\n'; return 0; }
-  jq -cs --arg session "$session" --arg settled "$OUTCOME_SETTLED" \
+  jq -cs --arg session "$session" --arg settled "$OUTCOME_SETTLED" --arg dropped "$OUTCOME_DROPPED" \
     --arg operator "$ROUND_BY_OPERATOR" --arg stand_in "$ROUND_BY_STAND_IN" '
     [.[] | select(.session == $session)] as $own
     | (reduce range(0; $own | length) as $i (-1;
         if ($own[$i].round != null or $own[$i].step != null) then $i else . end)) as $last
     | $own[($last + 1):]
-    | map(select(.round == null and .step == null and .closing == null)
+    | map(select(.round == null and .step == null and .closing == null and .outcome != $dropped)
       | {number, by: (if .outcome == $settled then $stand_in else $operator end),
          question: (.retold // .question), options: (.ladder.first.options // []),
          recommended: (.summary.recommends_now // .ladder.first.recommended // ""),

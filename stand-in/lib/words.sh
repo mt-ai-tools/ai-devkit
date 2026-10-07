@@ -329,6 +329,10 @@ refuse_state_unwritable_note() {
   printf 'The stand-in'\''s record of this session cannot be written in %s.\n' "$1"
 }
 
+refuse_state_unremovable_note() {
+  printf 'The stand-in'\''s record %s cannot be removed.\n' "$1"
+}
+
 refuse_ladder_route_note() {
   printf 'The question the stand-in holds climbs the route "%s", which neither the ladder nor the light check is.\n' "$1"
 }
@@ -408,6 +412,24 @@ gate_kept_line() {
 # to the operator: it puts work off.
 gate_defers_line() {
   printf -- '- The recommended option, %s, puts work off, which always comes to you.\n' "$1"
+}
+
+# Why a question came to the operator though its kind and route would not
+# have brought it: they reopened a decision, given its number.
+gate_reopened_line() {
+  printf -- '- You reopened question %s, so the next question this session asks is yours, whatever its kind.\n' "$1"
+}
+
+# Why a step's report came to the operator while a decision they reopened
+# waits to be asked again, given its number.
+gate_reopened_step_line() {
+  printf -- '- You reopened question %s, and this session has not asked it again yet, so the go is yours until it has.\n' "$1"
+}
+
+# A proposal the agent dropped under the stand-in's challenge whose line
+# could not be written, given the question: the reply stops unjudged.
+gate_drop_unlogged_note() {
+  printf 'Stand-in: the agent dropped a proposal under the stand-in'\''s challenge, but the drop could not be logged, so it would be listed nowhere and could not be reopened. The proposal: %s\nThe rest of the reply was not judged, so it is yours to read.\n' "$1"
 }
 
 gate_unanswered_line() {
@@ -770,8 +792,24 @@ closing_swept_note() {
   gate_from_note 'the closing sweep came back with nothing that belongs to this brief.'
 }
 
-closing_finish_line() {
-  printf 'Then finish the brief with the organizer'\''s done, and commit the paths it prints.\n'
+# Under the round's tasks, once the stand-in finished the briefs, over the
+# paths finishing printed.
+closing_commit_line() {
+  printf 'The stand-in has finished the brief through the work organizer, which changed the paths below. Commit exactly those, run the project'\''s full check, then say plainly that the brief is done, what it built, and whether the full check passed:\n'
+}
+
+closing_finish_failed_note() {
+  local why="$1"
+  [ -n "$why" ] || why='No part of the stand-in said why.'
+  printf 'Stand-in: the closing sweep came back with nothing that belongs to the brief, but finishing it through the work organizer failed, so it is yours. Why:\n%s\n' "$why"
+}
+
+closing_finish_partial_heading() {
+  printf 'What the work organizer changed before it failed, still to be committed:\n'
+}
+
+closing_round_findings_heading() {
+  printf 'This round'\''s findings:\n'
 }
 
 closing_quick_heading() {
@@ -855,6 +893,69 @@ closing_briefs_unknown_note() {
   local why="$1"
   [ -n "$why" ] || why='No part of the stand-in said why.'
   printf 'Stand-in: the agent says the work is done, but which brief this session holds could not be told, so the closing sweep was not started. Why:\n%s\n' "$why"
+}
+
+# --- The end report, shown once the closing sweep came back empty and the
+# brief was finished.
+
+end_report_heading() {
+  printf 'Stand-in: the closing sweep came back empty, and %s is finished. The end report:\n' "$1"
+}
+
+end_built_line() {
+  printf 'What was built: in the agent'\''s own words, in its reply above.\n'
+}
+
+end_check_passed_line() {
+  printf 'The full check: the agent says it passed.\n'
+}
+
+end_check_failed_line() {
+  printf 'The full check: the agent says it failed, or could not be run.\n'
+}
+
+end_check_unsaid_line() {
+  printf 'The full check: the agent does not say it passed.\n'
+}
+
+# Where the agent's last reply could not be read: why, as the reader said.
+end_check_unread_line() {
+  local why="$1"
+  [ -n "$why" ] || why='No part of the stand-in said why.'
+  printf 'The full check: the agent'\''s reply could not be read, so whether it passed is not known. Why:\n%s\n' "$why"
+}
+
+end_silent_heading() {
+  printf 'Decided without you:\n'
+}
+
+# One decision settled without the operator: its number, the question as the
+# agent retold it, and the option settled on.
+end_silent_line() {
+  printf -- '- %s. %s Settled on: %s. Say "reopen %s" to bring it back.\n' "$1" "$2" "$3" "$1"
+}
+
+end_dropped_heading() {
+  printf 'Dropped:\n'
+}
+
+# One proposal the agent dropped under the stand-in's challenge: its number
+# and the question.
+end_dropped_line() {
+  printf -- '- %s. %s (the agent dropped it under the stand-in'\''s challenge; say "reopen %s" to bring it back)\n' "$1" "$2" "$1"
+}
+
+end_parked_heading() {
+  printf 'Parked:\n'
+}
+
+# Over the paths the work organizer printed as it finished the brief.
+end_freed_heading() {
+  printf 'Finished through the work organizer, which changed these paths: the brief removed, and every brief that waited on it freed of that wait:\n'
+}
+
+end_none_line() {
+  printf -- '- None.\n'
 }
 
 refuse_changes_unknown_note() {
@@ -941,6 +1042,12 @@ reopen_heading() {
   printf 'Stand-in: question %s, which it settled without you, is open again.\nIt was settled at %s, %s.\n' "$1" "$2" "$3"
 }
 
+# A proposal the agent dropped under the stand-in's challenge: number, when
+# it was dropped, and where.
+reopen_dropped_heading() {
+  printf 'Stand-in: question %s, a proposal the agent dropped under the stand-in'\''s challenge, is open again.\nIt was dropped at %s, %s.\n' "$1" "$2" "$3"
+}
+
 reopen_question_line() {
   printf 'The question: %s\n' "$1"
 }
@@ -989,15 +1096,15 @@ reopen_fixed_heading() {
 }
 
 reopen_usage_note() {
-  printf 'The stand-in reopens a question by the number its settled list or a round'\''s list shows, as in "reopen 3"; add "exchange" after the number to read every turn word for word.\n'
+  printf 'The stand-in reopens a question by the number its settled list, a round'\''s list or its end report shows, as in "reopen 3"; add "exchange" after the number to read every turn word for word.\n'
 }
 
 reopen_nothing_note() {
-  printf 'There is nothing to reopen: nothing was settled without you, since every kind is still on trial, and no round'\''s list was laid out before building.\n'
+  printf 'There is nothing to reopen: nothing was settled without you, since every kind is still on trial, no proposal was dropped, and no round'\''s list was laid out before building.\n'
 }
 
 reopen_unknown_note() {
-  printf 'No question the stand-in can reopen is numbered %s; its settled list and the round lists show the numbers there are.\n' "$1"
+  printf 'No question the stand-in can reopen is numbered %s; its settled list, the round lists and its end reports show the numbers there are.\n' "$1"
 }
 
 # --- The skill hook's notes to the model, which never sees what the hook
@@ -1023,11 +1130,30 @@ reopen_decided_agent_note() {
   printf 'The stand-in'\''s question %s, which the user had decided, has been shown to the user above, in full. It is open again: ask the user it now as a normal question in plain conversation, with its options and your recommendation, and wait for their answer. The question as first asked: %s Its options: %s. The user had answered: %s\n' "$1" "$2" "$3" "$4"
 }
 
+# A proposal the agent dropped under the stand-in's challenge, reopened:
+# number, question as first asked, its options joined, and the option the
+# agent recommended then (empty for none).
+reopen_dropped_agent_note() {
+  printf 'The stand-in'\''s question %s, a proposal the agent dropped under the stand-in'\''s challenge, has been shown to the user above, in full. It is open again: ask the user it now as a normal question in plain conversation, with its options and your recommendation, and wait for their answer. The question as first asked: %s Its options: %s. The agent had recommended: %s.\n' "$1" "$2" "$3" "$4"
+}
+
 # Under the note for a decision listed in a round, laid out before building:
 # building waits until every reopened one is settled again (settled
 # 2026-10-06).
 reopen_round_waits_note() {
   printf 'It is a decision of the round laid out before building, so building waits: do not start building, or go on with it, until it is settled again; then ask the user again whether to start building.\n'
+}
+
+refuse_skill_session_note() {
+  printf 'The skill'\''s event carries no session id the stand-in can use.\n'
+}
+
+# A reopen refused because the session could not be marked to bring its next
+# question to the user: the number, and why, as the failing part said.
+reopen_unmarked_note() {
+  local why="$2"
+  [ -n "$why" ] || why='No part of the stand-in said why.'
+  printf 'Stand-in: question %s was not reopened: this session could not be marked to bring its next question to you, so asked again it could be settled without you. Why:\n%s\n' "$1" "$why"
 }
 
 skill_name_unreadable_note() {
@@ -1094,11 +1220,12 @@ start_list_agent_note() {
 # --- The session's end.
 
 refuse_end_session_note() {
-  printf 'The session-end event carries no session id the stand-in can use, so no switch was removed.\n'
+  printf 'The session-end event carries no session id the stand-in can use, so no switch or record was removed.\n'
 }
 
+# Under the reasons, which name the switch or the record left behind.
 end_not_removed_note() {
-  printf 'The stand-in'\''s session-end hook could not remove the switch of session %s.\n' "$1"
+  printf 'The stand-in'\''s session-end hook could not remove everything of session %s.\n' "$1"
 }
 
 # --- The question box. Questions stay in the reply in a session the stand-in

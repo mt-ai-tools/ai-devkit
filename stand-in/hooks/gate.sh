@@ -12,14 +12,24 @@
 # reaches the operator with every decision of the round laid out. A reply
 # saying the work is done starts the closing loop: rounds of two looks around,
 # each look's findings checked in code and sorted, until a round finds nothing
-# that belongs to the brief. In every other session it does nothing at all.
+# that belongs to the brief; the brief is then finished through the work
+# organizer, and the agent's reply after committing what that changed brings
+# the operator the end report. In every other session it does nothing at all.
+#
+# A proposal the agent drops under its kind's challenge is a line of the log,
+# listed in the end report and reopenable. A decision the operator reopened
+# marks the session's record, and the session's next question reaches them
+# whatever its kind and route; until it has, no go is given on a step's
+# report either.
 #
 # The order is the point: the rules and conventions check runs before any
 # route, so a question that breaks one never reaches the operator; the
 # challenge runs before the routes, so a proposal the agent drops is never
-# asked about. A reply on the ladder is matched alone, never read, checked or
-# sorted again: the option a held answer names was checked on the first rung,
-# and a moved answer goes to the operator either way.
+# asked about; a reopened mark is read before both, so a decision the operator
+# asked to make is neither challenged away nor routed past them. A reply on
+# the ladder is matched alone, never read, checked or sorted again: the
+# option a held answer names was checked on the first rung, and a moved
+# answer goes to the operator either way.
 #
 # Fixed rounds come before the operator, sent by code rather than chosen
 # (settled 2026-10-05: the operator does not wait the research out, and reads
@@ -138,6 +148,7 @@ switch="$(find_switch "$history" "$session")"
 . "$tool_root/lib/closing.sh"
 . "$tool_root/lib/closing-reader.sh"
 . "$tool_root/lib/changes.sh"
+. "$tool_root/lib/end-report.sh"
 
 preset="$(get_config_path AIDK_STAND_IN)"
 rules="$(get_config_path AIDK_RULES)"
@@ -579,10 +590,16 @@ answer_go() {
 # brought to the operator, as the forms decide. A preset with no kind for the
 # step go lets the report stop as it is.
 answer_step() {
-  local form="$1" entry sort briefs labels step words
+  local form="$1" entry sort reopened briefs labels step words
   entry="$(find_go_kind "$preset")"
   [ -n "$entry" ] || let_stop
   sort="$(get_step_sort "$form" "$reply" "$preset")"
+  # While a decision the operator reopened waits to be asked again, the go is
+  # theirs: a reopened go is asked again as whether to go on, which reads as a
+  # step's report, and must not be given silently a second time. The mark is
+  # kept, for the question it waits for.
+  reopened="$(to_reopened "$record")"
+  [ -z "$reopened" ] || step_to_operator "$form" "$sort" "$entry" "$(gate_reopened_step_line "$reopened")"
   briefs="$(get_held_briefs "$session" 2>/dev/null)" || briefs=null
   labels="$(list_risks "$preset")"
   labels="$(list_major_labels "$labels")"
@@ -727,11 +744,11 @@ log_round() {
 
 # Both looks are in: the round is logged, one line with every finding and
 # its sort, and what follows is decided from the sorts. Nothing belonging
-# here ends the loop: the agent is told the sweep is done, and to finish the
-# brief. Something belonging here goes back to the agent to be asked as
-# questions; on the round that makes it the notice's count, to the operator
-# instead, with the list. A round that cannot be logged goes to the operator
-# too: its count could not be kept, and the notice could then never come.
+# here ends the loop: the briefs are finished. Something belonging here goes
+# back to the agent to be asked as questions; on the round that makes it the
+# notice's count, to the operator instead, with the list. A round that cannot
+# be logged goes to the operator too: its count could not be kept, and the
+# notice could then never come.
 finish_round() {
   local closing briefs findings lines tally number counted question details why message logged
   closing="$(to_closing "$record")"
@@ -753,10 +770,67 @@ finish_round() {
   if [ -n "$logged" ]; then
     let_stop_told "$(closing_unlogged_note "$number"; format_closing_findings "$findings")" "$logged"
   fi
-  message="$(format_closing_agent_note "$findings")"
+  is_closing_here "$findings" || finish_briefs "$briefs" "$findings"
+  message="$(format_closing_agent_note "$findings" "")"
   record="$(with_chain_reset "$record")"
   keep_record
   to_block_answer "$message"
+  exit 0
+}
+
+# A round that came back with nothing belonging here: the briefs swept for
+# are finished through the work organizer's done, run here rather than left
+# to the agent (settled 2026-10-05: finishing is done, run in this routine),
+# so the end report shows what finishing freed as the organizer printed it,
+# from its one source. The agent is then told to commit exactly that, run
+# the full check and say how it went, and its reply brings the end report. A
+# done that refuses lets the reply stop with the operator told why, what was
+# changed before it and the round's findings: nobody is told to commit a
+# finish half made.
+finish_briefs() {
+  local briefs="$1" findings="$2" brief why printed finished="" failed message
+  why="$(mktemp)"
+  while IFS= read -r brief; do
+    # The trailing "x" keeps the last newline of what the organizer printed,
+    # which a command substitution would strip; it is printed only where
+    # done finished.
+    if ! printed="$(finish_brief "$brief" 2>"$why" && printf x)"; then
+      failed="$(cat "$why")"
+      rm -f "$why"
+      let_stop_told "$(format_finish_failed "$failed" "$finished" "$findings")" ""
+    fi
+    finished+="${printed%x}"
+  done < <(jq -r '.[]' <<<"$briefs")
+  rm -f "$why"
+  message="$(format_closing_agent_note "$findings" "$finished")"
+  record="$(with_closing_finished "$record" "$finished")"
+  record="$(with_round "$record" "$CLOSING_FINISHED")"
+  keep_record
+  to_block_answer "$message"
+  exit 0
+}
+
+# The reply after the briefs were finished: the end report, whatever the reply
+# says, made from the question log and what finishing printed. The reply is
+# read by the reader for whether the full check passed, and for nothing else;
+# where it cannot be read, the report still comes, saying why that is not
+# known. A reply that also asks something stands above the report as written:
+# the brief is finished, and nothing is left for the gate to hold.
+answer_finished() {
+  local closing why form="" failed="" lines report
+  closing="$(to_closing "$record")"
+  [ -n "$closing" ] || { refuse_state_unreadable_note "$record_file" >&2; exit 1; }
+  why="$(mktemp)"
+  if ! form="$(get_reader_form "$reply" 2>"$why")"; then
+    form=""
+    failed="$(cat "$why")"
+  fi
+  rm -f "$why"
+  lines="$(list_log_lines "$(to_log_dir "$history")")"
+  report="$(format_end_report "$lines" "$closing" "$form" "$failed")"
+  record="$(with_chain_reset "$record")"
+  keep_record
+  to_operator_answer "$report"
   exit 0
 }
 
@@ -775,6 +849,36 @@ answer_look() {
   record="$(with_closing_findings "$record" "$findings")"
   [ "$look" != "$CLOSING_CLEANUP_LOOK" ] || send_look "$CLOSING_USE_LOOK"
   finish_round
+}
+
+# A proposal the agent dropped under its kind's challenge: a line of its own
+# in the question log, outcome dropped, with the options it offered, so the
+# end report lists it and the operator can reopen it (settled 2026-10-06: the
+# session's record, its only home before, goes with the session). The
+# question is then let go. A drop that cannot be logged lets the reply stop
+# with the operator told: nobody could list or reopen it, and they would
+# never learn the agent let it go.
+drop_proposal() {
+  local form="$1" question parts dropped details logged
+  question="$(jq -r '.question' <<<"$form")"
+  parts="$(to_operator_message_parts "$question" "" "" "" "")"
+  dropped="$(to_first_answer "$form")"
+  details="$(jq -cn --arg outcome "$OUTCOME_DROPPED" --argjson dropped "$dropped" \
+    '{outcome: $outcome, dropped: $dropped}')"
+  record="$(with_turn "$record" "$EXCHANGE_AGENT" "$reply")"
+  logged="$(log_let_go "$parts" "" "" "" "$details")"
+  [ -z "$logged" ] || let_stop_told "$(gate_drop_unlogged_note "$question")" "$logged"
+  record="$(with_chain_reset "$record")"
+}
+
+# A question asked while a decision the operator reopened waits: theirs,
+# whatever its kind and route, and the first mark taken off as it goes to
+# them (settled 2026-10-06). The question is taken for the first reopened,
+# whatever it asks: whether it is that decision would be a model's guess.
+bring_reopened() {
+  local question="$1" number="$2"
+  record="$(without_first_reopened "$record")"
+  bring_operator "$question" "$(gate_reopened_line "$number")"
 }
 
 # Take the route the question's forms decide.
@@ -816,6 +920,7 @@ case "$round" in
   "$LADDER_BIGGER_LOOK") take_ladder; answer_looked ;;
   "$LADDER_SURE_AGAIN") take_ladder; answer_sure_again ;;
   "$CLOSING_CLEANUP_LOOK" | "$CLOSING_USE_LOOK") answer_look "$round" ;;
+  "$CLOSING_FINISHED") answer_finished ;;
   *)
     refuse_state_unreadable_note "$record_file" >&2
     exit 1
@@ -836,9 +941,9 @@ if [ -n "$challenge" ]; then
   question="$(jq -r '.question' <<<"$challenged")"
   words="$(jq -r '.words' <<<"$step")"
   case "$(jq -r '.next' <<<"$step")" in
-    # Dropped: noted, and the reply is read on as any other, since it may
+    # Dropped: logged, and the reply is read on as any other, since it may
     # go on to ask something else.
-    drop) record="$(with_dropped "$record")" ;;
+    drop) drop_proposal "$challenged" ;;
     challenge)
       record="$(with_challenge_step "$record" 2)"
       send_back "$(gate_challenge_note "$words")" "$question"
@@ -880,6 +985,8 @@ sendback="$(derive_checker_sendback "$checked" "$entries")"
 sort="$(get_sorter_answer "$form" "$reply" "$preset")"
 record="$(with_sort "$record" "$sort")"
 entry="$(get_kind_entry "$preset" "$(jq -r '.kind' <<<"$sort")")"
+reopened="$(to_reopened "$record")"
+[ -z "$reopened" ] || bring_reopened "$question" "$reopened"
 first="$(jq -r '.challenge' <<<"$entry")"
 if [ -n "$first" ]; then
   record="$(with_challenge "$record" "$entry" 1 "$form" "$sort")"

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # The briefs, as the work organizer keeps them: its list, a brief taken for a
-# session, which briefs a session holds, and which every session holds and
-# where they work. The stand-in asks all of it of the organizer's own
-# command, and never reads or writes its marks. Sourced, never executed.
+# session, which briefs a session holds, which every session holds and where
+# they work, and a brief finished. The stand-in asks all of it of the
+# organizer's own command, and never reads or writes its marks. Sourced,
+# never executed.
 
 # Loaded once, however many of the stand-in's parts source it, as words.sh is.
 [ -z "${STAND_IN_LOADED_BRIEFS:-}" ] || return 0
@@ -71,4 +72,20 @@ take_brief() {
     return 1
   fi
   "$organizer" take "$1" "$2" >&2
+}
+
+# Finish a brief through the organizer's own done, printing what it printed,
+# every byte: the paths it changed, the brief removed and each brief that
+# waited on it, for whoever called it to commit. Its refusal goes to stderr in
+# its own words, with a non-zero status. Its output is passed on as it stands
+# and never read into a list here, so what the operator is shown of what
+# finishing freed is the organizer's, from its one source.
+finish_brief() {
+  local organizer
+  organizer="$(get_kit_dir)/$ORGANIZER_COMMAND"
+  if [ ! -f "$organizer" ] || [ ! -x "$organizer" ]; then
+    organizer_unrunnable_note "$organizer" >&2
+    return 1
+  fi
+  "$organizer" done "$1"
 }

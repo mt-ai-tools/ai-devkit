@@ -11,8 +11,13 @@
 # operator's own decisions beside the stand-in's, so that one wrong beside the
 # others can be reopened, and building waits until it is settled again. The
 # numbers reopen takes are the ones the operator was shown as decisions: the
-# settled list's and the round lists'. A question that reached them and was
-# never laid out is not one, so its number is refused as before.
+# settled list's, the round lists' and the dropped proposals' the end report
+# lists. A question that reached them and was never laid out is not one, so
+# its number is refused as before.
+#
+# A proposal the agent dropped under its kind's challenge is brought back too
+# (settled 2026-10-06): it was let go without the operator seeing it, and the
+# end report lists it so a drop they would not have made can be undone.
 #
 # Shown from the line alone, never written again: the summary and the
 # exchange are those the question was settled with, so the operator reads
@@ -51,12 +56,13 @@ to_reopen_request() {
 }
 
 # The lines that may be reopened among the log's lines given, one per line,
-# in log order: those settled, and those any round's list laid out.
+# in log order: those settled, those dropped, and those any round's list laid
+# out.
 to_reopenable_lines() {
   [ -n "$1" ] || return 0
-  jq -cs --arg settled "$OUTCOME_SETTLED" '
+  jq -cs --arg settled "$OUTCOME_SETTLED" --arg dropped "$OUTCOME_DROPPED" '
     [.[] | (.round // [])[] | .number] as $listed
-    | .[] | select(.outcome == $settled or (.number as $n | any($listed[]; . == $n)))' <<<"$1"
+    | .[] | select(.outcome == $settled or .outcome == $dropped or (.number as $n | any($listed[]; . == $n)))' <<<"$1"
 }
 
 # True if a round's list among the log's lines given laid out the decision
@@ -120,6 +126,9 @@ format_reopened() {
     reopen_heading "$number" "$when" "$(format_settled_where "$session" "$briefs")"
     reopen_question_line "$(jq -r '.retold // .question' <<<"$line")"
     reopen_settled_line "$(jq -r '.approved' <<<"$line")"
+  elif is_dropped_line "$line"; then
+    reopen_dropped_heading "$number" "$when" "$(format_settled_where "$session" "$briefs")"
+    reopen_question_line "$(jq -r '.retold // .question' <<<"$line")"
   else
     reopen_decided_heading "$number" "$when" "$(format_settled_where "$session" "$briefs")"
     reopen_question_line "$(jq -r '.retold // .question' <<<"$line")"
@@ -152,12 +161,19 @@ is_settled_line() {
   jq -e --arg settled "$OUTCOME_SETTLED" '.outcome == $settled' >/dev/null <<<"$1"
 }
 
+# True if the line is a proposal the agent dropped under a challenge.
+is_dropped_line() {
+  jq -e --arg dropped "$OUTCOME_DROPPED" '.outcome == $dropped' >/dev/null <<<"$1"
+}
+
 # The note the session's agent is handed, given the line and whether a
 # round's list laid it out: the question open again, in its own first words,
 # with the options and what was settled on or answered, to ask as any other
 # question. A go is asked as whether to go on, since it had no options: the
-# agent is told not to start the step until the operator says. A decision of a
-# round adds that building waits until it is settled again.
+# agent is told not to start the step until the operator says. A dropped
+# proposal is handed back with the options it offered then, which its line
+# keeps since it never climbed a ladder. A decision of a round adds that
+# building waits until it is settled again.
 format_reopened_agent_note() {
   local line="$1" listed="${2:-false}" number question options
   number="$(jq -r '.number' <<<"$line")"
@@ -166,9 +182,12 @@ format_reopened_agent_note() {
     reopen_go_agent_note "$number" "$question"
     return 0
   fi
-  options="$(jq -r --arg separator "$LADDER_OPTION_SEPARATOR" '(.ladder.first.options // []) | join($separator)' <<<"$line")"
+  options="$(jq -r --arg separator "$LADDER_OPTION_SEPARATOR" \
+    '(.ladder.first.options // .dropped.options // []) | join($separator)' <<<"$line")"
   if is_settled_line "$line"; then
     reopen_agent_note "$number" "$question" "$options" "$(jq -r '.approved' <<<"$line")"
+  elif is_dropped_line "$line"; then
+    reopen_dropped_agent_note "$number" "$question" "$options" "$(jq -r '.dropped.recommended // ""' <<<"$line")"
   else
     reopen_decided_agent_note "$number" "$question" "$options" "$(jq -r '.answer' <<<"$line")"
   fi

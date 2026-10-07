@@ -12,5 +12,6 @@ any, then ask them one at a time, each explained plainly with an
 everyday example, its options' risks named, and one recommendation.
 
 When the brief is built, say so plainly: the stand-in then runs the
-closing loop with you. When it comes back empty, finish the brief with
-the organizer's done and commit the paths it prints.
+closing loop with you. When it comes back empty, the stand-in finishes
+the brief with the organizer's done: commit the paths it hands you, then
+say what the brief built and whether the full check passed.
