@@ -124,7 +124,10 @@ tool_root="$(cd "$here/.." && pwd)"
 
 # Every value below is resolved into a variable before use, never inline as
 # an argument: a failing command substitution inside an argument does not end
-# the script, and the refusal would go unseen.
+# the script, and the refusal would go unseen. A function the gate calls as a
+# condition, or on the left of a || or &&, runs with errexit off throughout,
+# so each step inside it that can fail checks itself and returns non-zero:
+# the caller's catch fires only on a status the function hands back.
 event="$(cat)"
 event="$(refuse_unreadable_event "$event")"
 session="$(to_event_session "$event")"
@@ -330,13 +333,13 @@ log_let_go() {
 write_let_go() {
   local parts="$1" why_lines="$2" summary="$3" step="${4:-}" briefs id when details line
   briefs="$(get_held_briefs "$session" 2>/dev/null)" || briefs=null
-  id="$(mint_log_id)"
-  when="$(get_log_now)"
+  id="$(mint_log_id)" || return 1
+  when="$(get_log_now)" || return 1
   details="$(jq -cn --arg id "$id" --arg when "$when" --arg session "$session" --argjson briefs "$briefs" \
     --arg reasons "$why_lines" --argjson summary "${summary:-null}" \
     --argjson step "${step:-null}" \
     '{id: $id, when: $when, session: $session, briefs: $briefs, reasons: $reasons,
-      summary: $summary} + ($step // {})')"
+      summary: $summary} + ($step // {})')" || return 1
   line="$(to_log_line "$record" "$parts" "$details")" || return 1
   append_log_line "$(to_log_dir "$history")" "$line"
 }
@@ -348,9 +351,9 @@ write_let_go() {
 log_broken() {
   local message="$1" parts asked
   [ -n "${history:-}" ] && [ -n "${session:-}" ] && [ -n "${record:-}" ] || return 0
-  asked="$(to_asked "$record")"
+  asked="$(to_asked "$record")" || return 1
   [ -n "$asked" ] || return 0
-  parts="$(jq -c '{question, approved: ""}' <<<"$asked")"
+  parts="$(jq -c '{question, approved: ""}' <<<"$asked")" || return 1
   log_let_go "$parts" "$message" ""
 }
 
@@ -1020,7 +1023,9 @@ answer_resumed() {
 # operator, and finishes first. The mark waits for that stop, read before the
 # reply is, so the look around costs no model: the reply it holds is the
 # agent's waking, which the report replaces. Called from an if's body, never
-# after a || or &&, where bash would let a refusal inside it pass unseen.
+# as an if's condition or on the left of a || or &&: bash runs a function
+# there with errexit off all through it, so a refusal inside would pass
+# unseen. After the last || or &&, and in a body, errexit holds.
 if is_record_idle "$record"; then
   woken="$(find_woken_mark "$history" "$session")"
   if [ -n "$woken" ]; then answer_woken "$woken"; fi

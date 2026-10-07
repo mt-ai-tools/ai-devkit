@@ -111,6 +111,18 @@ unnumbered() {
   diff "$BATS_TEST_TMPDIR/before" "$file"
 }
 
+# regression: the line was numbered on the left of a ||, with errexit off, so
+# a last line that could not be read numbered the new one 1 again.
+@test "a log whose last line cannot be read is refused, and nothing is added" {
+  add_log_lines "$history" "$(log_line 1 "$OUTCOME_TO_OPERATOR" session-1 2026-10-06T10:00:00Z)"
+  chmod 200 "$file"
+  run --separate-stderr append_log_line "$dir" "$(unnumbered session-1 10 a)"
+  chmod 600 "$file"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_log_unreadable_note "$file")" ]
+  [ "$(wc -l <"$file")" -eq 1 ]
+}
+
 @test "a log held by another session past the wait is refused, and nothing is written" {
   mkdir -p "$dir"
   LOG_LOCK_SECONDS=1

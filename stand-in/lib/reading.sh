@@ -62,7 +62,7 @@ to_reading_prompt() {
   values="$(jq -cn --arg command "$command" --arg question "$question" \
     --arg options "$(jq -r '.[] | "- \(.)"' <<<"$options")" \
     --arg rules "$rules" --arg conventions "$conventions" \
-    '{command: $command, question: $question, options: $options, rules: $rules, conventions: $conventions}')"
+    '{command: $command, question: $question, options: $options, rules: $rules, conventions: $conventions}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/reading.md" "$prose" "$values"
 }
 
@@ -72,7 +72,7 @@ to_reading_prompt() {
 # where it cannot be read.
 read_advisor_command() {
   local path command
-  path="$(get_kit_dir)/$ADVISOR_COMMAND_FILE"
+  path="$(get_kit_dir)/$ADVISOR_COMMAND_FILE" || return 1
   if ! command="$(cat "$path" 2>/dev/null)"; then
     refuse_unreadable_file_note "$path" >&2
     return 1
@@ -93,8 +93,8 @@ get_cold_reading() {
   command="$(read_advisor_command)" || return 1
   prose="$(read_prompt reading)" || return 1
   prompt="$(to_reading_prompt "$prose" "$command" "$question" "$options" "$rules" "$conventions")" || return 1
-  root="$(get_project_root)"
-  schema="$(reading_answer_schema)"
+  root="$(get_project_root)" || return 1
+  schema="$(reading_answer_schema)" || return 1
   answer="$(cd "$root" && get_model_answer "$READING_MODEL" "$READING_SECONDS" "$schema" "$READING_TOOLS" \
     "$settings" <<<"$prompt")" || return 1
   answer="$(refuse_bad_reading_answer "$answer")" || return 1

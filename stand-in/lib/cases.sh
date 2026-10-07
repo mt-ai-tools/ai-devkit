@@ -82,7 +82,7 @@ to_cases_dir() {
 # them, so holds no answer of theirs to learn from.
 to_case_lines() {
   local mine
-  mine="$(to_brief_log_lines "$1" "$2")"
+  mine="$(to_brief_log_lines "$1" "$2")" || return 1
   [ -n "$mine" ] || return 0
   jq -c --arg operator "$OUTCOME_TO_OPERATOR" --arg held "$OUTCOME_WOULD_HAVE_APPROVED" '
     select((.outcome == $operator or .outcome == $held) and (.answer // "") != ""
@@ -117,7 +117,7 @@ to_case_text() {
   fields="$(jq -cn --arg summary "$CASE_SUMMARY_FIELD" --arg date "$CASE_DATE_FIELD" --arg brief "$CASE_BRIEF_FIELD" \
     --arg kind "$CASE_KIND_FIELD" --arg alone "$CASE_ALONE_FIELD" --arg picked "$CASE_PICKED_FIELD" \
     --arg security "$CASE_SECURITY_FIELD" --arg tuning "$CASE_TUNING_FIELD" --arg id "$CASE_LOG_ID_FIELD" \
-    '$ARGS.named')"
+    '$ARGS.named')" || return 1
   jq -rn --argjson line "$line" --argjson form "$form" --arg alone "$alone" --arg picked "$picked_recommended" \
     --arg security "$security" --arg unknown "$(case_kind_unknown_words)" --arg tuning "$(case_tuning_none_words)" \
     --arg no_why "$(case_no_why_words)" --argjson field "$fields" \

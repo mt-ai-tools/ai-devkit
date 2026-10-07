@@ -77,18 +77,18 @@ derive_round_decisions() {
 # operator typed can outgrow what one argument may hold.
 to_round_prompt() {
   local prose="$1" decisions="$2" values
-  values="$(jq -cn --rawfile decisions <(to_round_decisions_text "$decisions") '{decisions: $decisions}')"
+  values="$(jq -cn --rawfile decisions <(to_round_decisions_text "$decisions") '{decisions: $decisions}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/round.md" "$prose" "$values"
 }
 
 # The decisions as the round reader reads them.
 to_round_decisions_text() {
   local decisions="$1" count i decision by answer decided
-  count="$(jq 'length' <<<"$decisions")"
+  count="$(jq 'length' <<<"$decisions")" || return 1
   for ((i = 0; i < count; i++)); do
-    decision="$(jq -c --argjson i "$i" '.[$i]' <<<"$decisions")"
-    by="$(jq -r '.by' <<<"$decision")"
-    answer="$(jq -r '.answer' <<<"$decision")"
+    decision="$(jq -c --argjson i "$i" '.[$i]' <<<"$decisions")" || return 1
+    by="$(jq -r '.by' <<<"$decision")" || return 1
+    answer="$(jq -r '.answer' <<<"$decision")" || return 1
     if [ "$by" = "$ROUND_BY_STAND_IN" ]; then
       decided="$(round_by_stand_in_prompt_words "$(jq -r '.approved' <<<"$decision")")"
     elif [ -n "$answer" ]; then
@@ -102,7 +102,7 @@ to_round_decisions_text() {
       (if (.options | length) > 0 then "Options: \(.options | join(" / "))" else empty end),
       (if .recommended != "" then "The agent recommended: \(.recommended)" else empty end),
       $decided,
-      ""' <<<"$decision"
+      ""' <<<"$decision" || return 1
   done
 }
 
@@ -158,8 +158,8 @@ get_round_answer() {
   local decisions="$1" prose prompt numbers schema answer
   prose="$(read_prompt round)" || return 1
   prompt="$(to_round_prompt "$prose" "$decisions")" || return 1
-  numbers="$(jq -c 'map(.number)' <<<"$decisions")"
-  schema="$(round_answer_schema "$numbers")"
+  numbers="$(jq -c 'map(.number)' <<<"$decisions")" || return 1
+  schema="$(round_answer_schema "$numbers")" || return 1
   answer="$(get_model_answer "$ROUND_MODEL" "$ROUND_SECONDS" "$schema" <<<"$prompt")" || return 1
   refuse_bad_round_answer "$answer" "$numbers"
 }

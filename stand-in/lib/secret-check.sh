@@ -23,7 +23,7 @@ STAND_IN_LOADED_SECRET_CHECK=1
 # The secret check's prompt for one case's text, given the prompt's prose.
 to_secret_prompt() {
   local values
-  values="$(jq -cn --rawfile case <(printf '%s' "$2") '{case: $case}')"
+  values="$(jq -cn --rawfile case <(printf '%s' "$2") '{case: $case}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/secret-check.md" "$1" "$values"
 }
 
@@ -37,7 +37,7 @@ get_secret_answer() {
   local prose prompt schema answer
   prose="$(read_prompt secret-check)" || return 1
   prompt="$(to_secret_prompt "$prose" "$1")" || return 1
-  schema="$(secret_answer_schema)"
+  schema="$(secret_answer_schema)" || return 1
   answer="$(get_model_answer "$SECRET_MODEL" "$SECRET_SECONDS" "$schema" <<<"$prompt")" || return 1
   refuse_bad_secret_answer "$answer"
 }

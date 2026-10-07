@@ -369,6 +369,43 @@ all_three() {
   [ "$(message)" = "$expected" ]
 }
 
+# A command of the suite's own in place of the one named, which fails, saying
+# so on stderr, where any of its arguments holds the words given, and runs the
+# real one otherwise.
+fail_command_on() {
+  local real
+  real="$(command -v "$1")"
+  printf '#!/usr/bin/env bash\nfor a in "$@"; do case "$a" in *%s*) echo "%s: refused by the suite" >&2; exit 5 ;; esac; done\nexec %s "$@"\n' \
+    "$2" "$1" "$real" >"$fakebin/$1"
+  chmod +x "$fakebin/$1"
+}
+
+# regression: the summary's answer check ran inside an if's condition, with
+# errexit off, so a check that failed found no problem and the summary passed
+# unchecked to the operator.
+@test "a summary whose answer check fails is no summary: the operator is told why and shown the answers" {
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
+  fail_command_on jq summary-part-empty
+  run_gate
+  answered_operator
+  expected="$(gate_operator_note "$asked" "$(gate_kind_line naming "The naming kind.")")"$'\n'
+  expected+="$(gate_summary_failed_note "jq: refused by the suite")"$'\n'
+  expected+="$(gate_answers_heading; gate_answer_line 1 five "five${LADDER_OPTION_SEPARATOR}ten")"
+  [ "$(message)" = "$expected" ]
+}
+
+# regression: the log's write ran on the left of a ||, with errexit off, so a
+# line whose id could not be minted was written with none, and the operator
+# never heard.
+@test "a log line whose id cannot be minted is not written: the operator is told the question is not logged" {
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
+  fail_command_on od urandom
+  run_gate
+  answered_operator
+  [ "$(message)" = "$(operator_message "$(gate_kind_line naming "The naming kind.")")"$'\n'"$(gate_log_failed_line "od: refused by the suite")" ]
+  [ ! -s "$(log_file)" ]
+}
+
 @test "a ladder kind with no risk, sorted for certain, is sent the ladder's first challenge" {
   run_gate
   [ "$status" -eq 0 ]

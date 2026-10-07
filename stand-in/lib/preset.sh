@@ -86,7 +86,7 @@ derive_risk_rows() {
 # twice is refused, since which of the two words it stands for is a guess.
 parse_risks() {
   local file="$1" rows row kind name words twice
-  rows="$(derive_risk_rows "$2")"
+  rows="$(derive_risk_rows "$2")" || return 1
   while IFS=$'\037' read -r kind name words; do
     [ "$kind" = unnamed ] || continue
     refuse_unnamed_risk_note "$file" "$name" >&2
@@ -96,13 +96,13 @@ parse_risks() {
     refuse_no_risks_note "$file" >&2
     return 1
   fi
-  twice="$(cut -d $'\037' -f 2 <<<"$rows" | sort | uniq -d | head -n 1)"
+  twice="$(cut -d $'\037' -f 2 <<<"$rows" | sort | uniq -d | head -n 1)" || return 1
   if [ -n "$twice" ]; then
     refuse_risk_twice_note "$file" "$twice" >&2
     return 1
   fi
   while IFS=$'\037' read -r kind name words; do
-    jq -cn --arg name "$name" --arg words "$words" '{name: $name, words: $words}'
+    jq -cn --arg name "$name" --arg words "$words" '{name: $name, words: $words}' || return 1
   done <<<"$rows" | jq -cs .
 }
 
@@ -151,20 +151,20 @@ derive_message_rows() {
 # refused, since which of its two quotes is meant is a guess.
 parse_messages() {
   local file="$1" rows kind name words twice
-  rows="$(derive_message_rows "$2")"
+  rows="$(derive_message_rows "$2")" || return 1
   while IFS=$'\037' read -r kind name words; do
     [ "$kind" = unnamed ] || continue
     refuse_unnamed_message_note "$file" "$name" >&2
     return 1
   done <<<"$rows"
-  twice="$(cut -d $'\037' -f 2 <<<"$rows" | sed '/^$/d' | sort | uniq -d | head -n 1)"
+  twice="$(cut -d $'\037' -f 2 <<<"$rows" | sed '/^$/d' | sort | uniq -d | head -n 1)" || return 1
   if [ -n "$twice" ]; then
     refuse_message_twice_note "$file" "$twice" >&2
     return 1
   fi
   while IFS=$'\037' read -r kind name words; do
     [ -n "$name" ] || continue
-    jq -cn --arg name "$name" --arg words "$words" '{($name): $words}'
+    jq -cn --arg name "$name" --arg words "$words" '{($name): $words}' || return 1
   done <<<"$rows" | jq -cs 'add // {}'
 }
 
@@ -200,12 +200,12 @@ list_kinds() {
   while IFS= read -r entry; do
     [ -n "$entry" ] || continue
     name="$(basename "$entry" .md)"
-    summary="$(read_header_fields "$entry" summary)"
+    summary="$(read_header_fields "$entry" summary)" || return 1
     if [ -z "$summary" ]; then
       refuse_kind_summary_note "$name" >&2
       return 1
     fi
-    kinds+="$(jq -cn --arg name "$name" --arg summary "$summary" '{name: $name, summary: $summary}')"$'\n'
+    kinds+="$(jq -cn --arg name "$name" --arg summary "$summary" '{name: $name, summary: $summary}')"$'\n' || return 1
   done < <(list_collection_entries "$folder")
   if [ -z "$kinds" ]; then
     refuse_no_kinds_note "$folder" >&2
@@ -315,7 +315,7 @@ find_go_kind() {
   local preset="$1" folder="$1/$PRESET_KINDS_FOLDER" entry route found=""
   while IFS= read -r entry; do
     [ -n "$entry" ] || continue
-    route="$(read_header_fields "$entry" route)"
+    route="$(read_header_fields "$entry" route)" || return 1
     [ "$route" = "$ROUTE_GO" ] || continue
     if [ -n "$found" ]; then
       refuse_go_kind_twice_note "$ROUTE_GO" "$folder" >&2

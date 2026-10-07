@@ -57,7 +57,7 @@ list_awaited_briefs() {
 # substitution would strip.
 get_organizer_list() {
   local organizer shown
-  organizer="$(get_kit_dir)/$ORGANIZER_COMMAND"
+  organizer="$(get_kit_dir)/$ORGANIZER_COMMAND" || return 1
   if [ ! -f "$organizer" ] || [ ! -x "$organizer" ]; then
     organizer_unrunnable_note "$organizer"
     return 0
@@ -74,7 +74,7 @@ get_organizer_list() {
 # prints goes to stderr too, so a caller's stdout carries only its own answer.
 take_brief() {
   local organizer
-  organizer="$(get_kit_dir)/$ORGANIZER_COMMAND"
+  organizer="$(get_kit_dir)/$ORGANIZER_COMMAND" || return 1
   if [ ! -f "$organizer" ] || [ ! -x "$organizer" ]; then
     organizer_unrunnable_note "$organizer" >&2
     return 1
@@ -90,7 +90,7 @@ take_brief() {
 # finishing freed is the organizer's, from its one source.
 finish_brief() {
   local organizer
-  organizer="$(get_kit_dir)/$ORGANIZER_COMMAND"
+  organizer="$(get_kit_dir)/$ORGANIZER_COMMAND" || return 1
   if [ ! -f "$organizer" ] || [ ! -x "$organizer" ]; then
     organizer_unrunnable_note "$organizer" >&2
     return 1
@@ -104,7 +104,7 @@ finish_brief() {
 # stderr in its own words, with a non-zero status.
 write_brief_wait() {
   local organizer
-  organizer="$(get_kit_dir)/$ORGANIZER_COMMAND"
+  organizer="$(get_kit_dir)/$ORGANIZER_COMMAND" || return 1
   if [ ! -f "$organizer" ] || [ ! -x "$organizer" ]; then
     organizer_unrunnable_note "$organizer" >&2
     return 1

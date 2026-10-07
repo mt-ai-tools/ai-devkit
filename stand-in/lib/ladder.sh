@@ -209,8 +209,8 @@ to_looked_held_why() {
 # around and to "are you sure?" once more.
 derive_answer_lines() {
   local ladder="$1" recommended options n number pick item
-  recommended="$(jq -r '.first.recommended' <<<"$ladder")"
-  options="$(jq -r --arg separator "$LADDER_OPTION_SEPARATOR" '.first.options | join($separator) | gsub("\\s+"; " ")' <<<"$ladder")"
+  recommended="$(jq -r '.first.recommended' <<<"$ladder")" || return 1
+  options="$(jq -r --arg separator "$LADDER_OPTION_SEPARATOR" '.first.options | join($separator) | gsub("\\s+"; " ")' <<<"$ladder")" || return 1
   if [ -z "$recommended" ]; then
     gate_answer_none_line 1 "$options"
   else

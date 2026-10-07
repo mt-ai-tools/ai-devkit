@@ -27,7 +27,7 @@ to_sorter_prompt() {
     --arg form "$form" \
     --arg kinds "$(to_named_lines "$kinds" summary)" \
     --arg risks "$(to_named_lines "$risks" words)" \
-    '{reply: ., form: $form, kinds: $kinds, risks: $risks}')"
+    '{reply: ., form: $form, kinds: $kinds, risks: $risks}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/sorter.md" "$prose" "$values"
 }
 
@@ -38,7 +38,7 @@ to_step_sorter_prompt() {
   values="$(printf '%s' "$reply" | jq -Rs \
     --arg form "$form" \
     --arg labels "$(to_named_lines "$labels" words)" \
-    '{reply: ., form: $form, labels: $labels}')"
+    '{reply: ., form: $form, labels: $labels}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/step-sorter.md" "$prose" "$values"
 }
 
@@ -53,11 +53,11 @@ get_sorter_answer() {
   form="$(refuse_questionless_form "$1")" || return 1
   kinds="$(list_kinds "$preset")" || return 1
   risks="$(list_risks "$preset")" || return 1
-  kind_names="$(to_names "$kinds")"
-  risk_names="$(to_names "$risks")"
+  kind_names="$(to_names "$kinds")" || return 1
+  risk_names="$(to_names "$risks")" || return 1
   prose="$(read_prompt sorter)" || return 1
   prompt="$(to_sorter_prompt "$prose" "$form" "$reply" "$kinds" "$risks")" || return 1
-  schema="$(sorter_answer_schema "$kind_names" "$risk_names")"
+  schema="$(sorter_answer_schema "$kind_names" "$risk_names")" || return 1
   answer="$(get_model_answer "$SORTER_MODEL" "$SORTER_SECONDS" "$schema" <<<"$prompt")" || return 1
   refuse_bad_sorter_answer "$answer" "$kind_names" "$risk_names"
 }
@@ -72,10 +72,10 @@ get_step_sort() {
   local form reply="$2" preset="$3" risks labels prose prompt schema answer
   form="$(refuse_stepless_form "$1")" || return 1
   risks="$(list_risks "$preset")" || return 1
-  labels="$(list_major_labels "$risks")"
+  labels="$(list_major_labels "$risks")" || return 1
   prose="$(read_prompt step-sorter)" || return 1
   prompt="$(to_step_sorter_prompt "$prose" "$form" "$reply" "$labels")" || return 1
-  schema="$(step_sort_schema "$(to_names "$labels")")"
+  schema="$(step_sort_schema "$(to_names "$labels")")" || return 1
   answer="$(get_model_answer "$SORTER_MODEL" "$SORTER_SECONDS" "$schema" <<<"$prompt")" || return 1
   refuse_bad_step_sort "$answer" "$(to_names "$labels")"
 }

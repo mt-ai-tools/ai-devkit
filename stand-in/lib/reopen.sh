@@ -94,11 +94,11 @@ to_reopened_line() {
 format_reopened_exchange() {
   local line="$1" count i from
   reopen_exchange_heading
-  count="$(jq '.exchange | length' <<<"$line")"
+  count="$(jq '.exchange | length' <<<"$line")" || return 1
   for ((i = 0; i < count; i++)); do
-    from="$(jq -r --argjson i "$i" '.exchange[$i].from' <<<"$line")"
+    from="$(jq -r --argjson i "$i" '.exchange[$i].from' <<<"$line")" || return 1
     if [ "$from" = "$EXCHANGE_AGENT" ]; then reopen_agent_turn_heading; else reopen_stand_in_turn_heading; fi
-    jq -r --argjson i "$i" '.exchange[$i].text' <<<"$line"
+    jq -r --argjson i "$i" '.exchange[$i].text' <<<"$line" || return 1
   done
 }
 
@@ -107,7 +107,7 @@ format_reopened_exchange() {
 format_reopened_fixed() {
   local problems
   problems="$(jq -r --arg fixed "$PROBLEM_FIXED" \
-    '(.step.problems // [])[] | select(.state == $fixed) | .problem | gsub("\\s+"; " ")' <<<"$1")"
+    '(.step.problems // [])[] | select(.state == $fixed) | .problem | gsub("\\s+"; " ")' <<<"$1")" || return 1
   [ -n "$problems" ] || return 0
   reopen_fixed_heading
   while IFS= read -r problem; do gate_problem_line "$problem"; done <<<"$problems"
@@ -119,10 +119,10 @@ format_reopened_fixed() {
 # go shows the problems fixed before it.
 format_reopened() {
   local line="$1" exchange="$2" number when session briefs ladder summary reading answer
-  number="$(jq -r '.number' <<<"$line")"
-  when="$(jq -r --arg format "$SETTLED_DAY_TIME_FORMAT" '.when | fromdateiso8601 | strflocaltime($format)' <<<"$line")"
-  session="$(jq -r '.session' <<<"$line")"
-  briefs="$(jq -r '(.briefs // []) | join(", ")' <<<"$line")"
+  number="$(jq -r '.number' <<<"$line")" || return 1
+  when="$(jq -r --arg format "$SETTLED_DAY_TIME_FORMAT" '.when | fromdateiso8601 | strflocaltime($format)' <<<"$line")" || return 1
+  session="$(jq -r '.session' <<<"$line")" || return 1
+  briefs="$(jq -r '(.briefs // []) | join(", ")' <<<"$line")" || return 1
   if is_settled_line "$line"; then
     reopen_heading "$number" "$when" "$(format_settled_where "$session" "$briefs")"
     reopen_question_line "$(jq -r '.retold // .question' <<<"$line")"
@@ -133,25 +133,25 @@ format_reopened() {
   else
     reopen_decided_heading "$number" "$when" "$(format_settled_where "$session" "$briefs")"
     reopen_question_line "$(jq -r '.retold // .question' <<<"$line")"
-    answer="$(jq -r '.answer' <<<"$line")"
+    answer="$(jq -r '.answer' <<<"$line")" || return 1
     if [ -n "$answer" ]; then reopen_answered_line "$answer"; else reopen_unanswered_line; fi
   fi
-  summary="$(jq -c '.summary // empty' <<<"$line")"
-  ladder="$(jq -c '.ladder // empty' <<<"$line")"
-  reading="$(jq -r '.reading // empty' <<<"$line")"
+  summary="$(jq -c '.summary // empty' <<<"$line")" || return 1
+  ladder="$(jq -c '.ladder // empty' <<<"$line")" || return 1
+  reading="$(jq -r '.reading // empty' <<<"$line")" || return 1
   [ -z "$reading" ] || reading="$(gate_reading_note "$reading")"
   if [ -n "$summary" ]; then
-    format_summary_parts "$summary" "$reading"
+    format_summary_parts "$summary" "$reading" || return 1
   else
     if [ -n "$ladder" ]; then
       gate_answers_heading
-      derive_answer_lines "$ladder"
+      derive_answer_lines "$ladder" || return 1
     fi
     [ -z "$reading" ] || printf '%s\n' "$reading"
   fi
-  format_reopened_fixed "$line"
+  format_reopened_fixed "$line" || return 1
   if [ "$exchange" = true ]; then
-    format_reopened_exchange "$line"
+    format_reopened_exchange "$line" || return 1
   else
     reopen_exchange_hint
   fi
@@ -177,7 +177,7 @@ is_dropped_line() {
 # building waits until it is settled again.
 format_reopened_agent_note() {
   local line="$1" listed="${2:-false}" number question options
-  number="$(jq -r '.number' <<<"$line")"
+  number="$(jq -r '.number' <<<"$line")" || return 1
   question="$(jq -r '.question' <<<"$line")"
   if jq -e '.step != null' >/dev/null <<<"$line"; then
     reopen_go_agent_note "$number" "$question"

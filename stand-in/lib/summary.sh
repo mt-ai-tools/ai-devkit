@@ -42,7 +42,7 @@ to_exchange_text() {
 # replies outgrow what one argument to a command may hold.
 to_summary_prompt() {
   local prose="$1" exchange="$2" values
-  values="$(jq -cn --rawfile exchange <(to_exchange_text "$exchange") '{exchange: $exchange}')"
+  values="$(jq -cn --rawfile exchange <(to_exchange_text "$exchange") '{exchange: $exchange}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/summary.md" "$prose" "$values"
 }
 
@@ -56,7 +56,7 @@ get_summary() {
   local prose prompt schema answer
   prose="$(read_prompt summary)" || return 1
   prompt="$(to_summary_prompt "$prose" "$1")" || return 1
-  schema="$(summary_answer_schema)"
+  schema="$(summary_answer_schema)" || return 1
   answer="$(get_model_answer "$SUMMARY_MODEL" "$SUMMARY_SECONDS" "$schema" <<<"$prompt")" || return 1
   refuse_bad_summary_answer "$answer"
 }

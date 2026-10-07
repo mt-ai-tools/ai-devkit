@@ -31,7 +31,7 @@ to_closing_prompt() {
   local prose="$1" reply="$2" briefs="$3" root="$4" values
   values="$(jq -cn --rawfile reply <(printf '%s' "$reply") --arg root "$root" --arg none "$CLOSING_NO_BRIEFS" \
     --argjson briefs "$briefs" \
-    '{reply: $reply, root: $root, briefs: (if $briefs == [] then $none else ($briefs | map("- \(.)") | join("\n")) end)}')"
+    '{reply: $reply, root: $root, briefs: (if $briefs == [] then $none else ($briefs | map("- \(.)") | join("\n")) end)}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/closing.md" "$prose" "$values"
 }
 

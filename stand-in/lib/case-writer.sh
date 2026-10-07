@@ -97,7 +97,7 @@ to_case_prompt() {
     --rawfile exchange <(to_exchange_text "$(jq -c '.exchange' <<<"$line")") \
     --rawfile answer <(jq -j '.answer' <<<"$line") \
     '{shape: $shape, question: $question, step: $step, options: $options, summary: $summary,
-      exchange: $exchange, answer: $answer}')"
+      exchange: $exchange, answer: $answer}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/case-writer.md" "$prose" "$values"
 }
 
@@ -110,7 +110,7 @@ get_case_form() {
   local prose prompt schema answer
   prose="$(read_prompt case-writer)" || return 1
   prompt="$(to_case_prompt "$prose" "$1")" || return 1
-  schema="$(case_form_schema)"
+  schema="$(case_form_schema)" || return 1
   answer="$(get_model_answer "$CASE_MODEL" "$CASE_SECONDS" "$schema" <<<"$prompt")" || return 1
   refuse_bad_case_form "$answer"
 }

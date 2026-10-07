@@ -105,7 +105,7 @@ format_score_lines() {
 find_switch_kind() {
   local history="$1" preset="$2" results scores kind entry
   results="$(read_exam_results "$history")" || return 1
-  scores="$(jq -c '.scores // {}' <<<"$results")"
+  scores="$(jq -c '.scores // {}' <<<"$results")" || return 1
   while IFS= read -r kind; do
     [ -n "$kind" ] || continue
     entry="$(get_kind_entry "$preset" "$kind" 2>/dev/null)" || continue
@@ -114,7 +114,7 @@ find_switch_kind() {
     [ "$(jq -r '.route' <<<"$entry")" != "$ROUTE_ASK" ] || continue
     is_on_trial "$history" "$kind" || continue
     jq -cn --arg kind "$kind" --argjson score "$(jq -c --arg kind "$kind" '.[$kind]' <<<"$scores")" \
-      '{kind: $kind, score: $score}'
+      '{kind: $kind, score: $score}' || return 1
     return 0
   done < <(list_bar_kinds "$scores")
 }

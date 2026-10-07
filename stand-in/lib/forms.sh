@@ -297,7 +297,7 @@ to_form_schema() {
 # string items every form array has by default.
 reader_form_schema() {
   local problem
-  problem="$(to_item_schema "$PROBLEM_FIELDS" "$(jq -cn --argjson states "$PROBLEM_STATES" '{state: {enum: $states}}')")"
+  problem="$(to_item_schema "$PROBLEM_FIELDS" "$(jq -cn --argjson states "$PROBLEM_STATES" '{state: {enum: $states}}')")" || return 1
   to_form_schema "$READER_FORM_FIELDS" "$(jq -cn --argjson words "$GUIDANCE_ANSWERS" \
     --argjson problem "$problem" --argjson proofs "$STEP_PROOFS" --argjson froms "$STEP_FROMS" \
     --argjson marks "$STEP_MARKS" \
@@ -310,7 +310,7 @@ reader_form_schema() {
 # as a JSON array.
 step_sort_schema() {
   local major
-  major="$(to_item_schema "$MAJOR_FIELDS" "$(jq -cn --argjson labels "$1" '{label: {enum: $labels}}')")"
+  major="$(to_item_schema "$MAJOR_FIELDS" "$(jq -cn --argjson labels "$1" '{label: {enum: $labels}}')")" || return 1
   to_form_schema "$STEP_SORT_FIELDS" "$(jq -cn --argjson major "$major" '{majors: {items: $major}}')"
 }
 
@@ -338,8 +338,8 @@ to_item_schema() {
 # item's schema replaces the string items every form array has by default.
 checker_answer_schema() {
   local breaks miscalled
-  breaks="$(to_item_schema "$CHECKER_BREAK_FIELDS" "$(jq -cn --argjson names "$1" '{entry: {enum: $names}}')")"
-  miscalled="$(to_item_schema "$CHECKER_MISCALLED_FIELDS" '{}')"
+  breaks="$(to_item_schema "$CHECKER_BREAK_FIELDS" "$(jq -cn --argjson names "$1" '{entry: {enum: $names}}')")" || return 1
+  miscalled="$(to_item_schema "$CHECKER_MISCALLED_FIELDS" '{}')" || return 1
   to_form_schema "$CHECKER_ANSWER_FIELDS" "$(jq -cn --argjson breaks "$breaks" --argjson miscalled "$miscalled" \
     '{breaks: {items: $breaks}, miscalled: {items: $miscalled}}')"
 }

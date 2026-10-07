@@ -18,7 +18,7 @@ STAND_IN_LOADED_READER=1
 # The reader's prompt for one reply, given the prompt's prose.
 to_reader_prompt() {
   local values
-  values="$(printf '%s' "$2" | jq -Rs '{reply: .}')"
+  values="$(printf '%s' "$2" | jq -Rs '{reply: .}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/reader.md" "$1" "$values"
 }
 
@@ -31,7 +31,7 @@ get_reader_form() {
   local prose prompt schema answer
   prose="$(read_prompt reader)" || return 1
   prompt="$(to_reader_prompt "$prose" "$1")" || return 1
-  schema="$(reader_form_schema)"
+  schema="$(reader_form_schema)" || return 1
   answer="$(get_model_answer "$READER_MODEL" "$READER_SECONDS" "$schema" <<<"$prompt")" || return 1
   refuse_bad_reader_form "$answer"
 }

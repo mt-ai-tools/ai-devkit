@@ -268,7 +268,7 @@ derive_shape_problems() {
 # field missing or of the wrong type would make every rule about it misfire.
 derive_reader_form_problems() {
   local shape
-  shape="$(derive_shape_problems "$1" "$READER_FORM_FIELDS")"
+  shape="$(derive_shape_problems "$1" "$READER_FORM_FIELDS")" || return 1
   if [ -n "$shape" ]; then
     printf '%s\n' "$shape"
     return 0
@@ -282,7 +282,7 @@ derive_reader_form_problems() {
 # the risk names the preset holds as JSON arrays.
 derive_sorter_answer_problems() {
   local shape
-  shape="$(derive_shape_problems "$1" "$SORTER_ANSWER_FIELDS")"
+  shape="$(derive_shape_problems "$1" "$SORTER_ANSWER_FIELDS")" || return 1
   if [ -n "$shape" ]; then
     printf '%s\n' "$shape"
     return 0
@@ -295,7 +295,7 @@ derive_sorter_answer_problems() {
 # given the label names as a JSON array.
 derive_step_sort_problems() {
   local shape
-  shape="$(derive_shape_problems "$1" "$STEP_SORT_FIELDS")"
+  shape="$(derive_shape_problems "$1" "$STEP_SORT_FIELDS")" || return 1
   if [ -n "$shape" ]; then
     printf '%s\n' "$shape"
     return 0
@@ -308,7 +308,7 @@ derive_step_sort_problems() {
 # entries it was handed as a JSON array.
 derive_checker_answer_problems() {
   local shape
-  shape="$(derive_shape_problems "$1" "$CHECKER_ANSWER_FIELDS")"
+  shape="$(derive_shape_problems "$1" "$CHECKER_ANSWER_FIELDS")" || return 1
   if [ -n "$shape" ]; then
     printf '%s\n' "$shape"
     return 0
@@ -321,7 +321,7 @@ derive_checker_answer_problems() {
 # Every problem of a cold second reading's answer, one row each.
 derive_reading_answer_problems() {
   local shape
-  shape="$(derive_shape_problems "$1" "$READING_ANSWER_FIELDS")"
+  shape="$(derive_shape_problems "$1" "$READING_ANSWER_FIELDS")" || return 1
   if [ -n "$shape" ]; then
     printf '%s\n' "$shape"
     return 0
@@ -345,7 +345,7 @@ derive_matcher_answer_problems() {
 # Every problem of a summary's answer, one row each.
 derive_summary_answer_problems() {
   local shape
-  shape="$(derive_shape_problems "$1" "$SUMMARY_ANSWER_FIELDS")"
+  shape="$(derive_shape_problems "$1" "$SUMMARY_ANSWER_FIELDS")" || return 1
   if [ -n "$shape" ]; then
     printf '%s\n' "$shape"
     return 0
@@ -357,7 +357,7 @@ derive_summary_answer_problems() {
 # decisions' numbers it was handed as a JSON array.
 derive_round_answer_problems() {
   local shape
-  shape="$(derive_shape_problems "$1" "$ROUND_ANSWER_FIELDS")"
+  shape="$(derive_shape_problems "$1" "$ROUND_ANSWER_FIELDS")" || return 1
   if [ -n "$shape" ]; then
     printf '%s\n' "$shape"
     return 0
@@ -383,7 +383,7 @@ derive_look_form_problems() {
 # Every problem of the case-writer's form, one row each.
 derive_case_form_problems() {
   local shape
-  shape="$(derive_shape_problems "$1" "$CASE_FORM_FIELDS")"
+  shape="$(derive_shape_problems "$1" "$CASE_FORM_FIELDS")" || return 1
   if [ -n "$shape" ]; then
     printf '%s\n' "$shape"
     return 0
@@ -463,7 +463,7 @@ refuse_bad_reader_form() {
     refuse_not_json_note "$label" >&2
     return 1
   fi
-  problems="$(derive_reader_form_problems "$form")"
+  problems="$(derive_reader_form_problems "$form")" || return 1
   if [ -n "$problems" ]; then
     to_problem_notes "$label" <<<"$problems" >&2
     return 1
@@ -481,7 +481,7 @@ refuse_bad_sorter_answer() {
     refuse_not_json_note "$label" >&2
     return 1
   fi
-  problems="$(derive_sorter_answer_problems "$answer" "$2" "$3")"
+  problems="$(derive_sorter_answer_problems "$answer" "$2" "$3")" || return 1
   if [ -n "$problems" ]; then
     to_problem_notes "$label" <<<"$problems" >&2
     return 1
@@ -499,7 +499,7 @@ refuse_bad_step_sort() {
     refuse_not_json_note "$label" >&2
     return 1
   fi
-  problems="$(derive_step_sort_problems "$answer" "$2")"
+  problems="$(derive_step_sort_problems "$answer" "$2")" || return 1
   if [ -n "$problems" ]; then
     to_problem_notes "$label" <<<"$problems" >&2
     return 1
@@ -516,7 +516,7 @@ refuse_bad_checker_answer() {
     refuse_not_json_note "$label" >&2
     return 1
   fi
-  problems="$(derive_checker_answer_problems "$answer" "$2")"
+  problems="$(derive_checker_answer_problems "$answer" "$2")" || return 1
   if [ -n "$problems" ]; then
     to_problem_notes "$label" <<<"$problems" >&2
     return 1
@@ -533,7 +533,7 @@ refuse_bad_reading_answer() {
     refuse_not_json_note "$label" >&2
     return 1
   fi
-  problems="$(derive_reading_answer_problems "$answer")"
+  problems="$(derive_reading_answer_problems "$answer")" || return 1
   if [ -n "$problems" ]; then
     to_problem_notes "$label" <<<"$problems" >&2
     return 1
@@ -568,7 +568,7 @@ refuse_bad_summary_answer() {
     refuse_not_json_note "$label" >&2
     return 1
   fi
-  problems="$(derive_summary_answer_problems "$answer")"
+  problems="$(derive_summary_answer_problems "$answer")" || return 1
   if [ -n "$problems" ]; then
     to_problem_notes "$label" <<<"$problems" >&2
     return 1
@@ -586,7 +586,7 @@ refuse_bad_round_answer() {
     refuse_not_json_note "$label" >&2
     return 1
   fi
-  problems="$(derive_round_answer_problems "$answer" "$2")"
+  problems="$(derive_round_answer_problems "$answer" "$2")" || return 1
   if [ -n "$problems" ]; then
     to_problem_notes "$label" <<<"$problems" >&2
     return 1
@@ -621,7 +621,7 @@ refuse_bad_case_form() {
     refuse_not_json_note "$label" >&2
     return 1
   fi
-  problems="$(derive_case_form_problems "$form")"
+  problems="$(derive_case_form_problems "$form")" || return 1
   if [ -n "$problems" ]; then
     to_problem_notes "$label" <<<"$problems" >&2
     return 1
@@ -639,7 +639,7 @@ refuse_bad_secret_answer() {
     refuse_not_json_note "$label" >&2
     return 1
   fi
-  problems="$(derive_shape_problems "$answer" "$SECRET_ANSWER_FIELDS")"
+  problems="$(derive_shape_problems "$answer" "$SECRET_ANSWER_FIELDS")" || return 1
   if [ -n "$problems" ]; then
     to_problem_notes "$label" <<<"$problems" >&2
     return 1

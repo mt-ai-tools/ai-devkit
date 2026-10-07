@@ -262,7 +262,10 @@ append_log_line() {
 # lock.
 append_numbered_line() {
   local file="$1" line="$2" last="" number
-  [ ! -s "$file" ] || last="$(tail -n 1 "$file")"
+  if [ -s "$file" ] && ! last="$(tail -n 1 "$file" 2>/dev/null)"; then
+    refuse_log_unreadable_note "$file" >&2
+    return 1
+  fi
   if ! number="$(derive_next_number "$last" 2>/dev/null)"; then
     refuse_log_unreadable_note "$file" >&2
     return 1

@@ -31,7 +31,7 @@ to_matcher_prompt() {
   values="$(jq -cn --arg question "$question" \
     --arg options "$(jq -r '.[] | "- \(.)"' <<<"$options")" \
     --rawfile reply <(printf '%s' "$reply") \
-    '{question: $question, options: $options, reply: $reply}')"
+    '{question: $question, options: $options, reply: $reply}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/matcher.md" "$prose" "$values"
 }
 

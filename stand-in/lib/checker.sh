@@ -73,10 +73,10 @@ list_check_entries() {
     while IFS= read -r entry; do
       [ -n "$entry" ] || continue
       rows+="$(jq -cn --arg name "$(basename "$entry")" --arg path "$entry" --arg collection "$collection" \
-        '{name: $name, path: $path, collection: $collection}')"$'\n'
+        '{name: $name, path: $path, collection: $collection}')"$'\n' || return 1
     done < <(list_collection_entries "$dir")
   done
-  entries="$(printf '%s' "$rows" | jq -cs .)"
+  entries="$(printf '%s' "$rows" | jq -cs .)" || return 1
   if ! jq -e --arg rules "$CHECK_RULES" 'any(.[]; .collection == $rules)' >/dev/null <<<"$entries"; then
     refuse_no_rules_note "$rules" >&2
     return 1
@@ -117,7 +117,7 @@ get_checker_standing() {
   values="$(jq -cn \
     --rawfile rules <(printf '%s' "$rules") \
     --rawfile conventions <(printf '%s' "$conventions") \
-    '{rules: $rules, conventions: $conventions}')"
+    '{rules: $rules, conventions: $conventions}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/checker.md" "$prose" "$values"
 }
 
@@ -127,7 +127,7 @@ get_checker_question() {
   local form="$1" reply="$2" prose values
   prose="$(read_prompt checker-question)" || return 1
   values="$(jq -cn --arg form "$form" --rawfile reply <(printf '%s' "$reply") \
-    '{form: $form, reply: $reply}')"
+    '{form: $form, reply: $reply}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/checker-question.md" "$prose" "$values"
 }
 
@@ -138,10 +138,10 @@ get_checker_question() {
 get_checker_answer() {
   local form reply="$2" entries="$3" names standing prompt schema answer
   form="$(refuse_questionless_form "$1")" || return 1
-  names="$(to_entry_names "$entries")"
+  names="$(to_entry_names "$entries")" || return 1
   standing="$(get_checker_standing "$entries")" || return 1
   prompt="$(get_checker_question "$form" "$reply")" || return 1
-  schema="$(checker_answer_schema "$names")"
+  schema="$(checker_answer_schema "$names")" || return 1
   answer="$(get_model_answer "$CHECKER_MODEL" "$CHECKER_SECONDS" "$schema" "" "" "$standing" <<<"$prompt")" || return 1
   refuse_bad_checker_answer "$answer" "$names"
 }
