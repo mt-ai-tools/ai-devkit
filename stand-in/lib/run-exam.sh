@@ -8,7 +8,9 @@
 # A run of its own, the agent's or the operator's, outside the everyday test
 # command (decision 7): it asks real models, and the everyday run reaches
 # nothing. A case marked as tuned on is replayed like any other and shown so;
-# whether it counts toward a kind's score is the score's to say.
+# whether it counts toward a kind's score is the score's to say. A passing
+# exam prints each kind's score and keeps it with its results, where the end
+# report reads which kind to ask the operator about.
 
 # Loaded once, however many of the stand-in's parts source it, as words.sh is.
 [ -z "${STAND_IN_LOADED_RUN_EXAM:-}" ] || return 0
@@ -19,6 +21,7 @@ STAND_IN_LOADED_RUN_EXAM=1
 . "$(dirname "${BASH_SOURCE[0]}")/exam.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/exam-results.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/exam-replay.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/score.sh"
 
 # One case file's result: read, judged whether it can be judged, and
 # replayed; given its path and what every replay is handed.
@@ -65,6 +68,7 @@ clear_owed_mark() {
 run_exam() {
   local history="$1" session="$2" preset="$3" rules="$4" conventions="$5"
   local dir files last before="" entries risks go="" file result names="[]" total=0 passed=0 drops=0
+  local case rows="" scores
   # Its total time is printed last, so a slow exam is seen (settled
   # 2026-10-07): each case asks every part once per replay.
   local started="$SECONDS"
@@ -83,6 +87,11 @@ run_exam() {
   [ "$last" != null ] || exam_no_results_line
   while IFS= read -r file; do
     result="$(examine_case "$file" "$go" "$preset" "$entries" "$risks")"
+    # Read again for the score: a case that cannot be read was judged
+    # unread, and is no try.
+    if case="$(read_case "$file" 2>/dev/null)"; then
+      rows+="$(to_score_row "$case" "$result")"$'\n'
+    fi
     total=$((total + 1))
     if is_case_passed "$result"; then
       passed=$((passed + 1))
@@ -98,10 +107,12 @@ run_exam() {
     exam_time_line "$((SECONDS - started))"
     return 1
   fi
-  if ! write_exam_results "$history" "$(to_exam_results "$names")"; then
+  scores="$(to_kind_scores "$(printf '%s' "$rows" | jq -cs .)")"
+  if ! write_exam_results "$history" "$(to_exam_results "$names" "$scores")"; then
     exam_time_line "$((SECONDS - started))"
     return 1
   fi
+  format_score_lines "$scores"
   exam_passed_note "$total" "$passed" "$((total - passed))"
   clear_owed_mark "$history" "$session" "$before" || return 1
   exam_time_line "$((SECONDS - started))"

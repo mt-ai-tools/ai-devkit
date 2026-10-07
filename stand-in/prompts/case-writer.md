@@ -11,8 +11,9 @@ when it clearly picks one of the options, rejects them and says what to
 do instead, or decides the question in other words. It does not when it
 is unclear, when it asks something back, asks for plainer words, asks
 what comes next, or talks about something else. Where it does not, set
-answers to false, and leave every other field empty: an empty text, and
-no options. Never guess what the operator meant.
+answers to false, security_gap to false, and leave every other field
+empty: an empty text, and no options. Never guess what the operator
+meant.
 
 Where it does, set answers to true and fill every field:
 
@@ -31,6 +32,14 @@ Where it does, set answers to true and fill every field:
 - answered: the operator's answer, retold as a plain, complete sentence.
 - picked: the label of the option the operator's answer picks, exactly as
   you wrote it among the options; empty where it picks none of them.
+- security_gap: true where the operator turned the recommended option
+  down because it would open a security gap: something an attacker could
+  gain if it were chosen, such as access to what they should not reach, a
+  secret or personal data exposed, or a check that could be got around.
+  False where they turned it down for any other reason, and always false
+  where they picked the option recommended. Only what their answer, or
+  the reason the exchange gives for the option they picked, says; never a
+  gap you see yourself.
 - why: the operator's reason for the answer, where their answer gives
   one. Where it gives none, the reason the exchange gives for the option
   they picked, said as the agent's reason, never as theirs. Empty where

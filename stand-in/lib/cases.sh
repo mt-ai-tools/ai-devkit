@@ -10,12 +10,15 @@
 # operator's answer and why. The header holds what code will read: summary;
 # date, the day the question was let go; brief; kind, as it was sorted when
 # asked; alone, yes where the stand-in would have settled it without the
-# operator when it was asked, which is what makes it a try; picked-recommended,
-# yes where the operator picked the option the agent recommended, which is
-# what the stand-in settles on, so whether it agreed with them; tuning, none
-# until a prompt is adjusted on the case, after which it never counts toward
-# a score; and log-id, the line it was written from, so no line is written
-# twice. Nothing more: what scoring needs beyond these, a replay finds out.
+# operator when it was asked; picked-recommended, yes where the operator
+# picked the option the agent recommended, which is what the stand-in settles
+# on, so whether it agreed with them; security-gap, yes where they turned the
+# recommendation down because it would open a security gap, which no kind's
+# score may hold (decision 8); tuning, none until a prompt is adjusted on the
+# case, after which it never counts toward a score; and log-id, the line it
+# was written from, so no line is written twice. Nothing more: what scoring
+# needs beyond these, a replay finds out, whether the stand-in as it now
+# stands would have answered alone above all, which is what makes it a try.
 
 # Loaded once, however many of the stand-in's parts source it, as words.sh is.
 [ -z "${STAND_IN_LOADED_CASES:-}" ] || return 0
@@ -55,8 +58,9 @@ to_cases_dir() {
 # The log's lines that become cases, one per line, in log order, given the
 # log's lines and the briefs finished, as a JSON array: every question of
 # those briefs that reached the operator and was answered. A request to start
-# building and a closing round are no cases: their decision is the
-# operator's whatever any kind's trial says, so they are never a try. A
+# building, a closing round and the question whether a kind may answer
+# alone are no cases: their decision is the operator's whatever any kind's
+# trial says, so they are never a try. A
 # question settled without the operator, or a proposal dropped, never reached
 # them, so holds no answer of theirs to learn from.
 to_case_lines() {
@@ -65,7 +69,7 @@ to_case_lines() {
   [ -n "$mine" ] || return 0
   jq -c --arg operator "$OUTCOME_TO_OPERATOR" --arg held "$OUTCOME_WOULD_HAVE_APPROVED" '
     select((.outcome == $operator or .outcome == $held) and (.answer // "") != ""
-      and .round == null and .closing == null)' <<<"$mine"
+      and .round == null and .closing == null and .trust == null)' <<<"$mine"
 }
 
 # The name a case is called by after its date, from its title: lower-case
@@ -86,13 +90,15 @@ to_case_date() {
 # A case file's whole text, given the log line and the case-writer's checked
 # form. Every header value is held to one line, whatever the log holds.
 to_case_text() {
-  local line="$1" form="$2" alone picked_recommended
+  local line="$1" form="$2" alone picked_recommended security
   alone="$(case_no_words)"
   [ "$(jq -r '.outcome' <<<"$line")" != "$OUTCOME_WOULD_HAVE_APPROVED" ] || alone="$(case_yes_words)"
   picked_recommended="$(case_no_words)"
   ! jq -e '.picked != "" and .picked == .recommended' >/dev/null <<<"$form" || picked_recommended="$(case_yes_words)"
+  security="$(case_no_words)"
+  ! jq -e '.security_gap' >/dev/null <<<"$form" || security="$(case_yes_words)"
   jq -rn --argjson line "$line" --argjson form "$form" --arg alone "$alone" --arg picked "$picked_recommended" \
-    --arg unknown "$(case_kind_unknown_words)" --arg tuning "$(case_tuning_none_words)" \
+    --arg security "$security" --arg unknown "$(case_kind_unknown_words)" --arg tuning "$(case_tuning_none_words)" \
     --arg no_why "$(case_no_why_words)" --arg id_field "$CASE_LOG_ID_FIELD" \
     --arg start "$CASE_REPLY_START" --arg end "$CASE_REPLY_END" '
     def one_line: gsub("\\s+"; " ") | gsub("^ | $"; "");
@@ -103,6 +109,7 @@ to_case_text() {
     "kind: \(($line.kind // $unknown) | one_line)",
     "alone: \($alone)",
     "picked-recommended: \($picked)",
+    "security-gap: \($security)",
     "tuning: \($tuning)",
     "\($id_field): \($line.id | one_line)",
     "---",
@@ -153,18 +160,22 @@ to_header_list() {
 # fields as read_case reads them: kind, picked-recommended, whether its
 # tuning is used, its brief or briefs, and, as the seed cases say them, the
 # route it must take, the findings the rules and conventions check must give
-# and the entries it must name as broken; then the reply. What a field means
-# for the exam is the exam's to say.
+# and the entries it must name as broken; then security-gap and its summary,
+# as written, for its kind's score; then the reply. What a field means for
+# the exam, and for the score, is theirs to say.
 to_case() {
   local name="$1" text="$2" kind="$3" picked="$4" tuning="$5" brief="$6" route="$7" findings="$8" breaks="$9"
+  local security="${10}" summary="${11}"
   jq -cn --arg name "$name" --arg kind "$kind" --arg picked "$picked" --arg tuning "$tuning" \
+    --arg security "$security" --arg summary "$summary" \
     --arg used "$(case_tuning_used_words)" --arg brief "$brief" --arg route "$route" \
     --argjson findings "$(to_header_list "$findings")" --argjson breaks "$(to_header_list "$breaks")" \
     --rawfile reply <(to_case_reply "$text") '{
       name: $name, kind: $kind, picked_recommended: $picked,
       tuning_used: (($tuning | split(" ") | .[0] // "") == $used),
       briefs: ($brief | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))),
-      route: $route, findings: $findings, breaks: $breaks, reply: $reply}'
+      route: $route, findings: $findings, breaks: $breaks,
+      security_gap: $security, summary: $summary, reply: $reply}'
 }
 
 # --- Reads.
@@ -200,14 +211,15 @@ list_case_files() {
 # header reader, spelled as to_case_text writes them, and the seed cases'
 # route, findings and breaks beside them.
 read_case() {
-  local file="$1" text kind picked tuning brief route findings breaks
+  local file="$1" text kind picked tuning brief route findings breaks security summary
   if ! text="$(cat "$file" 2>/dev/null)"; then
     refuse_unreadable_file_note "$file" >&2
     return 1
   fi
-  IFS="$HEADER_US" read -r kind picked tuning brief route findings breaks \
-    < <(read_header_fields "$file" kind picked-recommended tuning brief route findings breaks)
-  to_case "$(basename "$file")" "$text" "$kind" "$picked" "$tuning" "$brief" "$route" "$findings" "$breaks"
+  IFS="$HEADER_US" read -r kind picked tuning brief route findings breaks security summary \
+    < <(read_header_fields "$file" kind picked-recommended tuning brief route findings breaks security-gap summary)
+  to_case "$(basename "$file")" "$text" "$kind" "$picked" "$tuning" "$brief" "$route" "$findings" "$breaks" \
+    "$security" "$summary"
 }
 
 # The path a new case is written at, in the folder given, from its date, its

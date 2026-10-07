@@ -228,12 +228,14 @@ CHECK_LOOK_RULES='
 # and the operator's pick, where there is one, each among them, never matched
 # to the nearest. The why may be empty: an answer with no reason is still an
 # answer. A reply holding a line the case file marks its reply with is
-# refused, since a replay could not tell where the reply ends.
+# refused, since a replay could not tell where the reply ends. A security
+# gap the operator turned the recommendation down for, where they picked the
+# recommendation, contradicts itself as a skipped case holding one does.
 CHECK_CASE_RULES='
   def blank: test("^\\s*$");
   (select((.answers | not)
       and (.title != "" or .summary != "" or .reply != "" or .options != [] or .recommended != ""
-        or .answered != "" or .picked != "" or .why != ""))
+        or .answered != "" or .picked != "" or .why != "" or .security_gap))
     | ["case-skipped-but"]),
   (select(.answers)
     | (("title", "summary", "reply", "answered") as $part | select(.[$part] | blank) | ["case-part-empty", $part]),
@@ -242,7 +244,8 @@ CHECK_CASE_RULES='
       (select(any(.options[]; type != "string" or blank or test("\n"))) | ["case-option"]),
       (select((.options | length) < 2) | ["case-options-few"]),
       (.recommended as $r | select($r != "" and (any(.options[]; . == $r) | not)) | ["case-recommended", $r]),
-      (.picked as $p | select($p != "" and (any(.options[]; . == $p) | not)) | ["case-picked", $p]))
+      (.picked as $p | select($p != "" and (any(.options[]; . == $p) | not)) | ["case-picked", $p]),
+      (select(.security_gap and .picked != "" and .picked == .recommended) | ["case-security-taken"]))
   | join($us)'
 
 # The input as one compact JSON value; a non-zero status where it is not
@@ -446,6 +449,7 @@ to_problem_notes() {
       case-options-few) refuse_case_options_few_note ;;
       case-recommended) refuse_case_recommended_note "$arg" ;;
       case-picked) refuse_case_picked_note "$arg" ;;
+      case-security-taken) refuse_case_security_taken_note ;;
     esac
   done
 }

@@ -111,7 +111,7 @@ $(exam_replays_line 3 3)
 $(exam_passed_note 1 1 0)" ]
   [ "$(counted_calls)" = "$(three "checker $CHECKER_MODEL")"$'\n'"$(three "reader $READER_MODEL")" ]
   grep -qF -- "Wire it in the demo, as the frame's rule says." "$FAKE_PROMPT.reader"
-  [ "$(jq -c . "$results")" = '{"passed":["seed.md"]}' ]
+  [ "$(jq -c . "$results")" = '{"passed":["seed.md"],"scores":{}}' ]
 }
 
 @test "a check that misses what the case expects fails it, and with no last results kept it blocks" {
@@ -134,7 +134,7 @@ $(exam_failed_note 1 0 1 1)" ]
   question_case naming.md naming no
   run_exam
   [ "$status" -eq 0 ]
-  [ "$(jq -c . "$results")" = '{"passed":["naming.md"]}' ]
+  [ "$(jq -c . "$results")" = '{"passed":["naming.md"],"scores":{}}' ]
   [ "$(counted_calls)" = "$(three "checker $CHECKER_MODEL")"$'\n'"$(three "reader $READER_MODEL")"$'\n'"$(three "sorter $SORTER_MODEL")" ]
   kind naming accept
   run_exam
@@ -143,7 +143,7 @@ $(exam_failed_note 1 0 1 1)" ]
 $(exam_replays_line 0 3)
 $(exam_detail_line "$(exam_route_alone_fault)")
 $(exam_failed_note 1 0 1 1)" ]
-  [ "$(jq -c . "$results")" = '{"passed":["naming.md"]}' ]
+  [ "$(jq -c . "$results")" = '{"passed":["naming.md"],"scores":{}}' ]
 }
 
 @test "a case never passed before fails without blocking, and is left out of the results" {
@@ -159,7 +159,7 @@ $(exam_failed_new_line b.md "")
 $(exam_replays_line 0 3)
 $(exam_detail_line "$(exam_kind_fault naming defaults)")
 $(exam_passed_note 2 1 1)" ]
-  [ "$(jq -c . "$results")" = '{"passed":["a.md"]}' ]
+  [ "$(jq -c . "$results")" = '{"passed":["a.md"],"scores":{}}' ]
 }
 
 @test "a case whose operator took the recommendation passes even settled alone; one they did not take passes sent back to the agent" {
@@ -345,7 +345,7 @@ $(exam_passed_line naming.md "" operator)
 $(exam_replays_line 2 3)
 $(exam_detail_line "$(exam_misread_fault "$(exam_question_words)")")
 $(exam_passed_note 1 1 0)" ]
-  [ "$(jq -c . "$results")" = '{"passed":["naming.md"]}' ]
+  [ "$(jq -c . "$results")" = '{"passed":["naming.md"],"scores":{}}' ]
   : >"$FAKE_CALLS"
   answer_for_call reader 3 "$(step_form)"
   run_exam
@@ -397,4 +397,90 @@ $(exam_failed_note 1 0 1 1)" ]
   [ "$status" -eq 1 ]
   grep -qxF -- "$(exam_detail_line "$(exam_finding_missing_fault explains_code)")" <<<"$output"
   ! grep -qF -- "$(exam_breaks_none_fault rule-one.md)" <<<"$output"
+}
+
+# --- The trial's score, kept with a passing exam's results.
+
+# A case as the case-writer writes one, given its name, kind, whether the
+# operator picked the option recommended, and whether they turned it down for
+# a security gap.
+scored_case() {
+  write_case "$1" "$(printf 'summary: Case %s.\ndate: 2026-10-07\nbrief: file-trash\nkind: %s\nalone: no\npicked-recommended: %s\nsecurity-gap: %s\ntuning: none\nlog-id: id-%s' \
+    "${1%.md}" "$2" "$3" "$4" "${1%.md}")" "Five retries or ten? I recommend five."
+}
+
+# Cases of the kind given: how many the operator agreed with, then how many
+# they did not, the security gap given for those.
+scored_cases() {
+  local kind="$1" agreed="$2" missed="$3" security="${4:-no}" i
+  for i in $(seq "$agreed"); do scored_case "$kind-agreed-$i.md" "$kind" yes no; done
+  for i in $(seq "$missed"); do scored_case "$kind-missed-$i.md" "$kind" no "$security"; done
+}
+
+# Last results naming no case, so a case the stand-in gets wrong fails
+# without blocking, as one that never passed does, and the exam can pass.
+no_case_passed() {
+  mkdir -p "$history/exam"
+  printf '%s\n' '{"passed":[]}' >"$results"
+}
+
+@test "proof: 18 of 20 tries agreed is below the bar, its score kept and printed with each miss" {
+  kind naming accept
+  scored_cases naming 18 2
+  no_case_passed
+  run_exam
+  [ "$status" -eq 0 ]
+  [ "$(tail -n 2 <<<"$output" | head -n 1)" = "$(exam_score_line naming 20 18 0 false)" ]
+  [ "$(jq -c '.scores.naming | {tries, agreed, misses: [.misses[] | .name]}' "$results")" = \
+    '{"tries":20,"agreed":18,"misses":["naming-missed-1.md","naming-missed-2.md"]}' ]
+  . "$lib/score.sh"
+  ! is_bar_reached "$(jq -c '.scores.naming' "$results")"
+}
+
+@test "proof: 19 of 20 tries agreed reaches the bar; a case tuned on, one sent to the operator and one of no kind never count" {
+  kind naming accept
+  scored_cases naming 19 1
+  seed_case seed.md
+  sed -i 's/^route: agent$/kind: naming/' "$answers/seed.md"
+  question_case nokind.md unknown yes
+  no_case_passed
+  run_exam
+  [ "$status" -eq 0 ]
+  grep -qxF -- "$(exam_score_line naming 20 19 0 true)" <<<"$output"
+  [ "$(jq -c '.scores | keys' "$results")" = '["naming"]' ]
+  [ "$(jq -c '.scores.naming.misses' "$results")" = \
+    '[{"name":"naming-missed-1.md","summary":"Case naming-missed-1.","security":false}]' ]
+  . "$lib/score.sh"
+  is_bar_reached "$(jq -c '.scores.naming' "$results")"
+  # The same cases, sent to the operator by an always-yours route, are no
+  # tries at all.
+  kind naming ask
+  run_exam
+  [ "$status" -eq 0 ]
+  [ "$(jq -c '.scores' "$results")" = '{}' ]
+}
+
+@test "proof: a try the operator turned down for a security gap holds the kind below the bar, whatever the score" {
+  kind naming accept
+  scored_cases naming 39 1 yes
+  no_case_passed
+  run_exam
+  [ "$status" -eq 0 ]
+  grep -qxF -- "$(exam_score_line naming 40 39 1 false)" <<<"$output"
+  . "$lib/score.sh"
+  ! is_bar_reached "$(jq -c '.scores.naming' "$results")"
+  # A miss whose case does not say no counts as one, so a missing mark can
+  # only hold a kind back.
+  sed -i '/^security-gap: /d' "$answers/naming-missed-1.md"
+  run_exam
+  grep -qxF -- "$(exam_score_line naming 40 39 1 false)" <<<"$output"
+}
+
+@test "a case is a try where most of its replays settled it alone, and no try where most did not" {
+  . "$lib/score.sh"
+  case_json="$(jq -cn '{name: "a.md", kind: "naming", picked_recommended: "yes", tuning_used: false, security_gap: "no", summary: "A."}')"
+  [ "$(to_score_row "$case_json" '{"runs":3,"alone":2}' | jq -c '{kind, agreed, security}')" = \
+    '{"kind":"naming","agreed":true,"security":false}' ]
+  [ -z "$(to_score_row "$case_json" '{"runs":3,"alone":1}')" ]
+  [ -z "$(to_score_row "$(jq -c '.tuning_used = true' <<<"$case_json")" '{"runs":3,"alone":3}')" ]
 }

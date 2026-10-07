@@ -76,3 +76,68 @@ run_hook() {
   [ "$status" -eq 0 ]
   [ "$output" = "$(answer_unrecorded_note "$(refuse_prompt_session_note)")" ]
 }
+
+# The question whether a kind may answer alone, as the gate logs it under an
+# end report, waiting for the answer; given its number and the kind.
+trust_line() {
+  jq -c --arg kind "$2" '.trust = {kind: $kind, score: {tries: 20, agreed: 19, misses: []}} | .kind = null' \
+    <<<"$(log_line "$1" "$OUTCOME_TO_OPERATOR" session-1 2026-10-07T10:00:00Z "")"
+}
+
+switched_on() {
+  mkdir -p "$history/on"
+  : >"$history/on/session-1"
+}
+
+@test "proof: a plain yes to the question whether a kind may answer alone keeps the kind's yes file, and tells both the operator and the agent" {
+  . "$lib/trial.sh"
+  switched_on
+  add_log_lines "$history" "$(trust_line 2 whole)"
+  run_hook "$(turn_event session-1 " Yes. ")"
+  [ "$status" -eq 0 ]
+  yes_file="$history/trusted/whole.md"
+  [ "$(jq -r '.systemMessage' <<<"$output")" = "$(trust_given_note whole "$yes_file")" ]
+  [ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")" = "$(trust_given_agent_note whole "$yes_file")" ]
+  [ "$(tail -n 1 "$file" | jq -r '.answer')" = " Yes. " ]
+  [ "$(sed -n 2p "$yes_file")" = "kind: whole" ]
+  [[ "$(sed -n 3p "$yes_file")" =~ ^given:\ [0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]
+  ! is_on_trial "$history" whole
+  # Answered once, the question takes no later prompt: a second yes keeps
+  # nothing, and the file stands as the first yes wrote it.
+  cp "$yes_file" "$BATS_TEST_TMPDIR/first"
+  run_hook "$(turn_event session-1 "yes")"
+  [ -z "$output" ]
+  cmp "$yes_file" "$BATS_TEST_TMPDIR/first"
+}
+
+@test "anything but a plain yes leaves the kind on trial: kept as the answer, and no file written" {
+  switched_on
+  for answer in "yes, but only for small ones" "no" "Sure" "yes please"; do
+    rm -f "$file"
+    add_log_lines "$history" "$(trust_line 2 whole)"
+    run_hook "$(turn_event session-1 "$answer")"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+    [ "$(jq -r '.answer' "$file")" = "$answer" ]
+    [ ! -e "$history/trusted" ]
+  done
+  # A yes to a question that is not the trial's switches nothing.
+  rm -f "$file"
+  add_log_lines "$history" "$(log_line 3 "$OUTCOME_TO_OPERATOR" session-1 2026-10-07T10:00:00Z)"
+  run_hook "$(turn_event session-1 "yes")"
+  [ -z "$output" ]
+  [ ! -e "$history/trusted" ]
+}
+
+@test "a yes that cannot be kept tells the operator the kind stays on trial, and the agent to commit nothing" {
+  switched_on
+  add_log_lines "$history" "$(trust_line 2 whole)"
+  mkdir -p "$history/trusted"
+  chmod a-w "$history/trusted"
+  run_hook "$(turn_event session-1 "yes")"
+  chmod u+w "$history/trusted"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '.systemMessage' <<<"$output")" = "$(trust_unkept_note whole "$(refuse_trust_unwritable_note "$history/trusted")")" ]
+  [ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$output")" = "$(trust_unkept_agent_note whole)" ]
+  [ ! -e "$history/trusted/whole.md" ]
+}

@@ -1,6 +1,6 @@
-# Lines of the question log written by the suite itself, for the cases the
-# gate cannot reach: no question is ever settled while every kind is on
-# trial, so a settled line is made here. Loaded by the suites, never run
+# Lines of the question log written by the suite itself, for the cases that
+# need settled lines without running the gate for each: a settled line is
+# made here. Loaded by the suites, never run
 # alone.
 
 # A log line, given its number, outcome, session, when (UTC), and the answer

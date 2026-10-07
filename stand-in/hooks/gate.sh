@@ -160,6 +160,7 @@ switch="$(find_switch "$history" "$session")"
 . "$tool_root/lib/resume.sh"
 . "$tool_root/lib/owed.sh"
 . "$tool_root/lib/exam.sh"
+. "$tool_root/lib/score.sh"
 
 preset="$(get_config_path AIDK_STAND_IN)"
 rules="$(get_config_path AIDK_RULES)"
@@ -318,8 +319,16 @@ settle_question() {
 # rather than the line lost: a project may run the stand-in with no briefs
 # folder at all.
 log_let_go() {
-  local parts="$1" why_lines="$2" summary="$3" step="${4:-}" briefs id when details line why
+  local why
   why="$(mktemp)"
+  write_let_go "$@" 2>"$why" || gate_log_failed_line "$(cat "$why")"
+  rm -f "$why"
+}
+
+# Write the line log_let_go writes, given what it is given; a refusal on
+# stderr and a non-zero status where it could not be.
+write_let_go() {
+  local parts="$1" why_lines="$2" summary="$3" step="${4:-}" briefs id when details line
   briefs="$(get_held_briefs "$session" 2>/dev/null)" || briefs=null
   id="$(mint_log_id)"
   when="$(get_log_now)"
@@ -328,11 +337,8 @@ log_let_go() {
     --argjson step "${step:-null}" \
     '{id: $id, when: $when, session: $session, briefs: $briefs, reasons: $reasons,
       summary: $summary} + ($step // {})')"
-  if ! line="$(to_log_line "$record" "$parts" "$details" 2>"$why")" \
-    || ! append_log_line "$(to_log_dir "$history")" "$line" 2>"$why"; then
-    gate_log_failed_line "$(cat "$why")"
-  fi
-  rm -f "$why"
+  line="$(to_log_line "$record" "$parts" "$details")" || return 1
+  append_log_line "$(to_log_dir "$history")" "$line"
 }
 
 # A broken gate's question to the log, given the message the operator is
@@ -364,15 +370,15 @@ start_ladder() {
 }
 
 # An answer that held on every rung of its climb, the ladder's or the light
-# check's. While its kind is on trial, which every kind is, it still comes to
-# the operator, marked with what the stand-in would have approved and how
-# many times it held, and is counted toward the trial; once switched, it is
-# settled without them.
+# check's. While its kind is on trial, until the operator's yes to it, it
+# still comes to them, marked with what the stand-in would have approved and
+# how many times it held, and is counted toward the trial; once switched, it
+# is settled without them.
 answer_held() {
   local ladder="$1" question recommended why held
   question="$(jq -r '.question' <<<"$ladder")"
   recommended="$(jq -r '.first.recommended' <<<"$ladder")"
-  if is_on_trial "$(jq -r '.kind' <<<"$ladder")"; then
+  if is_on_trial "$history" "$(jq -r '.kind' <<<"$ladder")"; then
     why="$(to_held_why "$ladder")"
     held="$(to_ladder_rungs "$ladder")"
     bring_operator "$question" "$why" "$recommended" "" "" "$held"
@@ -393,15 +399,15 @@ answer_light_moved() {
 
 # A question whose kind's recommendation stands with no challenge, given the
 # reader's form, the kind's entry and any lines the operator would be shown
-# beside it. While the kind is on trial, which every kind is, it comes to the
-# operator, marked with what the stand-in would have accepted, and is counted
-# toward the trial; once switched, it is settled without them.
+# beside it. While the kind is on trial, until the operator's yes to it, it
+# comes to them, marked with what the stand-in would have accepted, and is
+# counted toward the trial; once switched, it is settled without them.
 answer_accepted() {
   local form="$1" entry="$2" lines="$3" question recommended name why
   question="$(jq -r '.question' <<<"$form")"
   recommended="$(jq -r '.recommended' <<<"$form")"
   name="$(jq -r '.name' <<<"$entry")"
-  if is_on_trial "$name"; then
+  if is_on_trial "$history" "$name"; then
     why="$(gate_trial_line "$name")"$'\n'"$lines"
     bring_operator "$question" "$why" "$recommended"
   fi
@@ -555,9 +561,9 @@ send_step_back() {
 }
 
 # A step's report the stand-in would say go to. While its kind is on trial,
-# which every kind is, the reply stops with the note that it would have said
-# go and what was fixed in passing, and the go is logged as it would have
-# been approved, so it is counted toward the trial. Once the kind is
+# until the operator's yes to it, the reply stops with the note that it would
+# have said go and what was fixed in passing, and the go is logged as it would
+# have been approved, so it is counted toward the trial. Once the kind is
 # switched, the agent is told to go on and the go is logged as settled, so it
 # is listed and can be reopened; a go that cannot be logged is never given,
 # since nobody could list or reopen it, and goes to the operator instead.
@@ -565,7 +571,7 @@ answer_go() {
   local form="$1" sort="$2" entry="$3" question fixed why logged
   question="$(to_step_question "$form")"
   fixed="$(derive_fixed_lines "$form")"
-  if is_on_trial "$(jq -r '.name' <<<"$entry")"; then
+  if is_on_trial "$history" "$(jq -r '.name' <<<"$entry")"; then
     why="$(gate_trial_line "$(jq -r '.name' <<<"$entry")")"
     logged="$(log_step "$form" "$sort" "$entry" "$question" "$(step_go_words)" "$why" "$OUTCOME_WOULD_HAVE_APPROVED")"
     let_stop_told "$(to_go_message "$question" "$why" "$fixed")" "$logged"
@@ -811,8 +817,14 @@ finish_briefs() {
 # where it cannot be read, the report still comes, saying why that is not
 # known. A reply that also asks something stands above the report as written:
 # the brief is finished, and nothing is left for the gate to hold.
+#
+# Where a kind's trial reached the bar, the report closes asking whether it
+# may answer alone, and the question is logged as a line of its own, so the
+# operator's answer is kept on it as on any question's and their yes read off
+# it (settled 2026-10-07). Which kind is due never holds the report up: where
+# it cannot be read, the report says so and asks nothing.
 answer_finished() {
-  local closing why form="" failed="" lines report
+  local closing why form="" failed="" lines switch="" switch_failed="" report logged
   closing="$(to_closing "$record")"
   [ -n "$closing" ] || { refuse_state_unreadable_note "$record_file" >&2; exit 1; }
   why="$(mktemp)"
@@ -820,13 +832,39 @@ answer_finished() {
     form=""
     failed="$(cat "$why")"
   fi
+  if ! switch="$(find_switch_kind "$history" "$preset" 2>"$why")"; then
+    switch=""
+    switch_failed="$(cat "$why")"
+  fi
   rm -f "$why"
   lines="$(list_log_lines "$(to_log_dir "$history")")"
-  report="$(format_end_report "$lines" "$closing" "$form" "$failed")"
+  report="$(format_end_report "$lines" "$closing" "$form" "$failed" "$switch" "$switch_failed")"
   record="$(with_chain_reset "$record")"
+  if [ -n "$switch" ]; then
+    logged="$(log_switch_question "$switch")"
+    [ -z "$logged" ] || report+=$'\n'"$logged"
+  fi
   keep_record
   to_operator_answer "$report"
   exit 0
+}
+
+# Write the question whether a kind may answer alone to the log, given the
+# kind due as find_switch_kind gives it: a question to the operator, whose
+# answer the answer hook keeps on it. Logged from a record holding no
+# question, so the line carries none of the brief's exchange. Prints nothing
+# where the line was written, and otherwise the line telling the operator
+# their answer cannot be kept, with why.
+log_switch_question() {
+  local switch="$1" kind question why_line parts details why
+  kind="$(jq -r '.kind' <<<"$switch")"
+  question="$(trial_switch_question_words "$kind")"
+  why_line="$(trial_switch_why_line "$kind")"
+  parts="$(to_operator_message_parts "$question" "" "$why_line" "" "")"
+  details="$(jq -cn --arg outcome "$OUTCOME_TO_OPERATOR" --argjson trust "$switch" '{outcome: $outcome, trust: $trust}')"
+  why="$(mktemp)"
+  write_let_go "$parts" "$why_line" "" "$details" 2>"$why" || end_switch_unlogged_line "$(cat "$why")"
+  rm -f "$why"
 }
 
 # The reply to a look, whatever it says: read by the closing reader alone,

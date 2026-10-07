@@ -60,12 +60,14 @@ format_settled_where() {
 }
 
 # The list the operator is shown, given the settled lines, today's date in
-# the machine's zone, and the scope asked for. Empty, it says so plainly.
-# While every kind is on trial nothing can be settled, and nothing yet takes a
-# kind off it, so the empty list says the trial is why; the day a kind can be
-# switched, that line must learn to tell the two apart.
+# the machine's zone, the scope asked for, and whether every kind is on trial
+# (true or false). Empty, it says so plainly, and says the trial is why where
+# no kind stands switched: nothing could have been settled then, and an
+# empty list that did not say so would read as a stand-in that settled
+# nothing it could have.
 format_settled_list() {
-  local lines="$1" today="$2" scope="$3" format="$SETTLED_TIME_FORMAT" rows number question approved when session briefs
+  local lines="$1" today="$2" scope="$3" every_on_trial="$4" format="$SETTLED_TIME_FORMAT"
+  local rows number question approved when session briefs
   [ "$scope" = "$SETTLED_TODAY" ] || format="$SETTLED_DAY_TIME_FORMAT"
   rows=""
   if [ -n "$lines" ]; then
@@ -78,7 +80,7 @@ format_settled_list() {
       | map(gsub("\\s+"; " ")) | join($us)' <<<"$lines")"
   fi
   if [ -z "$rows" ]; then
-    settled_empty_note
+    if [ "$every_on_trial" = true ]; then settled_trial_empty_note; else settled_empty_note; fi
     return 0
   fi
   if [ "$scope" = "$SETTLED_TODAY" ]; then settled_today_heading; else settled_all_heading; fi

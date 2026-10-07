@@ -4,7 +4,9 @@
 # questions it settled without them, or one of those, a decision a round's
 # list laid out before building, or a proposal the agent dropped under a
 # challenge, brought back in full. A question brought back marks the
-# session's record, so its next question reaches the user.
+# session's record, so its next question reaches the user, and its own line
+# in the log, where the trial's fall-back counts it; the reopen that sends a
+# kind back to the trial says so under the question, once.
 # Silent for every other skill. One hook for both, as the organizer has one
 # for its skill: each skill is told apart by the name its own file declares.
 #
@@ -32,6 +34,7 @@ tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/record.sh"
 . "$tool_root/lib/settled.sh"
 . "$tool_root/lib/reopen.sh"
+. "$tool_root/lib/trial.sh"
 
 # Both found from this hook's own place in the kit, never from the project's
 # layout: the kit names no project folder.
@@ -61,25 +64,25 @@ answer_refused() {
   exit 0
 }
 
-# Every line of the log, left in logged, and the settled ones, left in
-# settled; or the refusal shown. Run in the hook's own shell, never in a
+# The stand-in's working folder, left in history, every line of the log, left
+# in logged, and the settled ones, left in settled; or the refusal shown. Run in the hook's own shell, never in a
 # command substitution, where a refusal's exit would end only the
 # substitution and its answer be taken for lines.
 read_settled() {
-  local history
   history="$(get_config_path AIDK_STAND_IN_HISTORY 2>"$why")" || answer_refused "$why"
   logged="$(list_log_lines "$(to_log_dir "$history")" 2>"$why")" || answer_refused "$why"
   settled="$(to_settled_lines "$logged")"
 }
 
 show_settled() {
-  local scope today shown
+  local scope today every=false shown
   scope="$(to_settled_scope "$args" 2>"$why")" || answer_refused "$why"
   read_settled
   today="$(date +%Y-%m-%d)"
+  ! is_every_kind_on_trial "$history" || every=true
   # The trailing "x" keeps the list's final newline, which a command
   # substitution would strip: the user is shown every byte of it.
-  shown="$(format_settled_list "$settled" "$today" "$scope"; printf x)"
+  shown="$(format_settled_list "$settled" "$today" "$scope" "$every"; printf x)"
   shown="${shown%x}"
   to_skill_answer "$shown" "$(skill_settled_shown_note "$(printf '%s' "$shown" | awk 'END { print NR }')")"
 }
@@ -104,6 +107,42 @@ mark_reopened() {
   write_session_record "$file" "$record" 2>"$why" || refuse_unmarked "$number"
 }
 
+# Mark the line numbered so in the log as reopened, wherever the stand-in is
+# on or off: the reopen is the user's say on a decision, and the trial's
+# fall-back is worked out from the log each time it is asked (settled
+# 2026-10-01/02, decision 9), so a reopen the log does not hold could never
+# send a kind back. A mark that cannot be written refuses the reopen whole,
+# for the same reason.
+mark_log_reopened() {
+  local number="$1" reason
+  if ! write_log_reopened "$(to_log_dir "$history")" "$number" "$(get_log_now)" 2>"$why"; then
+    reason="$(cat "$why")"
+    reopen_unlogged_note "$number" "$reason" >"$why"
+    answer_refused "$why"
+  fi
+}
+
+# The notice that this reopen sent its kind back to the trial, given the
+# line reopened; nothing where it did not: the line was no decision settled
+# alone, its kind holds no yes, or the count was reached before or not yet.
+# Read from the log as the reopen left it, against the lines read before it.
+# Where it cannot be told, the user is told that instead: a notice lost here
+# is never given again.
+find_fallback_notice() {
+  local line="$1" kind given after reason
+  is_settled_line "$line" || return 0
+  kind="$(jq -r '.kind // ""' <<<"$line")"
+  is_trust_kind "$kind" || return 0
+  if ! given="$(read_trust_given "$history" "$kind" 2>"$why")" \
+    || ! after="$(list_log_lines "$(to_log_dir "$history")" 2>"$why")"; then
+    reason="$(cat "$why")"
+    trial_fallback_unknown_line "$reason"
+    return 0
+  fi
+  [ -n "$given" ] || return 0
+  derive_fallback_notice "$logged" "$after" "$kind" "$given"
+}
+
 # Show the user that the question numbered so was not reopened, with the
 # reason the failing part wrote, and tell the model so.
 refuse_unmarked() {
@@ -118,14 +157,16 @@ refuse_unmarked() {
 # operator was shown as a decision: a settled question, or one a round's list
 # laid out before building.
 show_reopened() {
-  local request number line listed=false shown
+  local request number line listed=false notice shown
   request="$(to_reopen_request "$args" 2>"$why")" || answer_refused "$why"
   number="$(jq -r '.number' <<<"$request")"
   read_settled
   line="$(to_reopened_line "$(to_reopenable_lines "$logged")" "$number" 2>"$why")" || answer_refused "$why"
   ! is_round_listed "$logged" "$number" || listed=true
   mark_reopened "$number"
-  shown="$(format_reopened "$line" "$(jq -r '.exchange' <<<"$request")"; printf x)"
+  mark_log_reopened "$number"
+  notice="$(find_fallback_notice "$line")"
+  shown="$(format_reopened "$line" "$(jq -r '.exchange' <<<"$request")"; [ -z "$notice" ] || printf '%s\n' "$notice"; printf x)"
   shown="${shown%x}"
   to_skill_answer "$shown" "$(format_reopened_agent_note "$line" "$listed")"
 }
@@ -138,6 +179,7 @@ reopen_name="$(own_name "$reopen_skill")"
 args="$(to_skill_args "$event")"
 settled=""
 logged=""
+history=""
 why="$(mktemp)"
 trap 'rm -f "$why"' EXIT
 

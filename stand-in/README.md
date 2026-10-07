@@ -23,11 +23,15 @@ decides nothing; where it holds, it reaches them told it moved and then held.
 Either way it never counts as held: an answer that moved once is never one
 that would be approved. On the light check an answer that moves reaches the
 operator at once, with no bigger look and no second reading. While a kind is
-on trial, which every kind is, an answer that held, or a recommendation that
-would have been accepted, reaches the operator too, marked with what would
-have stood; once a kind is switched, it stands without them, the agent told
-to go on with it, and is logged as settled. A settling that cannot be logged
-is never given.
+on trial, which it is until the operator says yes to it, an answer that held,
+or a recommendation that would have been accepted, reaches the operator too,
+marked with what would have stood; once a kind is switched, it stands without
+them, the agent told to go on with it, and is logged as settled. A settling
+that cannot be logged is never given. A switched kind goes back on trial by
+itself once the operator reopens a few of the first decisions it settled
+alone after their yes, worked out from the log each time and never
+written down; the reopen that sends it back says so, once, and a newer yes
+starts the count again. A kind whose yes cannot be read stays on trial.
 
 A reply that closes the round of questions and asks to start building always
 reaches the operator, with every decision of the round laid out: one short
@@ -73,7 +77,13 @@ built, left in the agent's own words, and whether the full check passed, as
 read off that reply; the decisions settled without them; what the sweep
 fixed in passing, dropped and parked, and the proposals the agent dropped
 under a challenge; and what finishing changed, as the organizer printed it.
-A finish the organizer refuses reaches the operator instead, with why. The
+Last, where a kind's trial reached the bar and it is on trial, it asks
+whether that kind may now answer alone, one kind at a time, with each case
+it got wrong; the question is logged, and a plain yes typed as its answer,
+and nothing else, is kept as the kind's own file in the project's working
+folder, saying when it was given, which the agent is told to commit. A kind
+the operator keeps for themselves by its route is never asked about, and no
+route is ever changed. A finish the organizer refuses reaches the operator instead, with why. The
 round that makes three finding something that belongs to the brief reaches
 the operator too, with its list, rounds whose findings all belong elsewhere
 not counting.
@@ -85,7 +95,8 @@ finished in the session, and no other, into test cases: each question of it
 that reached the operator and was answered becomes one file, retold by a
 fresh model in clean words — the question, its options and the one
 recommended, the operator's answer and why, whether the stand-in would have
-settled it alone and whether the operator picked what was recommended —
+settled it alone, whether the operator picked what was recommended, and
+whether they turned it down for a security gap —
 never the raw text of the log. An answer that is unclear or answers
 something else is skipped, never guessed. Each case is read for secrets
 twice before it is saved, by a scanner for anything key-shaped and by a
@@ -110,7 +121,12 @@ holds the agent's replies to it. A case tuned on is replayed like any other
 and shown so. The exam fails on a drop alone, a case that passed the last
 passing exam and fails now; one that never passed is shown and does not
 block. Where no last results are kept, every failing case counts as a drop.
-A passing exam keeps its results for the next one to compare with.
+A passing exam keeps its results for the next one to compare with, and with
+them each kind's score, which it prints: a try is a case the stand-in would
+have answered alone on most of its replays, every such case counting, and a
+case tuned on never; it agreed where the operator picked what was
+recommended. A kind reaches the bar with enough tries, nearly all of them
+agreed, and none the operator turned down for a security gap.
 
 An edit made with Claude Code's file-editing tools to what the stand-in
 judges by, its preset, its prompts or its model list, marks the session that
@@ -220,8 +236,8 @@ where a project keeps them, and the kit's advisor, whose command a second
 reading runs. Needs a working folder of its own, holding a switch per
 session it is on for, its record of each, the mark a session's wait leaves,
 the mark of an exam a session owes, the last passing exam's results and its
-log, worth nothing beyond one machine, and the test cases, which a project
-commits. Needs the kit's work
+log, worth nothing beyond one machine, and the test cases and the operator's
+yes to each kind they switched, which a project commits. Needs the kit's work
 organizer, to show its list, to take a brief, to say which brief a session
 holds, and which briefs every session holds and where they work, to finish a
 brief, and to read and write what a brief waits on. Needs Claude Code to set

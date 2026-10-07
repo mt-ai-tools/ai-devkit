@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# The exam's last results: which cases passed the last exam that passed, kept
-# in the stand-in's own working folder, on this machine alone. What a drop is
-# is read against them. Sourced, never executed.
+# The exam's last results: which cases passed the last exam that passed, and
+# the trial's score per kind it found, kept in the stand-in's own working
+# folder, on this machine alone. What a drop is is read against them, and
+# which kind the end report asks about. Sourced, never executed.
 #
 # A drop is a case that passed the last passing exam and fails now: only a
 # drop blocks a change (settled 2026-10-01/02, decision 7). A case that never
@@ -27,11 +28,15 @@ EXAM_SUBFOLDER="exam"
 EXAM_RESULTS_NAME="last-passed.json"
 
 # What the results must be to be read: the names of the case files that
-# passed. A case is known by its file's name, the one thing every case has,
-# the seed cases included, which carry no log line's id.
+# passed, and the trial's score per kind, as score.sh makes it. A case is
+# known by its file's name, the one thing every case has, the seed cases
+# included, which carry no log line's id. Results kept before the score was
+# may lack it, and are read as holding no score: no kind is then asked about
+# until a passing exam keeps one.
 EXAM_RESULTS_SHAPE='
   type == "object"
-  and (.passed | type == "array" and all(.[]; type == "string"))'
+  and (.passed | type == "array" and all(.[]; type == "string"))
+  and ((has("scores") | not) or (.scores | type == "object"))'
 
 # --- Transforms.
 
@@ -41,9 +46,11 @@ to_exam_results_path() {
 }
 
 # The results to keep, given the names of the cases that passed, as a JSON
-# array.
+# array, and every kind's score, as one JSON object. The score is kept with
+# the results of a passing exam alone: a stand-in that dropped a case is not
+# one whose score should ask the operator for trust.
 to_exam_results() {
-  jq -cn --argjson passed "$1" '{passed: ($passed | unique)}'
+  jq -cn --argjson passed "$1" --argjson scores "$2" '{passed: ($passed | unique), scores: $scores}'
 }
 
 # True if a failing case of the name given is a drop, given the last results,

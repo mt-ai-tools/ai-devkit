@@ -3,7 +3,8 @@
 # empty and the brief was finished — whether the full check passed, the
 # decisions the stand-in settled without them, what was fixed in passing,
 # what was dropped, what was parked, how many test cases were written from
-# the brief's answers, and what finishing the brief changed.
+# the brief's answers, what finishing the brief changed, and, where a kind
+# reached the trial's bar, whether it may now answer alone.
 # Every function here is a transform. Sourced, never executed.
 #
 # Made from the question log and the work organizer's own output alone, never
@@ -131,12 +132,39 @@ format_end_cases() {
     "$(jq -r '.held' <<<"$cases")" "$(jq -r '.failed' <<<"$cases")"
 }
 
+# The question whether a kind may answer alone (settled 2026-10-01/02,
+# decision 9), given the kind due as find_switch_kind gives it, empty for
+# none, and why none could be found, empty where nothing failed: the kind's
+# score, each case it got wrong, plainly, and the question last, saying the
+# one answer that switches it. Nothing where none is due.
+format_end_switch() {
+  local switch="$1" failed="$2" kind score name summary
+  if [ -n "$failed" ]; then
+    end_switch_unread_line "$failed"
+    return 0
+  fi
+  [ -n "$switch" ] || return 0
+  kind="$(jq -r '.kind' <<<"$switch")"
+  score="$(jq -c '.score' <<<"$switch")"
+  end_switch_heading "$kind" "$(jq -r '.tries' <<<"$score")" "$(jq -r '.agreed' <<<"$score")"
+  end_switch_misses_heading
+  if [ "$(jq '.misses | length' <<<"$score")" -eq 0 ]; then
+    end_none_line
+  else
+    while IFS="$END_US" read -r name summary; do
+      end_switch_miss_line "$name" "$summary"
+    done < <(jq -r --arg us "$END_US" '.misses[] | [.name, (.summary | gsub("\\s+"; " "))] | join($us)' <<<"$score")
+  fi
+  end_switch_question "$kind" "$(trial_yes_words)"
+}
+
 # The end report, given the log's lines, the closing round as the record
-# keeps it — the briefs swept for and what finishing them printed — and the
+# keeps it — the briefs swept for and what finishing them printed — the
 # reader's form of the agent's last reply with why it failed, the form empty
-# where it did.
+# where it did, and the kind due to be asked about with why none could be
+# found, as format_end_switch takes them.
 format_end_report() {
-  local lines="$1" closing="$2" form="$3" failed="$4" briefs mine findings
+  local lines="$1" closing="$2" form="$3" failed="$4" switch="${5:-}" switch_failed="${6:-}" briefs mine findings
   briefs="$(jq -c '.briefs' <<<"$closing")"
   mine="$(to_brief_log_lines "$lines" "$briefs")"
   findings="$(to_closing_findings "$mine")"
@@ -152,7 +180,7 @@ format_end_report() {
   # freed is its own, and a list made from it here would be a second copy.
   end_freed_heading
   jq -j '.finished // ""' <<<"$closing"
-  # The question whether a kind leaves its trial, with its misses shown, is
-  # asked here once the bar for it is built (settled 2026-10-01/02): last,
-  # where the operator has read how the brief went.
+  # Last, where the operator has read how the brief went (settled
+  # 2026-10-01/02).
+  format_end_switch "$switch" "$switch_failed"
 }

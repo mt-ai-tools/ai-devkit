@@ -79,13 +79,46 @@ three_lines() {
   [ ! -s "$answer" ]
 }
 
-@test "during the trial the settled list says plainly that nothing was settled" {
+@test "during the trial the settled list says plainly that nothing was settled, and that the trial is why" {
   run_hook devkit-stand-in-settled
-  [ "$(shown)" = "$(settled_empty_note)" ]
+  [ "$(shown)" = "$(settled_trial_empty_note)" ]
   [ "$(note)" = "$(skill_settled_shown_note 1)" ]
   add_log_lines "$history" "$(log_line 1 "$OUTCOME_TO_OPERATOR" session-1 2026-10-06T09:00:00Z)"
   run_hook devkit-stand-in-settled
+  [ "$(shown)" = "$(settled_trial_empty_note)" ]
+}
+
+@test "with a kind switched, an empty settled list says only that nothing was settled; once it fell back, the trial is why again" {
+  . "$lib/trial.sh"
+  write_trust_file "$history" defaults 2026-10-05T08:00:00Z
+  # Two reopened before the yes: they count for nothing, the kind stands.
+  add_log_lines "$history" \
+    "$(jq -c '.reopened = "2026-10-04T12:00:00Z"' <<<"$(log_line 1 "$OUTCOME_SETTLED" session-1 2026-10-04T09:00:00Z)")" \
+    "$(jq -c '.reopened = "2026-10-04T12:05:00Z"' <<<"$(log_line 2 "$OUTCOME_SETTLED" session-1 2026-10-04T09:05:00Z)")"
+  run_hook devkit-stand-in-settled
   [ "$(shown)" = "$(settled_empty_note)" ]
+  # Two of its silent decisions since the yes reopened: back on trial.
+  add_log_lines "$history" \
+    "$(jq -c '.reopened = "2026-10-05T12:00:00Z"' <<<"$(log_line 3 "$OUTCOME_SETTLED" session-1 2026-10-05T09:00:00Z)")" \
+    "$(jq -c '.reopened = "2026-10-05T12:05:00Z"' <<<"$(log_line 4 "$OUTCOME_SETTLED" session-1 2026-10-05T09:05:00Z)")"
+  run_hook devkit-stand-in-settled
+  [ "$(shown)" = "$(settled_trial_empty_note)" ]
+}
+
+@test "proof: a reopen marks its line in the log once, wherever the stand-in is; a mark that cannot be written refuses the reopen" {
+  three_lines
+  run_hook devkit-stand-in-reopen 3
+  [ "$(jq -r 'select(.number == 3) | .reopened' "$history/log/questions.jsonl")" != null ]
+  first="$(jq -r 'select(.number == 3) | .reopened' "$history/log/questions.jsonl")"
+  [ "$(jq -r 'select(.number == 1) | .reopened' "$history/log/questions.jsonl")" = null ]
+  run_hook devkit-stand-in-reopen 3
+  [ "$(jq -r 'select(.number == 3) | .reopened' "$history/log/questions.jsonl")" = "$first" ]
+  chmod a-w "$history/log" "$history/log/questions.jsonl"
+  run_hook devkit-stand-in-reopen 1
+  chmod u+w "$history/log" "$history/log/questions.jsonl"
+  [ "$(shown)" = "$(reopen_unlogged_note 1 "$(refuse_log_unwritable_note "$history/log")")" ]
+  [ "$(note)" = "$(skill_refusal_shown_note)" ]
+  [ "$(jq -r 'select(.number == 1) | .reopened' "$history/log/questions.jsonl")" = null ]
 }
 
 @test "today's settled questions are listed by their log numbers, retold, with what, when and where" {
@@ -242,7 +275,7 @@ switch_on() {
   run_hook devkit-stand-in-settled
   [ ! -s "$answer" ]
   run_hook renamed-settled
-  [ "$(shown)" = "$(settled_empty_note)" ]
+  [ "$(shown)" = "$(settled_trial_empty_note)" ]
   sed -i '/^name: /d' "$kit/stand-in/skills/reopen/SKILL.md"
   run --separate-stderr bash -c "$(declare -f skill_event); skill_event renamed-settled | '$hook'"
   [ "$status" -ne 0 ]

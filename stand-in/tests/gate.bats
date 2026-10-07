@@ -1111,15 +1111,15 @@ step_operator_message() {
   [ "$(message)" = "$(operator_message "$(gate_go_kind_line step-go)")" ]
 }
 
-# A copy of the kit with every kind through the trial, its gate left in gate.
-# Nothing switches a kind yet, so the suite switches one in the copy, at the
-# one place that tells a switched kind apart.
+# The kinds given through the trial, as the operator's yes leaves them: a yes
+# file each in the project's stand-in folder, given before anything the suite
+# settles. The kit, for the skill hook, is the suite's own.
+trusted_since="2026-01-01T00:00:00Z"
 switch_kinds() {
-  kit="$BATS_TEST_TMPDIR/kit"
-  mkdir -p "$kit"
-  cp -r "$BATS_TEST_DIRNAME/../../lib" "$BATS_TEST_DIRNAME/../../stand-in" "$BATS_TEST_DIRNAME/../../organizer" "$kit/"
-  sed -i '/^is_on_trial() {$/,/^}$/s/return 0/return 1/' "$kit/stand-in/lib/trial.sh"
-  gate="$kit/stand-in/hooks/gate.sh"
+  local kind
+  . "$lib/trial.sh"
+  for kind in "$@"; do write_trust_file "$history" "$kind" "$trusted_since"; done
+  kit="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
 }
 
 # The skill hook of the kit given, run on the skill and words given, in the
@@ -1133,7 +1133,7 @@ run_skill() {
 @test "once its kind is switched, a clean step's report is told go, logged as settled, listed and reopened" {
   . "$lib/step-go.sh"
   . "$lib/reopen.sh"
-  switch_kinds
+  switch_kinds step-go
   step_report "$(step_form '.problems = [{problem: "a typo in a refusal", state: "fixed"}]')"
   run_gate false "$step_reply"
   [ "$status" -eq 0 ]
@@ -1155,7 +1155,7 @@ run_skill() {
 
 @test "once switched, a go that cannot be logged is never given: it goes to the operator, saying why" {
   . "$lib/step-go.sh"
-  switch_kinds
+  switch_kinds step-go
   step_report
   mkdir -p "$history/log"
   chmod a-w "$history/log"
@@ -1382,7 +1382,7 @@ accepted_message() {
 
 @test "once through the trial, step timing stands with no challenge: the agent goes on, and it is logged as settled and listed" {
   . "$lib/reopen.sh"
-  switch_kinds
+  switch_kinds step-timing
   kind step-timing accept
   question="Fold step 4 into step 3?"
   answer_for reader "$(asking "$question" yes no)"
@@ -1403,7 +1403,7 @@ accepted_message() {
 
 @test "a reopened decision asked again reaches the operator under a switched kind, whatever its route, and only once" {
   . "$lib/reopen.sh"
-  switch_kinds
+  switch_kinds step-timing
   kind step-timing accept
   question="Fold step 4 into step 3?"
   answer_for reader "$(asking "$question" yes no)"
@@ -1442,7 +1442,7 @@ accepted_message() {
 
 @test "while a reopened decision waits, a step's report under a switched kind gets no go: it reaches the operator, the mark kept" {
   . "$lib/step-go.sh"
-  switch_kinds
+  switch_kinds step-go
   step_report
   mkdir -p "$(dirname "$record_file")"
   jq -c '.reopened = [3]' <<<"$EMPTY_RECORD" >"$record_file"
@@ -1454,7 +1454,7 @@ accepted_message() {
 }
 
 @test "\"leave it for later?\" reaches the operator, even once through the trial: work put off is theirs" {
-  switch_kinds
+  switch_kinds step-timing
   kind step-timing accept
   answer_for reader "$(asking "Leave the cleanup for later?" "later" "now")"
   answer_for sorter "$(sorted step-timing defers)"
@@ -1465,7 +1465,7 @@ accepted_message() {
 }
 
 @test "a settling that cannot be logged is never given: the question goes to the operator, saying why" {
-  switch_kinds
+  switch_kinds step-timing
   kind step-timing accept
   answer_for reader "$(asking "Which step first?" "step 3" "step 4")"
   answer_for sorter "$(sorted step-timing)"
@@ -1495,7 +1495,7 @@ accepted_message() {
 }
 
 @test "once through the trial, a function's name held after \"are you sure?\" stands, logged as settled" {
-  switch_kinds
+  switch_kinds inner-naming
   kind inner-naming light
   answer_for sorter "$(sorted inner-naming)"
   run_gate
@@ -1511,7 +1511,7 @@ accepted_message() {
 }
 
 @test "a function's name that moves after \"are you sure?\" reaches the operator, with no bigger look and no cold reading" {
-  switch_kinds
+  switch_kinds inner-naming
   kind inner-naming light
   answer_for sorter "$(sorted inner-naming)"
   answer_for reading '{"reading":"Either."}'
@@ -1527,7 +1527,7 @@ accepted_message() {
 }
 
 @test "a module's name always reaches the operator, even once through the trial: challenged first, then theirs" {
-  switch_kinds
+  switch_kinds new-module
   kind new-module ask "Do we really need a new module?"
   answer_for reader "$(asking "Call the new module mf-pager or mf-pages?" mf-pager mf-pages)"
   answer_for sorter "$(sorted new-module)"
@@ -2120,7 +2120,7 @@ look_around_note() {
 
 @test "a step's report from a woken session reaches the operator for the go, even once its kind is switched, and the step's sorter is never asked" {
   . "$lib/resume.sh"
-  switch_kinds
+  switch_kinds step-go
   step_report
   woken "$brief_over"
   run_gate false "The wait is over."
@@ -2367,4 +2367,150 @@ owed_file() { printf '%s/owed/%s' "$history" "$session"; }
   run --separate-stderr "$BATS_TEST_DIRNAME/../hooks/end-hook.sh" <<<"$(jq -cn --arg s "$session" '{session_id: $s}')"
   [ "$status" -eq 0 ]
   [ ! -e "$(owed_file)" ]
+}
+
+# --- The trial's bar, the question whether a kind may answer alone, and the
+# fall-back.
+
+# A kind's score as the exam keeps it, given how many tries agreed, how many
+# did not, and whether those were turned down for a security gap.
+score_of() {
+  jq -cn --argjson agreed "$1" --argjson missed "$2" --argjson security "${3:-false}" '{
+    tries: ($agreed + $missed), agreed: $agreed,
+    misses: [range($missed) | {name: "miss-\(. + 1).md", summary: "Miss \(. + 1).", security: $security}]}'
+}
+
+# The last passing exam's results, holding the scores given as one object.
+kept_scores() {
+  mkdir -p "$history/exam"
+  jq -cn --argjson scores "$1" '{passed: [], scores: $scores}' >"$history/exam/last-passed.json"
+}
+
+# The end report brought by the reply after the brief was finished.
+end_report() {
+  closing_ground
+  sweep_round "$(look_form)" "$(look_form)"
+  answer_for reader "$(finished_form passed)"
+  run_gate true "$finished_reply"
+}
+
+@test "proof: the end report asks nothing of a kind at 18 of 20, of one with a security miss, or of an always-yours kind, and asks of one at 19 of 20 with its misses" {
+  kind eighteen accept
+  kind security-miss ladder
+  kind whole ladder
+  kept_scores "$(jq -cn --argjson e "$(score_of 18 2)" --argjson n "$(score_of 20 0)" \
+    --argjson s "$(score_of 39 1 true)" --argjson w "$(score_of 19 1)" \
+    '{eighteen: $e, naming: $n, "security-miss": $s, whole: $w}')"
+  end_report
+  [ "$status" -eq 0 ]
+  expected="$(end_freed_heading
+    printf '%s\n' "$project/aidk-plans/file-trash.md"
+    end_switch_heading whole 20 19
+    end_switch_misses_heading
+    end_switch_miss_line miss-1.md "Miss 1."
+    end_switch_question whole yes)"
+  [ "$(message | sed -n "/^$(end_freed_heading | sed 's/[.:]/./g')\$/,\$p")" = "$expected" ]
+  [ "$(last_line | jq -c '{question, outcome, answer, kind: .trust.kind, tries: .trust.score.tries}')" = \
+    "$(jq -cn --arg q "$(trial_switch_question_words whole)" \
+      '{question: $q, outcome: "to-operator", answer: "", kind: "whole", tries: 20}')" ]
+  # The question is about the stand-in, never a decision of the round laid
+  # out before building.
+  answer_for reader "$(round_form)"
+  run_gate false "Shall I start building?"
+  [ "$(message)" = "$(round_heading; round_empty_line; round_hint)" ]
+  # Nothing reached the bar but kinds that may never be asked about: no
+  # question, and no line for one.
+  git -C "$project" checkout -q -- aidk-plans
+  rm -f "$(log_file)"
+  kept_scores "$(jq -cn --argjson e "$(score_of 18 2)" --argjson n "$(score_of 20 0)" \
+    --argjson s "$(score_of 39 1 true)" '{eighteen: $e, naming: $n, "security-miss": $s}')"
+  hold_brief
+  sweep_round "$(look_form)" "$(look_form)"
+  answer_for reader "$(finished_form passed)"
+  run_gate true "$finished_reply"
+  [ "$(message | tail -n 1)" = "$project/aidk-plans/file-trash.md" ]
+  [ "$(last_line | jq -r '.trust')" = null ]
+}
+
+@test "a kind already switched is not asked about again; one that fell back since its yes is" {
+  kind whole ladder
+  kept_scores "$(jq -cn --argjson w "$(score_of 20 0)" '{whole: $w}')"
+  switch_kinds whole
+  end_report
+  [ "$(message | tail -n 1)" = "$project/aidk-plans/file-trash.md" ]
+  # Two of its silent decisions reopened since the yes: back on trial, and
+  # asked about again, so a new yes can start the count over.
+  add_log_lines "$history" \
+    "$(jq -c '.kind = "whole" | .reopened = "2026-10-07T09:00:00Z"' <<<"$(log_line 50 "$OUTCOME_SETTLED" session-3 2026-10-06T07:00:00Z)")" \
+    "$(jq -c '.kind = "whole" | .reopened = "2026-10-07T09:05:00Z"' <<<"$(log_line 51 "$OUTCOME_SETTLED" session-3 2026-10-06T07:10:00Z)")"
+  git -C "$project" checkout -q -- aidk-plans
+  hold_brief
+  sweep_round "$(look_form)" "$(look_form)"
+  run_gate true "$finished_reply"
+  [ "$(message | tail -n 1)" = "$(end_switch_question whole yes)" ]
+}
+
+@test "which kind is due that cannot be read is said in the end report, and nothing is asked" {
+  kind whole ladder
+  mkdir -p "$history/exam"
+  printf 'not json\n' >"$history/exam/last-passed.json"
+  end_report
+  [ "$status" -eq 0 ]
+  [ "$(message | tail -n 2)" = "$(end_switch_unread_line "$(refuse_exam_results_unreadable_note "$history/exam/last-passed.json")")" ]
+}
+
+@test "a switch question that cannot be logged says the answer cannot be kept" {
+  kind whole ladder
+  kept_scores "$(jq -cn --argjson w "$(score_of 20 0)" '{whole: $w}')"
+  closing_ground
+  sweep_round "$(look_form)" "$(look_form)"
+  answer_for reader "$(finished_form passed)"
+  chmod a-w "$history/log" "$(log_file)"
+  run_gate true "$finished_reply"
+  [ "$(message | tail -n 2)" = "$(end_switch_unlogged_line "$(refuse_log_unwritable_note "$history/log")")" ]
+}
+
+@test "proof: two reopens of a switched kind's silent decisions send it back to the trial, told once; a newer yes starts the count again" {
+  switch_kinds step-timing
+  kind step-timing accept
+  question="Fold step 4 into step 3?"
+  answer_for sorter "$(sorted step-timing)"
+  for i in 1 2 3; do
+    answer_for reader "$(asking "$question" yes no)"
+    run_gate
+    [ "$(reason)" = "$(gate_settled_note yes)" ]
+  done
+  # Reopened from a session the stand-in is off for, so no mark of the
+  # session's brings the next question to the operator: only the trial can.
+  own="$session"
+  session=elsewhere
+  answer="$(run_skill "$kit" devkit-stand-in-reopen 1)"
+  [ "$(jq -r '.systemMessage' <<<"$answer" | grep -c '^Stand-in: you have now reopened')" -eq 0 ]
+  session="$own"
+  answer_for reader "$(asking "$question" yes no)"
+  run_gate
+  [ "$(reason)" = "$(gate_settled_note yes)" ]
+  session=elsewhere
+  answer="$(run_skill "$kit" devkit-stand-in-reopen 2)"
+  [ "$(jq -j .systemMessage <<<"$answer" | tail -n 1)" = \
+    "$(trial_fallback_note step-timing 2 20 "$trusted_since")" ]
+  session="$own"
+  [ "$(jq -c '[.[] | select(.reopened != null) | .number]' <<<"$(jq -s . "$(log_file)")")" = '[1,2]' ]
+  # Back on trial: the next question comes to the operator, marked as what
+  # would have been accepted.
+  answer_for reader "$(asking "$question" yes no)"
+  run_gate
+  answered_operator
+  [ "$(message)" = "$(accepted_message "$question" yes "$(gate_trial_line step-timing)")" ]
+  # A third reopen tells nothing more.
+  session=elsewhere
+  answer="$(run_skill "$kit" devkit-stand-in-reopen 3)"
+  [ "$(jq -r '.systemMessage' <<<"$answer" | grep -c '^Stand-in: you have now reopened')" -eq 0 ]
+  session="$own"
+  # A newer yes starts the count again: settled without them once more. Given
+  # a minute ahead, so no decision reopened above falls on its second.
+  write_trust_file "$history" step-timing "$(date -u -d '+1 minute' +%Y-%m-%dT%H:%M:%SZ)"
+  answer_for reader "$(asking "$question" yes no)"
+  run_gate false
+  [ "$(reason)" = "$(gate_settled_note yes)" ]
 }

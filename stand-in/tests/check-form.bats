@@ -424,11 +424,11 @@ others='["frozen-account"]'
 # A whole case-writer's form: an answer that picks the recommended option,
 # with a reason. A jq filter given is applied to it.
 case_form() {
-  jq -c "${1:-.}" <<<'{"answers":true,"title":"How many retries","summary":"How many times a failing call is tried.","reply":"A call fails now and then. Should it be tried five times or ten? I recommend five: ten holds the page too long.","options":["Five tries","Ten tries"],"recommended":"Five tries","answered":"Five tries.","picked":"Five tries","why":"Ten holds the page too long."}'
+  jq -c "${1:-.}" <<<'{"answers":true,"title":"How many retries","summary":"How many times a failing call is tried.","reply":"A call fails now and then. Should it be tried five times or ten? I recommend five: ten holds the page too long.","options":["Five tries","Ten tries"],"recommended":"Five tries","answered":"Five tries.","picked":"Five tries","security_gap":false,"why":"Ten holds the page too long."}'
 }
 
 # The case-writer's form for an answer that does not answer.
-skipped_form='{"answers":false,"title":"","summary":"","reply":"","options":[],"recommended":"","answered":"","picked":"","why":""}'
+skipped_form='{"answers":false,"title":"","summary":"","reply":"","options":[],"recommended":"","answered":"","picked":"","security_gap":false,"why":""}'
 
 @test "a case-writer's form passes whole, with a pick or none, no recommendation, no why, or skipped" {
   for filter in . '.picked = ""' '.recommended = ""' '.why = ""'; do
@@ -477,6 +477,19 @@ skipped_form='{"answers":false,"title":"","summary":"","reply":"","options":[],"
   run --separate-stderr refuse_bad_case_form "$(case_form '.picked = "five tries"')"
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_case_picked_note "five tries")" ]
+}
+
+@test "a case's security gap passes where the operator turned the recommendation down; a skipped case or a pick of it holding one is refused" {
+  run refuse_bad_case_form "$(case_form '.picked = "Ten tries" | .security_gap = true')"
+  [ "$status" -eq 0 ]
+  run refuse_bad_case_form "$(case_form '.picked = "" | .security_gap = true')"
+  [ "$status" -eq 0 ]
+  run --separate-stderr refuse_bad_case_form "$(case_form '.security_gap = true')"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_case_security_taken_note)" ]
+  run --separate-stderr refuse_bad_case_form "$(jq -c '.security_gap = true' <<<"$skipped_form")"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_case_skipped_but_note)" ]
 }
 
 @test "a case-writer's form missing a field, holding another, or not JSON is refused" {

@@ -51,7 +51,8 @@ ROUND_US=$'\037'
 # operator decides nothing in it: what it finds that belongs to the brief is
 # asked again as questions, which are. Nor is a proposal the agent dropped
 # under a challenge: neither the operator nor the stand-in decided it, and
-# the end report lists it.
+# the end report lists it. Nor is the question whether a kind may answer
+# alone: it is about the stand-in, never about the work the round builds.
 derive_round_decisions() {
   local lines="$1" session="$2"
   [ -n "$lines" ] || { printf '[]\n'; return 0; }
@@ -61,7 +62,8 @@ derive_round_decisions() {
     | (reduce range(0; $own | length) as $i (-1;
         if ($own[$i].round != null or $own[$i].step != null) then $i else . end)) as $last
     | $own[($last + 1):]
-    | map(select(.round == null and .step == null and .closing == null and .outcome != $dropped)
+    | map(select(.round == null and .step == null and .closing == null and .trust == null
+        and .outcome != $dropped)
       | {number, by: (if .outcome == $settled then $stand_in else $operator end),
          question: (.retold // .question), options: (.ladder.first.options // []),
          recommended: (.summary.recommends_now // .ladder.first.recommended // ""),

@@ -42,11 +42,11 @@ brief_line() {
 case_form() {
   jq -c --arg w "$1" "{answers: true, title: (\"Retries \" + \$w), summary: (\"How often a call is tried, \" + \$w + \".\"),
     reply: (\"Should a failing call be tried five times or ten? The agent recommends five. (\" + \$w + \")\"),
-    options: [\"Five tries\", \"Ten tries\"], recommended: \"Five tries\", answered: \"Five tries.\", picked: \"Five tries\",
+    options: [\"Five tries\", \"Ten tries\"], recommended: \"Five tries\", answered: \"Five tries.\", picked: \"Five tries\", security_gap: false,
     why: \"\"} | ${2:-.}" <<<'null'
 }
 
-skipped_form='{"answers":false,"title":"","summary":"","reply":"","options":[],"recommended":"","answered":"","picked":"","why":""}'
+skipped_form='{"answers":false,"title":"","summary":"","reply":"","options":[],"recommended":"","answered":"","picked":"","security_gap":false,"why":""}'
 
 # The sample log: two clean answers, one that answers nothing, one whose case
 # holds a password in plain words, one whose case holds a key-shaped secret;

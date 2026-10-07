@@ -22,8 +22,12 @@
 # for a round of the closing loop, its number and every finding of its two
 # looks as code checked it, null otherwise; dropped, for a proposal the agent
 # dropped under its kind's challenge, the options it offered and the one it
-# recommended, {options, recommended}, null otherwise; answer, the
-# operator's, empty until they give one.
+# recommended, {options, recommended}, null otherwise; trust, for the
+# question whether a kind may answer alone, asked under an end report, the
+# kind and its score as the operator was shown it, {kind, score}, null
+# otherwise; answer, the operator's, empty until they give one; and
+# reopened, once the operator reopened the line, when they first did, where
+# the trial's fall-back counts it.
 #
 # Lines written before 2026-10-07 may also hold retold, the agent's plain
 # retelling of the question, from a round the gate no longer sends: whatever
@@ -42,7 +46,10 @@
 # the agent dropped under its kind's challenge, its decision being the one it
 # let go: the line is the drop's only home (settled 2026-10-06), so the end
 # report lists it and the operator can reopen it, though it never reached
-# them.
+# them. So is the question whether a kind may answer alone: the operator's
+# answer is kept on its line, as on any question's, and their yes is read off
+# it there (settled 2026-10-07), since the end report it stands under is no
+# question the log would otherwise hold.
 #
 # Every write takes one lock, a file of its own beside the log: two sessions
 # letting a question go at once must leave two whole lines, and bash writes a
@@ -103,7 +110,8 @@ to_log_path() {
 # which no record holds, since the report is let go in the stop that read it; for a request to start building, outcome
 # and round, for the same reason; for a round of the closing loop, outcome
 # and closing; for a proposal dropped under a challenge, outcome and dropped;
-# and for a question settled without the operator, its outcome. Its number
+# for the question whether a kind may answer alone, outcome and trust; and
+# for a question settled without the operator, its outcome. Its number
 # is given as the line is written, and its answer is empty until the operator
 # gives one. The record reaches jq on stdin, never as an argument: its
 # exchange can outgrow what one may hold.
@@ -134,6 +142,7 @@ to_log_line() {
       round: ($details.round // null),
       closing: ($details.closing // null),
       dropped: ($details.dropped // null),
+      trust: ($details.trust // null),
       answer: ""
     }' <<<"$record"
 }
@@ -166,6 +175,16 @@ derive_next_number() {
 is_awaiting_answer() {
   jq -e --arg held "$OUTCOME_WOULD_HAVE_APPROVED" --arg operator "$OUTCOME_TO_OPERATOR" \
     '(.outcome == $operator or .outcome == $held) and .answer == ""' >/dev/null <<<"$1"
+}
+
+# The session's last line among the log's lines given, where it waits for the
+# operator's answer; nothing where it does not, or the session has none.
+to_awaiting_line() {
+  local last
+  [ -n "$1" ] || return 0
+  last="$(jq -c --arg session "$2" 'select(.session == $session)' <<<"$1" | tail -n 1)"
+  [ -n "$last" ] || return 0
+  ! is_awaiting_answer "$last" || printf '%s\n' "$last"
 }
 
 # --- Reads.
@@ -289,6 +308,34 @@ write_answer_line() {
   draft="$(dirname "$file")/.$(basename "$file").$$"
   if ! jq -c --arg id "$(jq -r '.id' <<<"$last")" --rawfile answer <(printf '%s' "$answer") \
     'if .id == $id then .answer = $answer else . end' "$file" >"$draft" 2>/dev/null \
+    || ! mv -f "$draft" "$file" 2>/dev/null; then
+    rm -f "$draft" 2>/dev/null || true
+    refuse_log_unwritable_note "$(dirname "$file")" >&2
+    return 1
+  fi
+}
+
+# Mark the line numbered so as reopened by the operator, given the folder,
+# the number and when; a line already marked keeps the first moment. Written
+# into the line itself, as an answer is and for the same reasons, so the
+# trial's fall-back reads each decision and its reopen from one line. A mark
+# that cannot be written is refused on stderr with a non-zero status.
+write_log_reopened() {
+  local dir="$1" number="$2" when="$3" file
+  file="$(to_log_path "$dir")"
+  if [ ! -e "$file" ]; then
+    refuse_log_unwritable_note "$dir" >&2
+    return 1
+  fi
+  run_under_log_lock "$dir" -x write_reopened_line "$file" "$number" "$when"
+}
+
+# The line's reopen written; the call write_log_reopened runs under the lock.
+write_reopened_line() {
+  local file="$1" number="$2" when="$3" draft
+  draft="$(dirname "$file")/.$(basename "$file").$$"
+  if ! jq -c --argjson number "$number" --arg when "$when" \
+    'if .number == $number and .reopened == null then .reopened = $when else . end' "$file" 2>/dev/null >"$draft" \
     || ! mv -f "$draft" "$file" 2>/dev/null; then
     rm -f "$draft" 2>/dev/null || true
     refuse_log_unwritable_note "$(dirname "$file")" >&2

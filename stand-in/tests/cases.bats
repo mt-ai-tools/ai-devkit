@@ -21,10 +21,10 @@ answered_line() {
 
 # A whole case-writer's form, the operator picking the recommended option.
 case_form() {
-  jq -c "${1:-.}" <<<'{"answers":true,"title":"How many retries","summary":"How many times a failing call is tried.","reply":"A call fails now and then.\nShould it be tried five times or ten? I recommend five.","options":["Five tries","Ten tries"],"recommended":"Five tries","answered":"Five tries.","picked":"Five tries","why":"Ten holds the page too long."}'
+  jq -c "${1:-.}" <<<'{"answers":true,"title":"How many retries","summary":"How many times a failing call is tried.","reply":"A call fails now and then.\nShould it be tried five times or ten? I recommend five.","options":["Five tries","Ten tries"],"recommended":"Five tries","answered":"Five tries.","picked":"Five tries","security_gap":false,"why":"Ten holds the page too long."}'
 }
 
-@test "the brief's answered questions that reached the operator become cases, and nothing else" {
+@test "the brief's answered questions that reached the operator become cases, and nothing else, the trial's own question included" {
   lines="$(printf '%s\n' \
     "$(answered_line 1 "$OUTCOME_TO_OPERATOR" a)" \
     "$(answered_line 2 "$OUTCOME_WOULD_HAVE_APPROVED" go)" \
@@ -34,7 +34,8 @@ case_form() {
     "$(jq -c '.round = []' <<<"$(answered_line 6 "$OUTCOME_TO_OPERATOR" go)")" \
     "$(jq -c '.closing = {number: 1}' <<<"$(answered_line 7 "$OUTCOME_TO_OPERATOR" ok)")" \
     "$(jq -c '.briefs = ["other"]' <<<"$(answered_line 8 "$OUTCOME_TO_OPERATOR" a)")" \
-    "$(jq -c '.briefs = null' <<<"$(answered_line 9 "$OUTCOME_TO_OPERATOR" a)")")"
+    "$(jq -c '.briefs = null' <<<"$(answered_line 9 "$OUTCOME_TO_OPERATOR" a)")" \
+    "$(jq -c '.trust = {kind: "defaults"}' <<<"$(answered_line 10 "$OUTCOME_TO_OPERATOR" yes)")")"
   run to_case_lines "$lines" '["stand-in-loops"]'
   [ "$status" -eq 0 ]
   [ "$(jq -s -c 'map(.number)' <<<"$output")" = "[1,2]" ]
@@ -53,6 +54,7 @@ brief: stand-in-loops
 kind: defaults
 alone: yes
 picked-recommended: yes
+security-gap: no
 tuning: none
 log-id: id-3
 ---
@@ -86,6 +88,9 @@ Ten holds the page too long.'
   [ "$(tail -n 1 <<<"$output")" = "$(case_no_why_words)" ]
   run to_case_text "$line" "$(case_form '.picked = "" | .recommended = ""')"
   [ "$(sed -n '7p' <<<"$output")" = "picked-recommended: no" ]
+  # Turned down for a security gap, as the case-writer read the answer.
+  run to_case_text "$line" "$(case_form '.picked = "Ten tries" | .security_gap = true')"
+  [ "$(sed -n '7,8p' <<<"$output")" = $'picked-recommended: no\nsecurity-gap: yes' ]
 }
 
 @test "a case is named by its date and title in plain words, cut at a word" {

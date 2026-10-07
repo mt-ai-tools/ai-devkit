@@ -257,6 +257,10 @@ refuse_case_picked_note() {
   printf 'The case-writer'\''s form says the operator picked "%s", which is not among its options.\n' "$1"
 }
 
+refuse_case_security_taken_note() {
+  printf 'The case-writer'\''s form says the operator turned the recommendation down for a security gap, yet says they picked it.\n'
+}
+
 # The names the refusals above call the forms by.
 reader_form_words() { printf "reader's form"; }
 sorter_answer_words() { printf "sorter's answer"; }
@@ -1002,6 +1006,43 @@ end_cases_never_line() {
   printf 'Test cases: the case-writer never ran, so no case was written from this brief'\''s answers.\n'
 }
 
+# A kind whose trial reached the bar: its name, its tries and how many of
+# them agreed with the operator.
+end_switch_heading() {
+  printf 'The trial: %s has reached the bar to answer alone: %s tries, %s of them settled as you decided, and none on a pick that would have opened a security gap.\n' "$1" "$2" "$3"
+}
+
+end_switch_misses_heading() {
+  printf 'Where it would have settled on what you did not pick:\n'
+}
+
+# One case the stand-in got wrong: its file's name and what it is about.
+end_switch_miss_line() {
+  if [ -n "$2" ]; then
+    printf -- '- %s: %s\n' "$1" "$2"
+  else
+    printf -- '- %s\n' "$1"
+  fi
+}
+
+# The question itself, given the kind and the one answer that switches it.
+end_switch_question() {
+  printf 'Should the stand-in answer %s questions alone from now on, without bringing them to you? Answer "%s" alone to let it; anything else keeps it on trial, and it is asked again at the next end report.\n' "$1" "$2"
+}
+
+# Where which kind is due could not be read, with why.
+end_switch_unread_line() {
+  local why="$1"
+  [ -n "$why" ] || why='No part of the stand-in said why.'
+  printf 'The trial: whether a kind has reached the bar to answer alone could not be read, so none is asked about. Why:\n%s\n' "$why"
+}
+
+# Under the end report, where the question could not be logged: the
+# operator's answer then has no line to be kept on.
+end_switch_unlogged_line() {
+  printf 'This question could not be written to the stand-in'\''s log, so your answer to it cannot be kept, and a yes would leave the kind on trial. Why:\n%s\n' "$1"
+}
+
 # --- The case-writer, run by the agent once the brief is finished.
 
 # Handed to the case-writer where the log kept no part of the kind asked for.
@@ -1197,6 +1238,11 @@ settled_reopen_hint() {
 }
 
 settled_empty_note() {
+  printf 'Nothing was settled without you.\n'
+}
+
+# The list empty because no kind stands switched.
+settled_trial_empty_note() {
   printf 'Nothing was settled without you: every kind is still on trial.\n'
 }
 
@@ -1268,7 +1314,7 @@ reopen_usage_note() {
 }
 
 reopen_nothing_note() {
-  printf 'There is nothing to reopen: nothing was settled without you, since every kind is still on trial, no proposal was dropped, and no round'\''s list was laid out before building.\n'
+  printf 'There is nothing to reopen: nothing was settled without you, no proposal was dropped, and no round'\''s list was laid out before building.\n'
 }
 
 reopen_unknown_note() {
@@ -1324,8 +1370,82 @@ reopen_unmarked_note() {
   printf 'Stand-in: question %s was not reopened: this session could not be marked to bring its next question to you, so asked again it could be settled without you. Why:\n%s\n' "$1" "$why"
 }
 
+# A reopen refused because the log could not be marked: the number, and why.
+reopen_unlogged_note() {
+  local why="$2"
+  [ -n "$why" ] || why='No part of the stand-in said why.'
+  printf 'Stand-in: question %s was not reopened: the log could not be marked, so the reopen could not count toward sending its kind back to the trial. Why:\n%s\n' "$1" "$why"
+}
+
 skill_name_unreadable_note() {
   printf 'The stand-in'\''s skill hook cannot read the skill'\''s name from %s.\n' "$1"
+}
+
+# --- The trial, and the operator's yes that ends it for a kind.
+
+# The one answer that switches a kind, as the operator types it.
+trial_yes_words() { printf 'yes'; }
+
+# The question whether a kind may answer alone, as the question log keeps it,
+# and why it came to the operator.
+trial_switch_question_words() {
+  printf 'Should the stand-in answer %s questions alone from now on?' "$1"
+}
+
+trial_switch_why_line() {
+  printf -- '- The trial of %s has reached the bar to answer alone, and only your yes switches it.\n' "$1"
+}
+
+# A yes file's body, under its header, given the kind.
+trust_file_body_words() {
+  printf '# %s\n\nThe operator let the stand-in answer this kind of question alone, from the moment above. Reopening its silent decisions sends it back to the trial; a newer yes starts that count again.\n' "$1"
+}
+
+# A reopen that sent a kind back to the trial: the kind, how many reopens of
+# how many silent decisions, and when its yes was given.
+trial_fallback_note() {
+  printf 'Stand-in: you have now reopened %s of the first %s questions of %s it settled without you since your yes of %s, so %s is back on trial: what it would settle comes to you again, until you say yes to it once more.\n' "$2" "$3" "$1" "$4" "$1"
+}
+
+# Under a reopened question, where whether it sent its kind back to the trial
+# could not be told, with why.
+trial_fallback_unknown_line() {
+  local why="$1"
+  [ -n "$why" ] || why='No part of the stand-in said why.'
+  printf 'Whether this reopen sends its kind back to the trial could not be told; its decisions may still be settled without you. Why:\n%s\n' "$why"
+}
+
+refuse_trust_kind_note() {
+  printf 'The kind "%s" cannot name a yes file, so it stays on trial.\n' "$1"
+}
+
+refuse_trust_unreadable_note() {
+  printf 'The yes file %s does not say when it was given, so its kind stays on trial.\n' "$1"
+}
+
+refuse_trust_unwritable_note() {
+  printf 'A yes file cannot be written in %s.\n' "$1"
+}
+
+# To the operator, once their yes is kept: the kind and its file.
+trust_given_note() {
+  printf 'Stand-in: from now on it answers %s questions alone. Your yes is kept in %s, which the agent is asked to commit.\n' "$1" "$2"
+}
+
+# To the agent, in its context: the kind and the file to commit.
+trust_given_agent_note() {
+  printf 'The user said yes to letting the stand-in answer %s questions alone; it has written %s. Commit that file alone, in its own commit, saying the user gave this yes; change nothing in it.\n' "$1" "$2"
+}
+
+# To the operator, where their yes could not be kept: the kind, and why.
+trust_unkept_note() {
+  local why="$2"
+  [ -n "$why" ] || why='No part of the stand-in said why.'
+  printf 'Stand-in: your yes could not be kept, so %s stays on trial; it is asked again at the next end report. Why:\n%s\n' "$1" "$why"
+}
+
+trust_unkept_agent_note() {
+  printf 'The user said yes to letting the stand-in answer %s questions alone, but it could not keep the yes, and has told them why. Nothing is to be committed for it.\n' "$1"
 }
 
 # --- The switch.
@@ -1553,6 +1673,15 @@ exam_challenged_note() {
 
 exam_climb_unreplayed_note() {
   printf 'Its kind'\''s route, %s, climbs on the agent'\''s later replies, which the case does not hold, so the matcher was not run and the answer is taken as held.' "$1"
+}
+
+# A kind's score on a passing exam: the kind, its tries, how many agreed,
+# how many would have opened a security gap, and whether it reaches the bar
+# (true or false).
+exam_score_line() {
+  local bar='below the bar to answer alone'
+  [ "$5" != true ] || bar='at the bar to answer alone'
+  printf 'Score of %s: %s tries, %s agreed, %s on a pick that would have opened a security gap; %s.\n' "$1" "$2" "$3" "$4" "$bar"
 }
 
 # The exam's last lines, given how many cases were replayed, passed and

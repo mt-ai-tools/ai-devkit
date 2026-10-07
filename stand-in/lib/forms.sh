@@ -235,8 +235,11 @@ FINDING_SORTS="[\"$FINDING_HERE\", \"$FINDING_WRITTEN_DOWN\", \"$FINDING_NOT_SAM
 # whole enough to be read, checked and sorted again; options, its option
 # labels; recommended, the one the agent recommended; answered, the
 # operator's answer; picked, the option it picks, empty where it picks none of
-# them; why, the operator's reason, empty where neither they nor the exchange
-# give one. Retold, never copied: the log holds raw agent text and the
+# them; security_gap, whether they turned the recommendation down because it
+# would open a security gap, the mark a kind's score is barred by (decision
+# 8: never a pick that would have opened one), read off their answer since
+# no other part of a case can say it; why, the operator's reason, empty
+# where neither they nor the exchange give one. Retold, never copied: the log holds raw agent text and the
 # operator's typing, and a case is committed (settled 2026-10-01/02: meaning
 # only, never raw text).
 CASE_FORM_FIELDS='{
@@ -248,6 +251,7 @@ CASE_FORM_FIELDS='{
   "recommended": "string",
   "answered": "string",
   "picked": "string",
+  "security_gap": "boolean",
   "why": "string"
 }'
 

@@ -2,8 +2,11 @@
 # Claude Code UserPromptSubmit hook — the thin orchestrator that keeps the
 # operator's answer: in a session the stand-in is switched on for, the first
 # prompt typed after the gate let a question go to the operator is that
-# question's answer, and is written into its line in the question log. In
-# every other session it does nothing at all.
+# question's answer, and is written into its line in the question log. Where
+# that question asked whether a kind may answer alone, and the answer is a
+# plain yes, the yes is kept as the kind's file in the project's stand-in
+# folder, and the operator and the agent are told, the agent to commit it.
+# In every other session it does nothing at all.
 #
 # Why the next prompt: the gate lets a question go by letting the reply stop
 # with the question shown, so whatever the operator types next is what they
@@ -55,6 +58,7 @@ tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/prompt-event.sh"
 . "$tool_root/lib/switch.sh"
 . "$tool_root/lib/question-log.sh"
+. "$tool_root/lib/trial.sh"
 
 # Every value below is resolved into a variable before use, never inline as
 # an argument, for the reason the gate gives.
@@ -67,4 +71,27 @@ switch="$(find_switch "$history" "$session")"
 prompt="$(to_prompt_text "$event")"
 ! is_command_prompt "$prompt" || exit 0
 log_dir="$(to_log_dir "$history")"
+# Read before the answer is written: only the question waiting for this
+# prompt takes it as its answer, so an earlier yes, already kept on a line
+# answered before, is never read as given again.
+lines="$(list_log_lines "$log_dir")"
+waiting="$(to_awaiting_line "$lines" "$session")"
 write_log_answer "$log_dir" "$session" "$prompt"
+
+# The operator's yes, the one switch a kind has (settled 2026-10-01/02,
+# decision 9): kept only for the kind the question named, and only for a
+# plain yes; anything else typed leaves the kind on trial, and it is asked
+# again at the next end report. When it was given is this moment, as the log
+# writes one, so the fall-back counts the decisions settled after it.
+[ -n "$waiting" ] || exit 0
+kind="$(jq -r '.trust.kind // empty' <<<"$waiting")"
+[ -n "$kind" ] || exit 0
+is_plain_yes "$prompt" || exit 0
+given="$(get_log_now)"
+if write_trust_file "$history" "$kind" "$given"; then
+  path="$(to_trust_path "$history" "$kind")"
+  to_prompt_answer "$(trust_given_note "$kind" "$path")" "$(trust_given_agent_note "$kind" "$path")"
+else
+  why="$(cat "$reasons")"
+  to_prompt_answer "$(trust_unkept_note "$kind" "$why")" "$(trust_unkept_agent_note "$kind")"
+fi

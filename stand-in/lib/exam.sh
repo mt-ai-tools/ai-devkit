@@ -195,14 +195,17 @@ derive_route_fault() {
 # more than half of them passed (settled 2026-10-07: two of three). Its route
 # is the first passing replay's, or the first replay's where none passed;
 # its faults and notes are every replay's, each once, so a replay that failed
-# shows why even where the case passed.
+# shows why even where the case passed. How many replays the stand-in
+# settled alone is kept apart from the route: whether a case was a try for
+# its kind's score is judged on all of them, never on the one shown.
 to_best_of_result() {
-  jq -cn --argjson case "$1" --argjson replays "$2" '
+  jq -cn --argjson case "$1" --argjson replays "$2" --arg alone "$EXAM_ALONE" '
     def once: reduce .[] as $x ([]; if index([$x]) then . else . + [$x] end);
     ($replays | map(select(.faults | length == 0))) as $passing
     | {name: $case.name, tuning_used: $case.tuning_used,
        route: (($passing[0] // $replays[0] // {}).route // ""),
        runs: ($replays | length), passes: ($passing | length),
+       alone: ($replays | map(select(.route == $alone)) | length),
        faults: ($replays | map(.faults) | add // [] | once),
        notes: ($replays | map(.notes) | add // [] | once)}'
 }
