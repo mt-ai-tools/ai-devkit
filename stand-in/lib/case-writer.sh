@@ -10,6 +10,11 @@
 # of the question, the exchange whole, and the operator's answer as typed;
 # what comes back is meaning only, since the log is raw text and the case is
 # committed (settled 2026-10-01/02).
+#
+# A step's report is told to the model as one, with what the reader read of
+# it, and kept a report in its case, never retold as a question: the exam
+# replays a case of the step go's kind as a step's report, and its reader
+# check fails one that asks something (found 2026-10-07).
 
 # Loaded once, however many of the stand-in's parts source it, as words.sh is.
 [ -z "${STAND_IN_LOADED_CASE_WRITER:-}" ] || return 0
@@ -22,6 +27,36 @@ STAND_IN_LOADED_CASE_WRITER=1
 . "$(dirname "${BASH_SOURCE[0]}")/summary.sh"
 
 # --- Transforms.
+
+# True if the log line is a step's report: the gate logs one with what the
+# reader read of the step, and a question with none. Told from the line, as
+# reopen tells it, so the case-writer needs no preset to find the go's kind.
+is_step_line() {
+  jq -e '.step != null' >/dev/null <<<"$1"
+}
+
+# What the agent put to the operator, as the case-writer is told it.
+to_case_shape_text() {
+  if is_step_line "$1"; then
+    case_shape_step_words
+  else
+    case_shape_question_words
+  fi
+  printf '\n'
+}
+
+# What the reader read of a step's report, as lines for a model to read: the
+# next step it names, how its proof went and each problem with what became
+# of it; the words for none for a question, or a part the reader left empty.
+to_case_step_text() {
+  local text
+  text="$(jq -r '.step // empty
+    | (if .next_step != "" then "Next step: \(.next_step)" else empty end),
+      (if .proof != "" then "Proof: \(.proof)" else empty end),
+      (if (.problems | length) > 0 then "Problems:", (.problems[] | "- \(.problem) (\(.state))") else empty end)' <<<"$1")"
+  [ -n "$text" ] || text="$(case_none_kept_words)"
+  printf '%s\n' "$text"
+}
 
 # What the stand-in kept of a line's options, as lines for a model to read:
 # the first rung's, or a dropped proposal's, with the one recommended; the
@@ -47,15 +82,21 @@ to_case_summary_text() {
 # The case-writer's prompt for one log line, given the prompt's prose. Every
 # value reaches jq through a file descriptor, never as an argument: an
 # exchange can outgrow what one argument may hold.
+#
+# The question is the one the log's other readers show: a line written before
+# the gate stopped asking for a plain retelling shows that retelling, which is
+# also the last agent turn of its exchange, and any later line the question as
+# asked. One slot for both, rather than a retelling slot every new line would
+# hand over empty.
 to_case_prompt() {
-  local prose="$1" line="$2" values retold
-  retold="$(jq -r '.retold // empty' <<<"$line")"
-  [ -n "$retold" ] || retold="$(case_none_kept_words)"
-  values="$(jq -cn --rawfile question <(jq -j '.question' <<<"$line") --arg retold "$retold" \
+  local prose="$1" line="$2" values
+  values="$(jq -cn --rawfile shape <(to_case_shape_text "$line") \
+    --rawfile question <(jq -j '.retold // .question' <<<"$line") \
+    --rawfile step <(to_case_step_text "$line") \
     --rawfile options <(to_case_options_text "$line") --rawfile summary <(to_case_summary_text "$line") \
     --rawfile exchange <(to_exchange_text "$(jq -c '.exchange' <<<"$line")") \
     --rawfile answer <(jq -j '.answer' <<<"$line") \
-    '{question: $question, retold: $retold, options: $options, summary: $summary,
+    '{shape: $shape, question: $question, step: $step, options: $options, summary: $summary,
       exchange: $exchange, answer: $answer}')"
   to_filled_prompt "$PROMPTS_DIR/case-writer.md" "$prose" "$values"
 }

@@ -745,13 +745,14 @@ log_round() {
 
 # Both looks are in: the round is logged, one line with every finding and
 # its sort, and what follows is decided from the sorts. Nothing belonging
-# here ends the loop: the briefs are finished. Something belonging here goes
+# here ends the loop: the briefs are finished, unless the session owes the
+# exam. Something belonging here goes
 # back to the agent to be asked as questions; on the round that makes it the
 # notice's count, to the operator instead, with the list. A round that cannot
 # be logged goes to the operator too: its count could not be kept, and the
 # notice could then never come.
 finish_round() {
-  local closing briefs findings lines tally number counted question details why message logged
+  local closing briefs findings lines tally number counted question details why message logged owed
   closing="$(to_closing "$record")"
   briefs="$(jq -c '.briefs' <<<"$closing")"
   findings="$(jq -c '.findings' <<<"$closing")"
@@ -771,7 +772,21 @@ finish_round() {
   if [ -n "$logged" ]; then
     let_stop_told "$(closing_unlogged_note "$number"; format_closing_findings "$findings")" "$logged"
   fi
-  is_closing_here "$findings" || finish_briefs "$briefs" "$findings"
+  if ! is_closing_here "$findings"; then
+    # The exam owed is read again here, at the loop's end, and not only at
+    # the claim of done that started it: an edit of what the stand-in judges
+    # by made inside the loop came after that claim, so the brief would
+    # finish with the stand-in edited and never examined (decision 7: until
+    # the exam passes, the session's "brief done" goes back). The round is let
+    # go first, so the agent's reply after the exam is read afresh, and its
+    # next claim of done sweeps again, over whatever the exam made it change.
+    owed="$(find_owed_mark "$history" "$session")"
+    if [ -n "$owed" ]; then
+      record="$(with_chain_reset "$record")"
+      answer_exam_owed "$owed"
+    fi
+    finish_briefs "$briefs" "$findings"
+  fi
   message="$(format_closing_agent_note "$findings" "" "$cases_command")"
   record="$(with_chain_reset "$record")"
   keep_record
@@ -944,13 +959,14 @@ take_ladder() {
   [ -n "$ladder" ] || { refuse_state_unreadable_note "$record_file" >&2; exit 1; }
 }
 
-# A step's report or a "brief done" from a session that edited what the
-# stand-in judges by, given its exam owed: sent back to run the exam first
-# (settled 2026-10-06, decision 7: until the exam passes, the gate sends that
-# session's step reports and its "brief done" back), since a go given, or a
-# brief finished, on a stand-in nobody re-examined could rest on judgement
-# that drifted. Counted toward the send-back limit, so an exam that keeps
-# failing reaches the operator rather than holding the agent forever.
+# A step's report, a "brief done", or the closing loop's end, from a session
+# that edited what the stand-in judges by, given its exam owed: sent back to
+# run the exam first (settled 2026-10-06, decision 7: until the exam passes,
+# the gate sends that session's step reports and its "brief done" back),
+# since a go given, or a brief finished, on a stand-in nobody re-examined
+# could rest on judgement that drifted. Counted toward the send-back limit,
+# so an exam that keeps failing reaches the operator rather than holding the
+# agent forever.
 answer_exam_owed() {
   local files
   files="$(format_owed_files "$1")"

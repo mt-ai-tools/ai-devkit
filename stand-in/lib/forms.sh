@@ -232,8 +232,9 @@ FINDING_SORTS="[\"$FINDING_HERE\", \"$FINDING_WRITTEN_DOWN\", \"$FINDING_NOT_SAM
 # something else, which is skipped, never guessed. The rest is empty where it
 # does not, and otherwise the case in clean words: title, a short name for it;
 # summary, one line of what it is about; reply, the agent's question retold
-# whole enough to be read, checked and sorted again; options, its option
-# labels; recommended, the one the agent recommended; answered, the
+# whole enough to be read, checked and sorted again, or its step's report
+# retold as a report, to be read and weighed for the go again; options, its
+# option labels; recommended, the one the agent recommended; answered, the
 # operator's answer; picked, the option it picks, empty where it picks none of
 # them; security_gap, whether they turned the recommendation down because it
 # would open a security gap, the mark a kind's score is barred by (decision

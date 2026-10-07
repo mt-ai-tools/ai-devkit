@@ -13,6 +13,7 @@ bats_require_minimum_version 1.5.0
 
 load fake-claude
 load question-log
+load process-group
 
 setup() {
   setup_fake_claude
@@ -46,8 +47,10 @@ setup() {
 }
 
 teardown() {
-  [ -z "${watcher:-}" ] || kill "$watcher" 2>/dev/null || true
+  local stopped=0
+  stop_group || stopped=$?
   [ ! -d "$history" ] || chmod -R u+rwx "$history"
+  return "$stopped"
 }
 
 # A kind of question in the suite's preset: name, route, and its first and
@@ -1413,6 +1416,11 @@ accepted_message() {
   [ "$(reason)" = "$(gate_settled_note yes)" ]
   answer="$(run_skill "$kit" devkit-stand-in-reopen 1)"
   [ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$answer")" = "$(reopen_agent_note 1 "$question" "" yes)" ]
+  # regression: a question its kind accepted keeps no options in the log, and
+  # its note told the agent "Its options: ." The note is the one with options,
+  # their sentence and nothing else left out.
+  with="$(reopen_agent_note 1 "$question" yes yes)"
+  [ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$answer")" = "${with/"$(reopen_options_sentence yes)"/}" ]
   [ "$(jq -c '.reopened' "$record_file")" = '[1]' ]
   # Asked again, it reaches the operator, saying they reopened it, and is
   # logged as theirs.
@@ -2181,12 +2189,12 @@ look_around_note() {
 }
 
 # The suite's session's wait, of the kind and on what given, watched in a
-# shell of its own in the background, as the entry runs it, its looks a
-# tenth of a second apart; its process left in watcher.
+# shell of its own in the background, as the entry runs it, in a group of its
+# own the teardown stops whole; its looks a tenth of a second apart; its
+# process left in watcher.
 watch() {
-  bash -c '. "$1"; WAIT_LOOK_SECONDS=0.1; run_wait "$3" "$2" "$4" "$5"' _ \
-    "$lib/wait.sh" "$session" "$history" "$1" "$2" >/dev/null 2>&1 3>&- &
-  watcher=$!
+  start_in_group bash -c '. "$1"; WAIT_LOOK_SECONDS=0.1; run_wait "$3" "$2" "$4" "$5"' _ \
+    "$lib/wait.sh" "$session" "$history" "$1" "$2" >/dev/null 2>&1
 }
 
 # The watch's status once it ends, within twenty seconds; 99 where it does
@@ -2216,7 +2224,6 @@ watch_end() {
   "$BATS_TEST_DIRNAME/../../organizer/bin/organizer.sh" done media-bucket >/dev/null
   [ ! -e "$project/aidk-plans/media-bucket.md" ]
   watch_end
-  watcher=""
   run_gate false "The wait is over."
   [ "$(reason)" = "$(look_around_note "$brief_over")" ]
   answer_for reader "$(no_question_form)"
@@ -2252,7 +2259,6 @@ watch_end() {
   # Neither: it wakes.
   git -C "$module" push -q
   watch_end
-  watcher=""
   mark='{"outcome":"over","kind":"repository","on":"monoframe/mf-users","why":""}'
   run_gate false "The wait is over."
   [ "$(reason)" = "$(look_around_note "$mark")" ]
@@ -2323,6 +2329,26 @@ owed_file() { printf '%s/owed/%s' "$history" "$session"; }
   [ "$(message)" = "$(gate_exam_owed_operator_note 3 "$(cd "$BATS_TEST_DIRNAME/.." && pwd)/bin/stand-in.sh exam" \
     "$(owed_file_line "$preset_dir/questions/naming.md")")" ]
   [ -f "$(owed_file)" ]
+}
+
+@test "proof: an edit made inside the closing loop holds its end: the empty round sends the exam first, and the brief is not finished" {
+  closing_ground
+  start_sweep
+  look_reply "$(look_form)"
+  # The stand-in's preset is edited while the loop runs, after the claim of
+  # done that started it.
+  edit_kind naming
+  look_reply "$(look_form)"
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  [ "$(reason)" = "$(owed_note naming)" ]
+  [ -e "$project/aidk-plans/file-trash.md" ]
+  [ -e "$project/aidk-organizer/taken/file-trash" ]
+  [ "$(jq -c '{round, closing}' "$record_file")" = '{"round":null,"closing":null}' ]
+  # Once the exam has passed, the next claim of done sweeps again.
+  rm "$(owed_file)"
+  answer_for reader "$(done_form)"
+  run_gate true "$done_reply"
+  [ "$(reason)" = "$(look_note "$cleanup_look")" ]
 }
 
 @test "proof: after an edit, a step's report is sent back until the exam passes; a passing exam clears it, and the session's end clears a new one" {

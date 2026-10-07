@@ -45,8 +45,25 @@ CASE_SLUG_LENGTH=60
 # A case's name where its title holds no letter or digit to name it by.
 CASE_SLUG_FALLBACK="case"
 
-# The header field a case names the log line it was written from by.
+# The header fields of a case, each spelled here alone: the case-writer
+# writes them and the exam reads them, and a name spelled in each would let
+# one be renamed while the other still looks for the old. The line it was
+# written from is named by its log id.
+CASE_SUMMARY_FIELD="summary"
+CASE_DATE_FIELD="date"
+CASE_BRIEF_FIELD="brief"
+CASE_KIND_FIELD="kind"
+CASE_ALONE_FIELD="alone"
+CASE_PICKED_FIELD="picked-recommended"
+CASE_SECURITY_FIELD="security-gap"
+CASE_TUNING_FIELD="tuning"
 CASE_LOG_ID_FIELD="log-id"
+# The fields only the seed cases hold, written by hand and read alone: the
+# route a case must take, the findings the rules and conventions check must
+# give, and the entries it must name as broken.
+CASE_ROUTE_FIELD="route"
+CASE_FINDINGS_FIELD="findings"
+CASE_BREAKS_FIELD="breaks"
 
 # --- Transforms.
 
@@ -90,28 +107,32 @@ to_case_date() {
 # A case file's whole text, given the log line and the case-writer's checked
 # form. Every header value is held to one line, whatever the log holds.
 to_case_text() {
-  local line="$1" form="$2" alone picked_recommended security
+  local line="$1" form="$2" alone picked_recommended security fields
   alone="$(case_no_words)"
   [ "$(jq -r '.outcome' <<<"$line")" != "$OUTCOME_WOULD_HAVE_APPROVED" ] || alone="$(case_yes_words)"
   picked_recommended="$(case_no_words)"
   ! jq -e '.picked != "" and .picked == .recommended' >/dev/null <<<"$form" || picked_recommended="$(case_yes_words)"
   security="$(case_no_words)"
   ! jq -e '.security_gap' >/dev/null <<<"$form" || security="$(case_yes_words)"
+  fields="$(jq -cn --arg summary "$CASE_SUMMARY_FIELD" --arg date "$CASE_DATE_FIELD" --arg brief "$CASE_BRIEF_FIELD" \
+    --arg kind "$CASE_KIND_FIELD" --arg alone "$CASE_ALONE_FIELD" --arg picked "$CASE_PICKED_FIELD" \
+    --arg security "$CASE_SECURITY_FIELD" --arg tuning "$CASE_TUNING_FIELD" --arg id "$CASE_LOG_ID_FIELD" \
+    '$ARGS.named')"
   jq -rn --argjson line "$line" --argjson form "$form" --arg alone "$alone" --arg picked "$picked_recommended" \
     --arg security "$security" --arg unknown "$(case_kind_unknown_words)" --arg tuning "$(case_tuning_none_words)" \
-    --arg no_why "$(case_no_why_words)" --arg id_field "$CASE_LOG_ID_FIELD" \
+    --arg no_why "$(case_no_why_words)" --argjson field "$fields" \
     --arg start "$CASE_REPLY_START" --arg end "$CASE_REPLY_END" '
     def one_line: gsub("\\s+"; " ") | gsub("^ | $"; "");
     "---",
-    "summary: \($form.summary | one_line)",
-    "date: \($line.when[0:10] | one_line)",
-    "brief: \(($line.briefs // []) | map(select(type == "string")) | join(", ") | one_line)",
-    "kind: \(($line.kind // $unknown) | one_line)",
-    "alone: \($alone)",
-    "picked-recommended: \($picked)",
-    "security-gap: \($security)",
-    "tuning: \($tuning)",
-    "\($id_field): \($line.id | one_line)",
+    "\($field.summary): \($form.summary | one_line)",
+    "\($field.date): \($line.when[0:10] | one_line)",
+    "\($field.brief): \(($line.briefs // []) | map(select(type == "string")) | join(", ") | one_line)",
+    "\($field.kind): \(($line.kind // $unknown) | one_line)",
+    "\($field.alone): \($alone)",
+    "\($field.picked): \($picked)",
+    "\($field.security): \($security)",
+    "\($field.tuning): \($tuning)",
+    "\($field.id): \($line.id | one_line)",
     "---",
     "",
     "# \($form.title | one_line)",
@@ -208,8 +229,8 @@ list_case_files() {
 
 # A case file as to_case gives it; a refusal on stderr and a non-zero status
 # where it cannot be read. The header's fields are read by the kit's one
-# header reader, spelled as to_case_text writes them, and the seed cases'
-# route, findings and breaks beside them.
+# header reader, by the names to_case_text writes them under, and the seed
+# cases' route, findings and breaks beside them.
 read_case() {
   local file="$1" text kind picked tuning brief route findings breaks security summary
   if ! text="$(cat "$file" 2>/dev/null)"; then
@@ -217,7 +238,8 @@ read_case() {
     return 1
   fi
   IFS="$HEADER_US" read -r kind picked tuning brief route findings breaks security summary \
-    < <(read_header_fields "$file" kind picked-recommended tuning brief route findings breaks security-gap summary)
+    < <(read_header_fields "$file" "$CASE_KIND_FIELD" "$CASE_PICKED_FIELD" "$CASE_TUNING_FIELD" "$CASE_BRIEF_FIELD" \
+      "$CASE_ROUTE_FIELD" "$CASE_FINDINGS_FIELD" "$CASE_BREAKS_FIELD" "$CASE_SECURITY_FIELD" "$CASE_SUMMARY_FIELD")
   to_case "$(basename "$file")" "$text" "$kind" "$picked" "$tuning" "$brief" "$route" "$findings" "$breaks" \
     "$security" "$summary"
 }

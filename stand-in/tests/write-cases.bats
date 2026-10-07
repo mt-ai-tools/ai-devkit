@@ -6,7 +6,8 @@ bats_require_minimum_version 1.5.0
 # is skipped; a case holding a plain-word password, and one holding a
 # key-shaped secret, are each held back; a writer or check that cannot run
 # holds its case back too, counted apart; and the counts are kept in the
-# session's record. Claude Code and mise are the suite's own fakes, but in
+# session's record. A step's report becomes a case kept as a report, which
+# the exam replays as one. Claude Code and mise are the suite's own fakes, but in
 # the last test, where the real scanner holds a fake key back.
 
 load fake-claude
@@ -76,6 +77,12 @@ run_cases() {
   run --separate-stderr "$script" write-cases
 }
 
+# The lines the case-writer's prompt holds between the marker lines of the
+# part named.
+prompt_part() {
+  sed -n "/^=====$1 START=====\$/,/^=====$1 END=====\$/p" "$FAKE_PROMPT.case-writer" | sed '1d;$d'
+}
+
 @test "a sample log becomes case files of clean words: the unclear answer skipped, both secrets held back" {
   sample_log
   run_cases
@@ -106,11 +113,80 @@ run_cases() {
   grep -qF "raw: shuold we retyr five or ten tims? i recomend five (1)" "$FAKE_PROMPT.case-writer"
   grep -qxF "a" "$FAKE_PROMPT.case-writer"
   grep -qxF -- "- five" "$FAKE_PROMPT.case-writer"
-  grep -qF "Should a call be tried five or ten times? (1)" "$FAKE_PROMPT.case-writer"
+  [ "$(prompt_part "WHAT THE AGENT PUT TO THE OPERATOR")" = "$(case_shape_question_words)" ]
+  [ "$(prompt_part "THE STEP'S REPORT AS THE STAND-IN READ IT")" = "$(case_none_kept_words)" ]
   [ "$(sed -n '/^=====CASE START=====$/,/^=====CASE END=====$/p' "$FAKE_PROMPT.secret" | sed '1d;$d')" = \
     "$(cat "$answers/2026-10-01-retries-one.md")" ]
   grep -qxF -- "--tools" "$FAKE_ARGS.case-writer"
   [ "$(cat "$FAKE_MISE/stdin")" = "$(cat "$answers/2026-10-01-retries-one.md")" ]
+}
+
+# regression: the prompt kept a slot for the plain retelling the gate no
+# longer asks for, handed over empty on every line written since.
+@test "the question is handed over once: as asked, or as an older line's plain retelling where it kept one" {
+  add_log_lines "$history" "$(jq -c 'del(.retold)' <<<"$(brief_line 1 "$OUTCOME_TO_OPERATOR" "a")")"
+  answer_for case-writer "$(case_form one)"
+  answer_for secret '{"holds_secret":false}'
+  run_cases
+  [ "$(prompt_part "THE DECISION AS THE STAND-IN KEPT IT")" = "Five retries or ten? (1)" ]
+  add_log_lines "$history" "$(brief_line 2 "$OUTCOME_TO_OPERATOR" "a")"
+  answer_for case-writer "$(case_form two)"
+  run_cases
+  [ "$(prompt_part "THE DECISION AS THE STAND-IN KEPT IT")" = "Should a call be tried five or ten times? (2)" ]
+}
+
+# A step's report as the gate logs it, given the operator's answer as typed:
+# under the step go's kind, with what the reader read of the step and no
+# ladder; its exchange holds raw words no case may carry.
+step_line() {
+  jq -c --arg answer "$1" '.answer = $answer | .kind = "step-go" | .ladder = null | .summary = null | .retold = null
+    | .question = "Go on to step 9, the round list?"
+    | .exchange = [{from: "agent", text: "raw: step 8 bilt, flaky tst fixd, next step 9 the round list"}]
+    | .step = {problems: [{problem: "A test was flaky", state: "fixed"}], proof: "passed",
+        next_step: "step 9, the round list", next_step_number: 9, next_step_from: "brief", next_step_marks: [],
+        majors: [], unsure: false}' \
+    <<<"$(log_line 1 "$OUTCOME_TO_OPERATOR" session-1 2026-10-01T08:00:00Z five '["stand-in-loops"]')"
+}
+
+# The case-writer's form for that report, kept a report.
+step_case_form() {
+  jq -cn '{answers: true, title: "Step 8 finished", summary: "Whether to go on after step 8.",
+    reply: "Step 8, the closing loop, is built, and its proof passed. One problem came up, a flaky test, and it is fixed. The next step is step 9, the round list.",
+    options: ["Go on to step 9", "Do not go on"], recommended: "Go on to step 9", answered: "Go on.",
+    picked: "Go on to step 9", security_gap: false, why: ""}'
+}
+
+@test "proof: a step's report becomes a case kept as a report, and the exam replays it as one" {
+  add_log_lines "$history" "$(step_line "go")"
+  answer_for case-writer "$(step_case_form)"
+  answer_for secret '{"holds_secret":false}'
+  run_cases
+  [ "$status" -eq 0 ]
+  # The case-writer is told it is a step's report, and what the reader read
+  # of it.
+  [ "$(prompt_part "WHAT THE AGENT PUT TO THE OPERATOR")" = "$(case_shape_step_words)" ]
+  [ "$(prompt_part "THE STEP'S REPORT AS THE STAND-IN READ IT")" = \
+    $'Next step: step 9, the round list\nProof: passed\nProblems:\n- A test was flaky (fixed)' ]
+  case_file="$answers/2026-10-01-step-8-finished.md"
+  [ "$output" = "$case_file" ]
+  grep -qxF "kind: step-go" "$case_file"
+  # The exam, with a preset whose step go is that kind, reads the case as a
+  # step's report: handed the report, then labelled and weighed for the go,
+  # never checked or sorted as a question.
+  preset "defaults:Defaults." "security-gap"
+  printf -- '---\nsummary: The go.\nroute: go\n---\n\n# step-go\n' >"$preset_dir/questions/step-go.md"
+  mkdir -p "$project/rules" "$project/conventions"
+  printf '# Rule one\n' >"$project/rules/rule-one.md"
+  printf '# Convention one\n' >"$project/conventions/convention-one.md"
+  printf 'AIDK_RULES=%s\nAIDK_CONVENTIONS=%s\n' "$project/rules" "$project/conventions" >>"$project/aidk-config.env"
+  answer_for reader "$(step_form)"
+  answer_for step-sorter '{"majors":[],"unsure":false}'
+  : >"$FAKE_CALLS"
+  run --separate-stderr "$script" exam
+  [ "$status" -eq 0 ]
+  grep -qxF -- "$(step_case_form | jq -r '.reply')" "$FAKE_PROMPT.reader"
+  grep -qF -- "Passed: 2026-10-01-step-8-finished.md" <<<"$output"
+  [ "$(calls | sort -u)" = "reader $READER_MODEL"$'\n'"step-sorter $SORTER_MODEL" ]
 }
 
 @test "run again, a case already written is printed again and not asked of a model twice" {

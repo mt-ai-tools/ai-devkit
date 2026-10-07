@@ -97,6 +97,20 @@ unnumbered() {
   [ "$stderr" = "$(refuse_log_unwritable_note "$dir")" ]
 }
 
+# regression: the draft's redirect came before stderr's, so the shell's own
+# "Permission denied" reached the operator ahead of the refusal.
+@test "an answer whose log folder cannot be written is refused with the refusal alone, and the log is left as it was" {
+  add_log_lines "$history" "$(log_line 1 "$OUTCOME_TO_OPERATOR" session-1 2026-10-06T10:00:00Z)"
+  # The lock file stands from an earlier write, as in any log in use.
+  list_log_lines "$dir" >/dev/null
+  cp "$file" "$BATS_TEST_TMPDIR/before"
+  chmod a-w "$dir"
+  run --separate-stderr write_log_answer "$dir" session-1 "Five."
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_log_unwritable_note "$dir")" ]
+  diff "$BATS_TEST_TMPDIR/before" "$file"
+}
+
 @test "a log held by another session past the wait is refused, and nothing is written" {
   mkdir -p "$dir"
   LOG_LOCK_SECONDS=1

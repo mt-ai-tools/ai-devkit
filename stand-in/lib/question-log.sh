@@ -306,8 +306,11 @@ write_answer_line() {
   last="$(tail -n 1 <<<"$lines")"
   is_awaiting_answer "$last" || return 0
   draft="$(dirname "$file")/.$(basename "$file").$$"
+  # Stderr is sent away before the draft is opened: redirections apply in
+  # order, and the shell's own refusal to open a draft in a folder it cannot
+  # write would otherwise reach the operator ahead of the refusal below.
   if ! jq -c --arg id "$(jq -r '.id' <<<"$last")" --rawfile answer <(printf '%s' "$answer") \
-    'if .id == $id then .answer = $answer else . end' "$file" >"$draft" 2>/dev/null \
+    'if .id == $id then .answer = $answer else . end' "$file" 2>/dev/null >"$draft" \
     || ! mv -f "$draft" "$file" 2>/dev/null; then
     rm -f "$draft" 2>/dev/null || true
     refuse_log_unwritable_note "$(dirname "$file")" >&2

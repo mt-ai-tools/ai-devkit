@@ -31,7 +31,7 @@ run_hook() {
   run --separate-stderr bash -c "printf '%s' '$1' | PATH='$fakebin:$PATH' '$hook'"
 }
 
-@test "a session holding a brief is told which, how long ago, and how to finish it" {
+@test "a session holding a brief is told which, how long ago, and how to finish it once nothing is left around it" {
   mark file-trash session-1 "2026-10-04T19:30:00Z"
   mark frozen-account session-2 "2026-10-04T21:00:00Z"
   run_hook "$(turn_event session-1)"

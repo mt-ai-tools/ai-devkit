@@ -193,8 +193,11 @@ skill_name_unreadable_note() {
 # --- The turn reminder. Each line goes into the model's context, every turn
 # of a session holding a brief.
 
+# Finished once nothing is left to do around it, never the moment its steps
+# are built: a session that looks around its work after the last step would
+# otherwise finish the brief first, and have no brief left to look for.
 turn_held_note() {
-  printf 'You are working on `%s` (taken %s ago). When it is built, finish it with the organizer'\''s `done` and commit the paths it prints.\n' "$1" "$2"
+  printf 'You are working on `%s` (taken %s ago). Once it is built and nothing is left to do around it, finish it with the organizer'\''s `done` and commit the paths it prints.\n' "$1" "$2"
 }
 
 turn_unknown_note() {

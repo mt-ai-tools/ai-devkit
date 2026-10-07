@@ -97,7 +97,9 @@ fresh model in clean words — the question, its options and the one
 recommended, the operator's answer and why, whether the stand-in would have
 settled it alone, whether the operator picked what was recommended, and
 whether they turned it down for a security gap —
-never the raw text of the log. An answer that is unclear or answers
+never the raw text of the log. A step's report they answered becomes a case
+the same way, kept a report — the step finished, its problems and the next
+step — never retold as a question, so a replay reads it as one. An answer that is unclear or answers
 something else is skipped, never guessed. Each case is read for secrets
 twice before it is saved, by a scanner for anything key-shaped and by a
 fresh model for what only context shows, such as a password in plain words;

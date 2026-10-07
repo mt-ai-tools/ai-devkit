@@ -1050,6 +1050,10 @@ case_none_kept_words() {
   printf '(none kept)'
 }
 
+# What the agent put to the operator, as the case-writer is told it.
+case_shape_question_words() { printf 'A question.'; }
+case_shape_step_words() { printf 'A step'\''s report.'; }
+
 # A case's yes and no, as its header writes them.
 case_yes_words() { printf 'yes'; }
 case_no_words() { printf 'no'; }
@@ -1332,23 +1336,32 @@ skill_refusal_shown_note() {
   printf 'The stand-in could not do what was asked, and why has been shown to the user above.\n'
 }
 
-# The question reopened: number, question as first asked, its options joined,
-# and what the stand-in settled on.
+# A reopened question's options joined, as a sentence of its note; nothing
+# where the log kept none, as for a question its kind accepted as it stood,
+# which never climbed a ladder: its options were only ever in the reply that
+# asked it, which the agent asking it again wrote itself.
+reopen_options_sentence() {
+  [ -z "$1" ] || printf ' Its options: %s.' "$1"
+}
+
+# The question reopened: number, question as first asked, its options joined
+# (empty where none were kept), and what the stand-in settled on.
 reopen_agent_note() {
-  printf 'The stand-in'\''s question %s, which it had settled without the user, has been shown to the user above, in full. It is open again: ask the user it now as a normal question in plain conversation, with its options and your recommendation, and wait for their answer. The question as first asked: %s Its options: %s. The stand-in had settled on: %s.\n' "$1" "$2" "$3" "$4"
+  printf 'The stand-in'\''s question %s, which it had settled without the user, has been shown to the user above, in full. It is open again: ask the user it now as a normal question in plain conversation, with its options and your recommendation, and wait for their answer. The question as first asked: %s%s The stand-in had settled on: %s.\n' "$1" "$2" "$(reopen_options_sentence "$3")" "$4"
 }
 
 # A decision the user made, reopened from a round's list: number, question as
-# first asked, its options joined, and their answer as kept (empty for none).
+# first asked, its options joined (empty where none were kept), and their
+# answer as kept (empty for none).
 reopen_decided_agent_note() {
-  printf 'The stand-in'\''s question %s, which the user had decided, has been shown to the user above, in full. It is open again: ask the user it now as a normal question in plain conversation, with its options and your recommendation, and wait for their answer. The question as first asked: %s Its options: %s. The user had answered: %s\n' "$1" "$2" "$3" "$4"
+  printf 'The stand-in'\''s question %s, which the user had decided, has been shown to the user above, in full. It is open again: ask the user it now as a normal question in plain conversation, with its options and your recommendation, and wait for their answer. The question as first asked: %s%s The user had answered: %s\n' "$1" "$2" "$(reopen_options_sentence "$3")" "$4"
 }
 
 # A proposal the agent dropped under the stand-in's challenge, reopened:
-# number, question as first asked, its options joined, and the option the
-# agent recommended then (empty for none).
+# number, question as first asked, its options joined (empty where none were
+# kept), and the option the agent recommended then (empty for none).
 reopen_dropped_agent_note() {
-  printf 'The stand-in'\''s question %s, a proposal the agent dropped under the stand-in'\''s challenge, has been shown to the user above, in full. It is open again: ask the user it now as a normal question in plain conversation, with its options and your recommendation, and wait for their answer. The question as first asked: %s Its options: %s. The agent had recommended: %s.\n' "$1" "$2" "$3" "$4"
+  printf 'The stand-in'\''s question %s, a proposal the agent dropped under the stand-in'\''s challenge, has been shown to the user above, in full. It is open again: ask the user it now as a normal question in plain conversation, with its options and your recommendation, and wait for their answer. The question as first asked: %s%s The agent had recommended: %s.\n' "$1" "$2" "$(reopen_options_sentence "$3")" "$4"
 }
 
 # Under the note for a decision listed in a round, laid out before building:

@@ -7,7 +7,10 @@ bats_require_minimum_version 1.5.0
 # unpushed, uncommitted alone and unpushed alone each keeping it waiting; each
 # leaves the mark the gate reads, over or refused with why, and a refusal at
 # any look ends the watch. The organizer is the kit's own; the repositories
-# are real, pushing to a bare one beside the project.
+# are real, pushing to a bare one beside the project. No watch outlives its
+# test: each runs as a process group of its own, stopped whole at the end.
+
+load process-group
 
 setup() {
   script="$BATS_TEST_DIRNAME/../bin/stand-in.sh"
@@ -36,8 +39,10 @@ setup() {
 }
 
 teardown() {
-  [ -z "$watcher" ] || kill "$watcher" 2>/dev/null || true
+  local stopped=0
+  stop_group || stopped=$?
   [ ! -d "$history" ] || chmod -R u+rwx "$history"
+  return "$stopped"
 }
 
 # A brief in the suite's project, with what it waits on.
@@ -52,16 +57,14 @@ commit_all() {
 }
 
 # The session's wait, of the kind and on what given, watched in the
-# background by a shell of its own, its output kept; its process left in
-# watcher. A shell of its own, never a subshell of the test's: one the suite
-# stops in its teardown must stop, and leave nothing holding the suite's
-# output open. Its looks a tenth of a second apart, so it is seen across
-# many.
+# background by a shell of its own, in a group of its own, its output kept;
+# its process left in watcher. A shell of its own, never a subshell of the
+# test's: the teardown stops its group whole, which must not reach the test.
+# Its looks a tenth of a second apart, so it is seen across many.
 start_watch() {
-  bash -c '. "$1"; WAIT_LOOK_SECONDS=0.1; run_wait "$2" session-1 "$3" "$4"' _ \
+  start_in_group bash -c '. "$1"; WAIT_LOOK_SECONDS=0.1; run_wait "$2" session-1 "$3" "$4"' _ \
     "$BATS_TEST_DIRNAME/../lib/wait.sh" "$history" "$1" "$2" \
-    >"$BATS_TEST_TMPDIR/out" 2>"$BATS_TEST_TMPDIR/err" 3>&- &
-  watcher=$!
+    >"$BATS_TEST_TMPDIR/out" 2>"$BATS_TEST_TMPDIR/err"
 }
 
 # True while the watch still runs after the seconds given, its mark not
