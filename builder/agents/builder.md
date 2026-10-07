@@ -51,10 +51,12 @@ the session reads and commits, and the commit-per-chunk rule binds it there.
 ## Verify
 
 Verifying means the step is watched failing, not merely watched passing.
-Every test the step added or changed is proved so: break what it asserts,
-run the test file that should catch the break, see it go red, and put it
-back. A test the step left untouched keeps the proof it already had; a
-rewritten one that quietly stopped catching anything is what this guards.
+Every test the step added or changed, and every test over code the step
+changed, is proved so: break what it asserts, run the test file that should
+catch the break, see it go red, and put it back. A test over code the step
+left alone keeps the proof it already had. What this guards is a test that
+quietly stopped catching anything: one rewritten, or one whose code moved
+under it.
 While working, run the test files the change touches. Run the package's
 whole suite once, at the end, before reporting: that run is what catches a
 break somewhere else, and a step is not verified without it. Reach tools through the package's own declared commands and
