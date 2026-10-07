@@ -27,12 +27,19 @@ brief_file() {
 # its header wrote it. Which files are entries is the collection reader's to
 # say, so a README is never a brief here either. The name is the file's, as
 # found, and is judged by the check rather than skipped: a brief nobody can
-# address by name is a problem to show, not a file to ignore.
+# address by name is a problem to show, not a file to ignore. A folder that
+# cannot be listed is the collection reader's refusal, on stderr with a
+# non-zero status: read as holding no briefs, it would show nothing to do and
+# free no waiter. The listing is taken before the loop, never fed to it from a
+# process substitution, whose failure nothing would see; every caller takes
+# the rows into a variable and lets a failure end it, for the same reason.
 list_brief_rows() {
-  local dir="$1" f
+  local dir="$1" f entries
+  entries="$(list_collection_entries "$dir")" || return 1
   while IFS= read -r f; do
+    [ -n "$f" ] || continue
     printf '%s%s%s\n' "$(basename "$f" .md)" "$HEADER_US" "$(read_header_fields "$f" "${BRIEF_FIELDS[@]}")"
-  done < <(list_collection_entries "$dir" | LC_ALL=C sort)
+  done < <(LC_ALL=C sort <<<"$entries")
 }
 
 # Nothing where the briefs folder holds a brief by that name; a refusal on

@@ -115,10 +115,11 @@ format_same_places() {
 # non-zero where it found anything, so a caller can tell a clean folder from
 # one that needs fixing without reading the words.
 list_briefs() {
-  local plans="$1" root="$2" marks="$3" now="$4" problems mark_rows marks_unknown=""
-  problems="$(list_problems "$plans" "$root" "$marks")"
+  local plans="$1" root="$2" marks="$3" now="$4" problems rows mark_rows marks_unknown=""
+  problems="$(list_problems "$plans" "$root" "$marks")" || return 1
+  rows="$(list_brief_rows "$plans")" || return 1
   # The refusal's reason is already among the problems, so it is not said twice.
   mark_rows="$(list_mark_rows "$marks" 2>/dev/null)" || marks_unknown=1
-  format_list "$problems" "$(list_brief_rows "$plans")" "$mark_rows" "$now" "$marks_unknown"
+  format_list "$problems" "$rows" "$mark_rows" "$now" "$marks_unknown"
   [ -z "$problems" ]
 }

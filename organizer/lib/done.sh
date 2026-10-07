@@ -44,7 +44,7 @@ finish_brief() {
   # deleting the brief would leave a mark naming a brief that is gone.
   refuse_unwritable_marks_dir "$marks" || return 1
   file="$(brief_file "$plans" "$brief")"
-  rows="$(list_brief_rows "$plans")"
+  rows="$(list_brief_rows "$plans")" || return 1
 
   while IFS="$HEADER_US" read -r name summary after rest; do
     [ -n "$name" ] && [ "$name" != "$brief" ] || continue

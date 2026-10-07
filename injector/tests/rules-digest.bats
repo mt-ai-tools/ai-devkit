@@ -16,6 +16,12 @@ setup() {
   printf 'not a rule\n' >"$rules/README.md"
 }
 
+# The folder is opened up again whatever a test did, so the run's temporary
+# folder can always be cleared.
+teardown() {
+  chmod u+rwx "$rules"
+}
+
 @test "premise and before-thinking rules appear with their summaries" {
   run "$digest" "$rules"
   [ "$status" -eq 0 ]
@@ -40,4 +46,13 @@ setup() {
   [ "$status" -eq 2 ]
   [ -z "$output" ]
   [[ "$stderr" == *"$(no_rules_note "$BATS_TEST_TMPDIR/nowhere")"* ]]
+}
+
+@test "a rules directory that cannot be listed refuses the turn with that reason, not as one with no rules" {
+  . "$BATS_TEST_DIRNAME/../../lib/readers/collection.sh"
+  chmod 000 "$rules"
+  run --separate-stderr "$digest" "$rules"
+  [ "$status" -eq 2 ]
+  [ -z "$output" ]
+  [ "$stderr" = "$(collection_unreadable_note "$rules")" ]
 }

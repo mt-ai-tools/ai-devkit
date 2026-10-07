@@ -16,7 +16,9 @@ rules_dir() {
   get_config_path AIDK_RULES
 }
 
-# True if the directory holds any rule files at all.
+# True if the directory holds any rule files at all, answered as the
+# collection reader answers it: a folder that cannot be listed is a status of
+# its own, never "none".
 has_rule_files() {
   collection_has_entries "$1"
 }

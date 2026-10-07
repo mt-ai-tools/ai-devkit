@@ -50,6 +50,7 @@ teardown() {
   local stopped=0
   stop_group || stopped=$?
   [ ! -d "$history" ] || chmod -R u+rwx "$history"
+  chmod u+rwx "$preset_dir/questions"
   return "$stopped"
 }
 
@@ -1141,6 +1142,18 @@ step_operator_message() {
   kind step-done go
   run_gate false "$step_reply"
   [ "$(message)" = "$(gate_broken_note "$(refuse_go_kind_twice_note go "$preset_dir/questions")")" ]
+}
+
+# regression: the collection reader read a kinds folder it could not list as
+# holding no kinds, so the gate found no kind for the step go and let every
+# step's report stop unweighed, as a project wanting no step go.
+@test "a kinds folder that cannot be listed brings a step's report to the operator with why, never lets it pass" {
+  . "$BATS_TEST_DIRNAME/../../lib/readers/collection.sh"
+  step_report
+  chmod 000 "$preset_dir/questions"
+  run_gate false "$step_reply"
+  [ "$status" -eq 0 ]
+  [ "$(message)" = "$(gate_broken_note "$(collection_unreadable_note "$preset_dir/questions")")" ]
 }
 
 @test "a question sorted as a step's report goes to the operator: a reply that asks is never said go to" {

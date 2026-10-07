@@ -26,22 +26,33 @@ rules_from="$1"
 
 # A directory with no rule files is a refused turn, not an empty digest. The
 # reason goes to the operator on stderr, and the exit code is the one the hook
-# refuses with, so this step means the same thing run alone as run from it.
-if ! has_rule_files "$rules_from"; then
+# refuses with, so this step means the same thing run alone as run from it. A
+# directory that cannot be listed has already said so on stderr, and is
+# refused without the no-rules note, which would give the operator the wrong
+# reason.
+found=0
+has_rule_files "$rules_from" || found=$?
+if [ "$found" -eq 1 ]; then
   no_rules_note "$rules_from" >&2
   exit 2
 fi
+[ "$found" -eq 0 ] || exit 2
 
 # Read every rule's frontmatter once. One parse, so the digest and the report
-# of broken rules can never disagree about what a file contains.
+# of broken rules can never disagree about what a file contains. The listing
+# is taken before the loop rather than fed to it from a process substitution,
+# whose failure nothing would see: a folder that stopped being readable since
+# the check above must refuse the turn, not empty the digest.
 scan_rules() {
-  local f
+  local f files
+  files="$(list_rule_files "$rules_from")" || return 1
   while IFS= read -r f; do
+    [ -n "$f" ] || continue
     rule_frontmatter_row "$f"
-  done < <(list_rule_files "$rules_from")
+  done <<<"$files"
 }
 
-RULES="$(scan_rules)"
+RULES="$(scan_rules)" || exit 2
 
 emit_tagged() {
   local want="$1" name tags summary

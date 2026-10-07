@@ -69,7 +69,7 @@ list_awaited_briefs() {
 # a cycle can never start, and the check would show every brief on it as
 # broken, the one whose session waits among them.
 write_wait() {
-  local plans="$1" brief="$2" on="$3" file after items line draft
+  local plans="$1" brief="$2" on="$3" file after items rows line draft
   refuse_unknown_brief "$plans" "$brief" || return 1
   refuse_unknown_brief "$plans" "$on" || return 1
   if [ "$brief" = "$on" ]; then
@@ -84,7 +84,8 @@ write_wait() {
   fi
   ! has_list_item "$items" "$on" || return 0
   items="${items:+$items,}$on"
-  if has_list_item "$(derive_cycle_names "$(with_after_row "$(list_brief_rows "$plans")" "$brief" "$items")" | paste -sd, -)" "$brief"; then
+  rows="$(list_brief_rows "$plans")" || return 1
+  if has_list_item "$(derive_cycle_names "$(with_after_row "$rows" "$brief" "$items")" | paste -sd, -)" "$brief"; then
     refuse_wait_cycle_note "$brief" "$on" >&2
     return 1
   fi

@@ -167,7 +167,7 @@ list_place_problems() {
 # a mark says cannot be told when the marks cannot be read.
 list_problems() {
   local plans="$1" root="$2" marks="$3" rows row names mark_rows
-  rows="$(list_brief_rows "$plans")"
+  rows="$(list_brief_rows "$plans")" || return 1
   names="$(cut -d "$HEADER_US" -f 1 <<<"$rows" | paste -sd, -)"
   {
     while IFS= read -r row; do
@@ -190,7 +190,7 @@ list_problems() {
 # fixing without reading the words.
 list_problem_lines() {
   local problems
-  problems="$(list_problems "$1" "$2" "$3")"
+  problems="$(list_problems "$1" "$2" "$3")" || return 1
   [ -n "$problems" ] || return 0
   cut -d "$HEADER_US" -f 2- <<<"$problems"
   return 1

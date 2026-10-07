@@ -16,7 +16,8 @@ conventions_dir() {
 
 # True if the directory holds any entries at all. An empty one is a collection
 # that has not been started yet, and pointing an agent at it would promise
-# conventions that aren't there.
+# conventions that aren't there. Answered as the collection reader answers it:
+# a folder that cannot be listed is a status of its own, never "empty".
 has_convention_entries() {
 	collection_has_entries "$1"
 }

@@ -37,6 +37,7 @@ list_taken_briefs() {
     is_session_id "$held" || { refuse_taken_mark_unreadable_note "$brief" >&2; return 1; }
     held_by[$brief]="$held"
   done <<<"$rows"
+  rows="$(list_brief_rows "$plans")" || return 1
   while IFS="$HEADER_US" read -r name summary after touches creates; do
     [ -n "$name" ] && [ -n "${held_by[$name]+held}" ] || continue
     if ! parse_flow_list "$touches" >/dev/null || ! parse_flow_list "$creates" >/dev/null; then
@@ -45,7 +46,7 @@ list_taken_briefs() {
     fi
     places="$(derive_places "$touches" "$creates")"
     table+="$name$HEADER_US${held_by[$name]}$HEADER_US$places"$'\n'
-  done < <(list_brief_rows "$plans")
+  done <<<"$rows"
   if [ "$#" -gt 0 ]; then
     table="$(printf '%s' "$table" | derive_places_holding "$@")"
   fi

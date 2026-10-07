@@ -58,6 +58,11 @@ if [ ! -d "$plans" ]; then
   refuse_no_briefs_folder_note "$plans" >&2
   exit 1
 fi
+# One that is there but cannot be listed is refused here too, with the
+# collection reader's reason, before any operation runs: an operation that
+# only looks a brief up by name would otherwise refuse it as unknown, naming
+# the wrong cause. Every listing of the briefs refuses it again on its own.
+list_collection_entries "$plans" >/dev/null || exit 1
 
 command="${1:-}"
 [ "$#" -gt 0 ] && shift
