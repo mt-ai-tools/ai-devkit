@@ -33,7 +33,7 @@ examine_case() {
     to_unjudged_result "$(jq -r '.name' <<<"$case")" "$problem"
     return 0
   fi
-  replay_case "$case" "$go" "$preset" "$entries" "$risks"
+  replay_best_of "$case" "$go" "$preset" "$entries" "$risks"
 }
 
 # Clear the session's exam owed after an exam passed, given the mark as it
@@ -65,6 +65,9 @@ clear_owed_mark() {
 run_exam() {
   local history="$1" session="$2" preset="$3" rules="$4" conventions="$5"
   local dir files last before="" entries risks go="" file result names="[]" total=0 passed=0 drops=0
+  # Its total time is printed last, so a slow exam is seen (settled
+  # 2026-10-07): each case asks every part once per replay.
+  local started="$SECONDS"
   dir="$(to_cases_dir "$history")"
   files="$(list_case_files "$dir")"
   if [ -z "$files" ]; then
@@ -92,9 +95,14 @@ run_exam() {
   if [ "$drops" -gt 0 ]; then
     exam_failed_note "$total" "$passed" "$((total - passed))" "$drops"
     [ -z "$session" ] || [ -z "$before" ] || exam_mark_kept_line
+    exam_time_line "$((SECONDS - started))"
     return 1
   fi
-  write_exam_results "$history" "$(to_exam_results "$names")" || return 1
+  if ! write_exam_results "$history" "$(to_exam_results "$names")"; then
+    exam_time_line "$((SECONDS - started))"
+    return 1
+  fi
   exam_passed_note "$total" "$passed" "$((total - passed))"
-  clear_owed_mark "$history" "$session" "$before"
+  clear_owed_mark "$history" "$session" "$before" || return 1
+  exam_time_line "$((SECONDS - started))"
 }

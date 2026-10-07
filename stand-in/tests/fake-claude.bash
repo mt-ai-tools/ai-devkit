@@ -51,6 +51,11 @@ case "$(jq -r '.required[0] // empty' <<<"$schema" 2>/dev/null)" in
   holds_secret) job=secret ;;
   *) job=other ;;
 esac
+# Logged, counted and kept under a lock: the exam asks a part several times
+# side by side, and two calls counting at once would take the same turn, or
+# one call's kept prompt be read half-written by another's copy.
+exec 9>>"$FAKE_CALLS.lock"
+flock 9
 printf '%s %s\n' "$job" "$model" >>"$FAKE_CALLS"
 turn="$(grep -c "^$job " "$FAKE_CALLS")"
 printf '%s\n' "$@" >"$FAKE_ARGS"
@@ -59,6 +64,7 @@ cat >"$FAKE_PROMPT"
 cp "$FAKE_PROMPT" "$FAKE_PROMPT.$job"
 [ -z "$standing" ] || cat "$standing" >"$FAKE_STANDING.$job"
 pwd >"$FAKE_ARGS.$job.pwd"
+flock -u 9
 [ -n "${FAKE_SLEEP:-}" ] && sleep "$FAKE_SLEEP"
 [ -f "$FAKE_ANSWERS/$job.status" ] && exit "$(cat "$FAKE_ANSWERS/$job.status")"
 if [ -n "${FAKE_ENVELOPE+set}" ]; then

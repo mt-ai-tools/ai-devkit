@@ -26,6 +26,14 @@ STAND_IN_LOADED_EXAM=1
 # entry's path.
 EXAM_COMMAND="exam"
 
+# How many times each case is replayed (settled with the operator
+# 2026-10-07): the models answer differently from run to run — two real
+# exams in a row on an unchanged stand-in gave different results, both seeds
+# failing, then one passing — so one replay is a coin toss, and a case is
+# judged on the most of its replays. Odd, so its replays never tie; each
+# replay asks every part again, so raising it costs that many calls a case.
+EXAM_REPLAYS=3
+
 # Where a replayed case was sent: back to the agent, to the operator, or
 # settled by the stand-in alone once its kind is through the trial. A seed
 # case names one of the three as its route.
@@ -115,10 +123,19 @@ derive_reading_fault() {
   fi
 }
 
-# The rules and conventions check found every finding the case expects and
-# named every entry it says is broken, given the case and the check's answer.
-# A finding the case does not name is no fault: it is the route that shows
-# whether the question was sent where the operator sent it.
+# The rules and conventions check found every kind of finding the case
+# expects and named at least one of the entries it says are broken, given the
+# case and the check's answer. A finding the case does not name is no fault:
+# it is the route that shows whether the question was sent where the
+# operator sent it.
+#
+# Any one listed entry is enough (settled with the operator 2026-10-07): a
+# check that stopped the agent for the right reason but named one of two
+# entries did its job, and failing it would block every change to the
+# stand-in over a harmless difference. Every kind of finding stays required:
+# that is what still catches a broken check, as the crew seed showed when the
+# check missed that a sentence explained code while a challenge still sent
+# the question back.
 derive_checker_faults() {
   local case="$1" checked="$2" finding entry
   while IFS= read -r finding; do
@@ -126,11 +143,11 @@ derive_checker_faults() {
     jq -e --arg f "$finding" 'if $f == "explains_code" then .explains_code else (.[$f] | length > 0) end' \
       >/dev/null <<<"$checked" || { exam_finding_missing_fault "$finding"; printf '\n'; }
   done < <(jq -r '.findings[]' <<<"$case")
-  while IFS= read -r entry; do
-    [ -n "$entry" ] || continue
-    jq -e --arg e "$entry" 'any(.breaks[]; .entry == $e)' >/dev/null <<<"$checked" \
-      || { exam_break_missing_fault "$entry"; printf '\n'; }
-  done < <(jq -r '.breaks[]' <<<"$case")
+  if jq -e '.breaks | length > 0' >/dev/null <<<"$case" \
+    && ! jq -e --argjson listed "$(jq -c '.breaks' <<<"$case")" \
+      'any(.breaks[]; .entry as $e | $listed | index($e) != null)' >/dev/null <<<"$checked"; then
+    exam_breaks_none_fault "$(jq -r '.breaks | join(", ")' <<<"$case")"
+  fi
 }
 
 # The sorter gave the case's kind, given the case and the sorter's answer;
@@ -173,6 +190,23 @@ derive_route_fault() {
 
 # --- A case's result.
 
+# A case's result over its replays, given the case and the replays' results,
+# as a JSON array of to_case_result's, in the order run. It passes where
+# more than half of them passed (settled 2026-10-07: two of three). Its route
+# is the first passing replay's, or the first replay's where none passed;
+# its faults and notes are every replay's, each once, so a replay that failed
+# shows why even where the case passed.
+to_best_of_result() {
+  jq -cn --argjson case "$1" --argjson replays "$2" '
+    def once: reduce .[] as $x ([]; if index([$x]) then . else . + [$x] end);
+    ($replays | map(select(.faults | length == 0))) as $passing
+    | {name: $case.name, tuning_used: $case.tuning_used,
+       route: (($passing[0] // $replays[0] // {}).route // ""),
+       runs: ($replays | length), passes: ($passing | length),
+       faults: ($replays | map(.faults) | add // [] | once),
+       notes: ($replays | map(.notes) | add // [] | once)}'
+}
+
 # One case's result, as JSON {name, tuning_used, route, faults, notes}, given
 # the case, the route its replay took (empty where it took none), and its
 # faults and notes, one a line. It passed where it holds no fault.
@@ -189,14 +223,15 @@ to_unjudged_result() {
     "$(exam_unjudgeable_fault "$2")" ""
 }
 
-# True if the result holds no fault.
+# True if the case passed: more than half of its replays passed, where it was
+# replayed; no fault, where it is one replay's result.
 is_case_passed() {
-  jq -e '.faults | length == 0' >/dev/null <<<"$1"
+  jq -e 'if has("runs") then .passes * 2 > .runs else .faults | length == 0 end' >/dev/null <<<"$1"
 }
 
 # A case's lines as the exam prints them, given its result and the last
 # results, or null where none are kept: whether it passed, failed or dropped,
-# then each fault and note under it.
+# how many of its replays passed, then each fault and note under it.
 format_case_lines() {
   local result="$1" last="$2" name tuning="" line
   name="$(jq -r '.name' <<<"$result")"
@@ -210,6 +245,8 @@ format_case_lines() {
   else
     exam_failed_new_line "$name" "$tuning"
   fi
+  ! jq -e 'has("runs")' >/dev/null <<<"$result" \
+    || exam_replays_line "$(jq -r '.passes' <<<"$result")" "$(jq -r '.runs' <<<"$result")"
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     exam_detail_line "$line"

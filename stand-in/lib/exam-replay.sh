@@ -133,3 +133,31 @@ replay_case() {
   [ -z "$replay_route" ] || add_fault "$(derive_route_fault "$case" "$replay_route")"
   to_case_result "$case" "$replay_route" "$replay_faults" "$replay_notes"
 }
+
+# One case's result over its replays, as to_best_of_result gives it, given
+# what replay_case is handed. The replays run side by side, each in a
+# process of its own writing its result to a file, and the case waits for
+# all of them (settled 2026-10-07): one after another, every case would cost
+# its replays' time over again. Bounded by the number of replays, since the
+# cases themselves are run one after another. A replay that ends without a
+# result counts as one that failed, with what it said on the way out.
+replay_best_of() {
+  local case="$1" folder run pids=() replays="" result
+  folder="$(mktemp -d)"
+  for run in $(seq "$EXAM_REPLAYS"); do
+    replay_case "$@" >"$folder/$run" 2>"$folder/$run.why" &
+    pids+=("$!")
+  done
+  for run in "${!pids[@]}"; do
+    wait "${pids[$run]}" || true
+  done
+  for run in $(seq "$EXAM_REPLAYS"); do
+    if ! result="$(jq -ce 'select(type == "object")' "$folder/$run" 2>/dev/null)" || [ -z "$result" ]; then
+      result="$(to_case_result "$case" "" \
+        "$(exam_replay_stopped_fault "$(tr '\n' ' ' <"$folder/$run.why" | sed 's/ *$//')")" "")"
+    fi
+    replays+="$result"$'\n'
+  done
+  rm -rf "$folder"
+  to_best_of_result "$case" "$(printf '%s' "$replays" | jq -cs .)"
+}

@@ -81,17 +81,35 @@ owe() {
   printf '%s\n' '{"files":["/somewhere/questions/naming.md"],"noted":"2026-10-07T10:00:00.000000000Z"}' >"$owed"
 }
 
+# The exam, run; where it printed anything, its last line is the time it
+# took, checked and left off, so each test reads what the exam found.
 run_exam() {
   run --separate-stderr "$script" exam
+  [ -z "$output" ] || {
+    [[ "$(tail -n 1 <<<"$output")" =~ ^"$(exam_time_line 0 | sed 's/0 s\.$//')"[0-9]+" s."$ ]]
+    output="$(head -n -1 <<<"$output")"
+  }
 }
+
+# The calls so far, each kind once with how many times it was asked, sorted:
+# the replays of a case ask side by side, in no fixed order.
+counted_calls() {
+  calls | sort | uniq -c | sed 's/^ *//'
+}
+
+# Each replay of a case asks every part once.
+three() { printf '%s %s\n' "$EXAM_REPLAYS" "$1"; }
 
 @test "a seed case is replayed through the reader and the check alone, and passes where the check finds what it says" {
   seed_case seed.md
   answer_for checker "$seed_check"
   run_exam
   [ "$status" -eq 0 ]
-  [ "$output" = "$(exam_no_results_line)"$'\n'"$(exam_passed_line seed.md "$(exam_tuning_used_words)" agent)"$'\n'"$(exam_passed_note 1 1 0)" ]
-  [ "$(calls)" = "reader $READER_MODEL"$'\n'"checker $CHECKER_MODEL" ]
+  [ "$output" = "$(exam_no_results_line)
+$(exam_passed_line seed.md "$(exam_tuning_used_words)" agent)
+$(exam_replays_line 3 3)
+$(exam_passed_note 1 1 0)" ]
+  [ "$(counted_calls)" = "$(three "checker $CHECKER_MODEL")"$'\n'"$(three "reader $READER_MODEL")" ]
   grep -qF -- "Wire it in the demo, as the frame's rule says." "$FAKE_PROMPT.reader"
   [ "$(jq -c . "$results")" = '{"passed":["seed.md"]}' ]
 }
@@ -103,9 +121,10 @@ run_exam() {
   [ "$status" -eq 1 ]
   [ "$output" = "$(exam_no_results_line)
 $(exam_dropped_unknown_line seed.md "$(exam_tuning_used_words)")
+$(exam_replays_line 0 3)
 $(exam_detail_line "$(exam_finding_missing_fault breaks)")
 $(exam_detail_line "$(exam_finding_missing_fault miscalled)")
-$(exam_detail_line "$(exam_break_missing_fault rule-one.md)")
+$(exam_detail_line "$(exam_breaks_none_fault rule-one.md)")
 $(exam_detail_line "$(exam_route_fault operator agent)")
 $(exam_failed_note 1 0 1 1)" ]
   [ ! -e "$results" ]
@@ -116,11 +135,12 @@ $(exam_failed_note 1 0 1 1)" ]
   run_exam
   [ "$status" -eq 0 ]
   [ "$(jq -c . "$results")" = '{"passed":["naming.md"]}' ]
-  [ "$(calls)" = "reader $READER_MODEL"$'\n'"checker $CHECKER_MODEL"$'\n'"sorter $SORTER_MODEL" ]
+  [ "$(counted_calls)" = "$(three "checker $CHECKER_MODEL")"$'\n'"$(three "reader $READER_MODEL")"$'\n'"$(three "sorter $SORTER_MODEL")" ]
   kind naming accept
   run_exam
   [ "$status" -eq 1 ]
   [ "$output" = "$(exam_dropped_line naming.md "")
+$(exam_replays_line 0 3)
 $(exam_detail_line "$(exam_route_alone_fault)")
 $(exam_failed_note 1 0 1 1)" ]
   [ "$(jq -c . "$results")" = '{"passed":["naming.md"]}' ]
@@ -134,7 +154,9 @@ $(exam_failed_note 1 0 1 1)" ]
   run_exam
   [ "$status" -eq 0 ]
   [ "$output" = "$(exam_passed_line a.md "" operator)
+$(exam_replays_line 3 3)
 $(exam_failed_new_line b.md "")
+$(exam_replays_line 0 3)
 $(exam_detail_line "$(exam_kind_fault naming defaults)")
 $(exam_passed_note 2 1 1)" ]
   [ "$(jq -c . "$results")" = '{"passed":["a.md"]}' ]
@@ -161,8 +183,8 @@ $(exam_passed_note 2 1 1)" ]
   answer_for step-sorter '{"majors":[],"unsure":false}'
   run_exam
   [ "$status" -eq 1 ]
-  [ "$(sed -n 2,3p <<<"$output")" = "$(exam_dropped_unknown_line step.md "")"$'\n'"$(exam_detail_line "$(exam_route_alone_fault)")" ]
-  [ "$(calls)" = "reader $READER_MODEL"$'\n'"step-sorter $SORTER_MODEL" ]
+  [ "$(sed -n 2,4p <<<"$output")" = "$(exam_dropped_unknown_line step.md "")"$'\n'"$(exam_replays_line 0 3)"$'\n'"$(exam_detail_line "$(exam_route_alone_fault)")" ]
+  [ "$(counted_calls)" = "$(three "reader $READER_MODEL")"$'\n'"$(three "step-sorter $SORTER_MODEL")" ]
   answer_for step-sorter '{"majors":[{"problem":"a table dropped","label":"lost-data"}],"unsure":false}'
   run_exam
   [ "$status" -eq 0 ]
@@ -189,7 +211,7 @@ $(exam_passed_note 2 1 1)" ]
   : >"$FAKE_CALLS"
   run_exam
   grep -qxF -- "$(exam_detail_line "$(exam_misread_fault "$(exam_step_words)")")" <<<"$output"
-  [ "$(calls)" = "reader $READER_MODEL" ]
+  [ "$(counted_calls)" = "$(three "reader $READER_MODEL")" ]
 }
 
 @test "a ladder kind is taken as held: the matcher is never asked, and the case says so" {
@@ -198,7 +220,7 @@ $(exam_passed_note 2 1 1)" ]
   answer_for sorter '{"kind":"defaults","unsure":false,"risks":[],"defers":false}'
   run_exam
   [ "$status" -eq 1 ]
-  [ "$(sed -n 3,4p <<<"$output")" = "$(exam_detail_line "$(exam_route_alone_fault)")"$'\n'"$(exam_detail_line "$(exam_climb_unreplayed_note ladder)")" ]
+  [ "$(sed -n 4,5p <<<"$output")" = "$(exam_detail_line "$(exam_route_alone_fault)")"$'\n'"$(exam_detail_line "$(exam_climb_unreplayed_note ladder)")" ]
   ! grep -q '^matcher ' "$FAKE_CALLS"
 }
 
@@ -207,7 +229,7 @@ $(exam_passed_note 2 1 1)" ]
   question_case challenged.md naming no
   run_exam
   [ "$status" -eq 0 ]
-  [ "$(sed -n 2,3p <<<"$output")" = "$(exam_passed_line challenged.md "" agent)"$'\n'"$(exam_detail_line "$(exam_challenged_note naming)")" ]
+  [ "$(sed -n 2,4p <<<"$output")" = "$(exam_passed_line challenged.md "" agent)"$'\n'"$(exam_replays_line 3 3)"$'\n'"$(exam_detail_line "$(exam_challenged_note naming)")" ]
 }
 
 @test "a part that cannot answer fails the case with its reason, and the parts after it are not asked" {
@@ -215,8 +237,8 @@ $(exam_passed_note 2 1 1)" ]
   status_for checker 1
   run_exam
   [ "$status" -eq 1 ]
-  [ "$(sed -n 3p <<<"$output")" = "$(exam_detail_line "$(exam_part_failed_fault "$(exam_checker_words)" "$(refuse_model_exit_note "$CHECKER_MODEL" 1)")")" ]
-  [ "$(calls)" = "reader $READER_MODEL"$'\n'"checker $CHECKER_MODEL" ]
+  [ "$(sed -n 4p <<<"$output")" = "$(exam_detail_line "$(exam_part_failed_fault "$(exam_checker_words)" "$(refuse_model_exit_note "$CHECKER_MODEL" 1)")")" ]
+  [ "$(counted_calls)" = "$(three "checker $CHECKER_MODEL")"$'\n'"$(three "reader $READER_MODEL")" ]
 }
 
 @test "a case that cannot be judged fails, and no model is asked about it" {
@@ -311,4 +333,68 @@ EOF
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_exam_results_unwritable_note "$history/exam")" ]
   [ -f "$owed" ]
+}
+
+@test "best of three: a case passes where two of its three replays pass, and drops where two fail" {
+  question_case naming.md naming no
+  answer_for_call reader 2 "$(step_form)"
+  run_exam
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(exam_no_results_line)
+$(exam_passed_line naming.md "" operator)
+$(exam_replays_line 2 3)
+$(exam_detail_line "$(exam_misread_fault "$(exam_question_words)")")
+$(exam_passed_note 1 1 0)" ]
+  [ "$(jq -c . "$results")" = '{"passed":["naming.md"]}' ]
+  : >"$FAKE_CALLS"
+  answer_for_call reader 3 "$(step_form)"
+  run_exam
+  [ "$status" -eq 1 ]
+  [ "$output" = "$(exam_dropped_line naming.md "")
+$(exam_replays_line 1 3)
+$(exam_detail_line "$(exam_misread_fault "$(exam_question_words)")")
+$(exam_failed_note 1 0 1 1)" ]
+}
+
+@test "the replays of a case run side by side, and a replay that stops without a result counts as failed" {
+  question_case naming.md naming no
+  export FAKE_SLEEP=2
+  started="$SECONDS"
+  run_exam
+  [ "$status" -eq 0 ]
+  # Three replays of three calls each, two seconds a call: side by side, six.
+  [ "$((SECONDS - started))" -lt 12 ]
+  unset FAKE_SLEEP
+  # A replay whose process ends without a result, in two replays of three.
+  . "$lib/exam-replay.sh"
+  replay_case() {
+    if mkdir "$BATS_TEST_TMPDIR/first" 2>/dev/null; then
+      to_case_result "$1" operator "" ""
+    else
+      printf 'it fell over\n' >&2
+      exit 1
+    fi
+  }
+  result="$(replay_best_of "$(jq -cn '{name: "naming.md", tuning_used: false}')")"
+  [ "$(jq -c '{runs, passes, faults}' <<<"$result")" = "$(jq -cn --arg f "$(exam_replay_stopped_fault "it fell over")" \
+    '{runs: 3, passes: 1, faults: [$f]}')" ]
+  ! is_case_passed "$result"
+}
+
+@test "of the entries a case says it breaks, any one named passes; none named fails; a kind of finding missing fails" {
+  write_case two.md "$(printf 'route: agent\nfindings: [breaks]\nbreaks: [rule-one.md, convention-one.md]')" "Five or ten?"
+  answer_for checker '{"breaks":[{"entry":"convention-one.md","why":"It breaks it."}],"miscalled":[],"explains_code":false}'
+  run_exam
+  [ "$status" -eq 0 ]
+  [ "$(sed -n 2p <<<"$output")" = "$(exam_passed_line two.md "" agent)" ]
+  answer_for checker "$seed_check"
+  sed -i 's/^breaks: .*/breaks: [convention-one.md]/' "$answers/two.md"
+  run_exam
+  [ "$status" -eq 1 ]
+  grep -qxF -- "$(exam_detail_line "$(exam_breaks_none_fault convention-one.md)")" <<<"$output"
+  sed -i 's/^breaks: .*/breaks: [rule-one.md]/; s/^findings: .*/findings: [breaks, explains_code]/' "$answers/two.md"
+  run_exam
+  [ "$status" -eq 1 ]
+  grep -qxF -- "$(exam_detail_line "$(exam_finding_missing_fault explains_code)")" <<<"$output"
+  ! grep -qF -- "$(exam_breaks_none_fault rule-one.md)" <<<"$output"
 }

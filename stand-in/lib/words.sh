@@ -1487,8 +1487,26 @@ exam_finding_missing_fault() {
   printf 'The rules and conventions check did not find what the case expects: %s.' "$1"
 }
 
-exam_break_missing_fault() {
-  printf 'The rules and conventions check did not find the entry the case says it breaks: %s.' "$1"
+# Given the entries the case says it breaks, joined.
+exam_breaks_none_fault() {
+  printf 'The rules and conventions check named none of the entries the case says it breaks: %s.' "$1"
+}
+
+# Under a replayed case's line: how many of its replays passed.
+exam_replays_line() {
+  printf -- '  - %s of %s replays passed.\n' "$1" "$2"
+}
+
+# A replay that ended without a result, with what it said on the way out.
+exam_replay_stopped_fault() {
+  local why="$1"
+  [ -n "$why" ] || why='No part of the stand-in said why.'
+  printf 'A replay stopped before it gave a result: %s' "$why"
+}
+
+# The exam's last line, given how long it ran, in whole seconds.
+exam_time_line() {
+  printf 'The exam took %s s.\n' "$1"
 }
 
 exam_kind_fault() {

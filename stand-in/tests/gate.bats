@@ -2355,7 +2355,8 @@ owed_file() { printf '%s/owed/%s' "$history" "$session"; }
   answer_for reader "$(whole_form)"
   run --separate-stderr "$BATS_TEST_DIRNAME/../bin/stand-in.sh" exam
   [ "$status" -eq 0 ]
-  [ "$(tail -n 1 <<<"$output")" = "$(exam_mark_cleared_line)" ]
+  # Its line before the last, which is the time it took.
+  [ "$(tail -n 2 <<<"$output" | head -n 1)" = "$(exam_mark_cleared_line)" ]
   [ ! -e "$(owed_file)" ]
   answer_for reader "$(step_form)"
   run_gate true "$step_reply"
