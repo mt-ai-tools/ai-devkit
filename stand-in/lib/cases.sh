@@ -130,6 +130,43 @@ to_case_counts() {
     '{written: $written, skipped: $skipped, held: $held, failed: $failed}'
 }
 
+# The reply a case file's text holds, for a replay to hand the reader: the
+# lines between its two marker lines, as written; nothing where it holds no
+# whole pair, since a reply cut off at the end of the file would be a part of
+# one read as the whole.
+to_case_reply() {
+  awk -v start="$CASE_REPLY_START" -v end="$CASE_REPLY_END" '
+    inside && $0 == end { whole = 1; exit }
+    inside { text = text $0 "\n" }
+    !inside && $0 == start { inside = 1 }
+    END { if (whole) printf "%s", text }
+  ' <<<"$1"
+}
+
+# A header list, as a case writes one ("[a, b]"), as a JSON array of its
+# items; an empty array for an empty value or "[]".
+to_header_list() {
+  jq -cn --arg value "$1" '$value | gsub("^\\s*\\[|\\]\\s*$"; "") | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))'
+}
+
+# A case as a replay reads it, given its file's name and text and its header
+# fields as read_case reads them: kind, picked-recommended, whether its
+# tuning is used, its brief or briefs, and, as the seed cases say them, the
+# route it must take, the findings the rules and conventions check must give
+# and the entries it must name as broken; then the reply. What a field means
+# for the exam is the exam's to say.
+to_case() {
+  local name="$1" text="$2" kind="$3" picked="$4" tuning="$5" brief="$6" route="$7" findings="$8" breaks="$9"
+  jq -cn --arg name "$name" --arg kind "$kind" --arg picked "$picked" --arg tuning "$tuning" \
+    --arg used "$(case_tuning_used_words)" --arg brief "$brief" --arg route "$route" \
+    --argjson findings "$(to_header_list "$findings")" --argjson breaks "$(to_header_list "$breaks")" \
+    --rawfile reply <(to_case_reply "$text") '{
+      name: $name, kind: $kind, picked_recommended: $picked,
+      tuning_used: (($tuning | split(" ") | .[0] // "") == $used),
+      briefs: ($brief | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))),
+      route: $route, findings: $findings, breaks: $breaks, reply: $reply}'
+}
+
 # --- Reads.
 
 # The path of the case already written from the log line whose id is given,
@@ -145,6 +182,32 @@ find_case_path() {
       return 0
     fi
   done
+}
+
+# Every case file in the folder given, one path a line, in name order;
+# nothing where the folder holds none or does not exist.
+list_case_files() {
+  local file
+  [ -d "$1" ] || return 0
+  for file in "$1"/*.md; do
+    [ -f "$file" ] || continue
+    printf '%s\n' "$file"
+  done
+}
+
+# A case file as to_case gives it; a refusal on stderr and a non-zero status
+# where it cannot be read. The header's fields are read by the kit's one
+# header reader, spelled as to_case_text writes them, and the seed cases'
+# route, findings and breaks beside them.
+read_case() {
+  local file="$1" text kind picked tuning brief route findings breaks
+  if ! text="$(cat "$file" 2>/dev/null)"; then
+    refuse_unreadable_file_note "$file" >&2
+    return 1
+  fi
+  IFS="$HEADER_US" read -r kind picked tuning brief route findings breaks \
+    < <(read_header_fields "$file" kind picked-recommended tuning brief route findings breaks)
+  to_case "$(basename "$file")" "$text" "$kind" "$picked" "$tuning" "$brief" "$route" "$findings" "$breaks"
 }
 
 # The path a new case is written at, in the folder given, from its date, its

@@ -95,6 +95,35 @@ something or cannot run. A case already written from a question is never
 written again. The end report says how many were written, skipped, held back
 and could not be written, never what, or that the case-writer never ran.
 
+The test cases are the stand-in's exam, a command of its own, run outside
+the everyday test command, since it asks real models. It replays every case
+the project keeps against the stand-in as it then stands, through every part
+whose answer code decides from: the reader, the rules and conventions check,
+the sorter and the route for a question, and the reader, the step's labeller
+and the step go for a step's report; never the parts that only write for the
+operator. A case passes where the reader read it as what it is, the check
+found what the case says it must, the sorter gave the case's kind, and the
+route sent it where the operator would: exactly where a case naming its
+route says, and never settled without the operator where they did not take
+the agent's recommendation. A ladder's climb is taken as held, since no case
+holds the agent's replies to it. A case tuned on is replayed like any other
+and shown so. The exam fails on a drop alone, a case that passed the last
+passing exam and fails now; one that never passed is shown and does not
+block. Where no last results are kept, every failing case counts as a drop.
+A passing exam keeps its results for the next one to compare with.
+
+An edit made with Claude Code's file-editing tools to what the stand-in
+judges by, its preset, its prompts or its model list, marks the session that
+made it as owing the exam, whether the stand-in is on for it or not. An edit
+made any other way, through the shell or by hand, is never seen. While the
+mark stands, the gate sends that session's step reports and its saying the
+work is done back to the agent, to run the exam first, and brings the report
+to the operator once it has sent it back as often as it may; in a session it
+is off for, the agent is reminded at the start of every turn instead. A
+passing exam clears the session's mark, unless another edit was noted while
+it ran; a failing one keeps it and shows the drops; the session's end
+removes it.
+
 A session that must wait on another session's work starts the stand-in's
 wait as a background command, and stops. Waiting for another brief to be
 finished, the wait is written into its own brief through the work organizer,
@@ -190,8 +219,9 @@ way, and an opener, what a session started with a brief is told first. Needs the
 where a project keeps them, and the kit's advisor, whose command a second
 reading runs. Needs a working folder of its own, holding a switch per
 session it is on for, its record of each, the mark a session's wait leaves,
-and its log, worth nothing beyond one machine, and the test cases, which a
-project commits. Needs the kit's work
+the mark of an exam a session owes, the last passing exam's results and its
+log, worth nothing beyond one machine, and the test cases, which a project
+commits. Needs the kit's work
 organizer, to show its list, to take a brief, to say which brief a session
 holds, and which briefs every session holds and where they work, to finish a
 brief, and to read and write what a brief waits on. Needs Claude Code to set
@@ -200,10 +230,12 @@ wake a session when a background command it started finishes. Needs registering 
 Code's end-of-reply event, with a time limit no shorter than the one it
 declares; for its turn-start event, to keep the operator's answers, and
 again, beside the skill that offers the command, to act on the command that
-starts it; for its session-end event, to switch it off; for its
-before-tool event of the question tool, to keep questions in the reply;
-and for its after-tool event of the Skill tool, beside its two other
-skills, to show what they ask for. Needs the Claude Code
+starts it, and again to remind a session that owes the exam; for its
+session-end event, to switch it off; for its before-tool event of the
+question tool, to keep questions in the reply; for its after-tool event of
+the Skill tool, beside its two other skills, to show what they ask for; and
+for its after-tool event of every file-editing tool, to note an edit that
+owes the exam. Needs the Claude Code
 command-line tool, signed in, to ask models through; the tool installer
 `mise`, called for one command at a time and never activated, with the
 Betterleaks secret scanner installed through it at the release the

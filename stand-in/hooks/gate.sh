@@ -158,6 +158,8 @@ switch="$(find_switch "$history" "$session")"
 . "$tool_root/lib/cases.sh"
 . "$tool_root/lib/woken.sh"
 . "$tool_root/lib/resume.sh"
+. "$tool_root/lib/owed.sh"
+. "$tool_root/lib/exam.sh"
 
 preset="$(get_config_path AIDK_STAND_IN)"
 rules="$(get_config_path AIDK_RULES)"
@@ -168,6 +170,9 @@ root="$(get_project_root)"
 # finished: the entry by its whole path, since the agent runs it from
 # wherever its shell stands.
 cases_command="$tool_root/bin/stand-in.sh $CASES_COMMAND"
+# The exam's command, as the agent is told to type it while an exam is owed,
+# by its whole path for the same reason.
+exam_command="$tool_root/bin/stand-in.sh $EXAM_COMMAND"
 record_file="$(to_record_path "$history" "$session")"
 saved="$(read_session_record "$record_file")"
 record="$saved"
@@ -901,6 +906,23 @@ take_ladder() {
   [ -n "$ladder" ] || { refuse_state_unreadable_note "$record_file" >&2; exit 1; }
 }
 
+# A step's report or a "brief done" from a session that edited what the
+# stand-in judges by, given its exam owed: sent back to run the exam first
+# (settled 2026-10-06, decision 7: until the exam passes, the gate sends that
+# session's step reports and its "brief done" back), since a go given, or a
+# brief finished, on a stand-in nobody re-examined could rest on judgement
+# that drifted. Counted toward the send-back limit, so an exam that keeps
+# failing reaches the operator rather than holding the agent forever.
+answer_exam_owed() {
+  local files
+  files="$(format_owed_files "$1")"
+  if is_send_back_spent "$record"; then
+    let_stop_told "$(gate_exam_owed_operator_note "$SEND_BACK_LIMIT" "$exam_command" "$files")" ""
+  fi
+  record="$(with_send_back "$record")"
+  hold_reply "$(gate_exam_owed_note "$exam_command" "$files")"
+}
+
 # The words of the preset's resume look-around named, every one asked for
 # each time, as the ladder's are.
 resume_message() {
@@ -1003,11 +1025,18 @@ fi
 # A claim of done is taken before a step's report it ends with: the loop is
 # what decides done, so the claim is swept rather than weighed as a step. A
 # session woken from a wait is the exception before all of these: whatever it
-# reports reaches the operator for the go.
+# reports reaches the operator for the go. A session owing the exam is sent
+# back to run it before a claim of done or a step's report is weighed, the
+# question whether the whole brief is done included, which is on the way to
+# done; the mark is read only there, so no other stop pays for it.
 if ! jq -e '.asks_operator' >/dev/null <<<"$form"; then
   resumed="$(to_resumed "$record")"
   if [ -n "$resumed" ]; then answer_resumed "$resumed"; fi
   if jq -e '.closes_round' >/dev/null <<<"$form"; then answer_round; fi
+  if jq -e '.claims_done or .ends_step' >/dev/null <<<"$form"; then
+    owed="$(find_owed_mark "$history" "$session")"
+    if [ -n "$owed" ]; then answer_exam_owed "$owed"; fi
+  fi
   if jq -e '.claims_done' >/dev/null <<<"$form"; then start_closing; fi
   if jq -e '.ends_step' >/dev/null <<<"$form"; then
     if is_whole_done_unasked "$form"; then ask_whole_done; fi

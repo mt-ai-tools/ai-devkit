@@ -1,7 +1,7 @@
 bats_require_minimum_version 1.5.0
 
 # Behavior tests for the session-end hook: the ending session's switch,
-# record and wait's mark are removed and every other session's stay; an event with no session
+# record, wait's mark and exam owed are removed and every other session's stay; an event with no session
 # id it can use removes nothing, and a switch or a record that cannot be
 # removed is said, the other still removed, and the session ends.
 
@@ -21,6 +21,9 @@ setup() {
   mkdir -p "$history/woken"
   printf '{}\n' >"$history/woken/session-1"
   printf '{}\n' >"$history/woken/session-2"
+  mkdir -p "$history/owed"
+  printf '{}\n' >"$history/owed/session-1"
+  printf '{}\n' >"$history/owed/session-2"
 }
 
 teardown() {
@@ -31,7 +34,7 @@ run_hook() {
   run --separate-stderr "$hook" <<<"$1"
 }
 
-@test "the ending session's switch, record and wait's mark are removed, and only its own" {
+@test "the ending session's switch, record, wait's mark and exam owed are removed, and only its own" {
   run_hook '{"session_id":"session-1","hook_event_name":"SessionEnd","reason":"prompt_input_exit"}'
   [ "$status" -eq 0 ]
   [ -z "$output" ]
@@ -42,6 +45,8 @@ run_hook() {
   [ -f "$history/on/session-2" ]
   [ -f "$history/sessions/session-2.json" ]
   [ -f "$history/woken/session-2" ]
+  [ ! -e "$history/owed/session-1" ]
+  [ -f "$history/owed/session-2" ]
 }
 
 @test "a session the stand-in was never on for ends cleanly, saying nothing" {
@@ -88,4 +93,15 @@ run_hook() {
   [ ! -e "$history/on/session-1" ]
   [ ! -e "$history/sessions/session-1.json" ]
   [ -f "$history/woken/session-1" ]
+}
+
+@test "an exam owed that cannot be removed is said, the rest still go, and the session ends cleanly" {
+  . "$lib/owed.sh"
+  chmod a-w "$history/owed"
+  run_hook '{"session_id":"session-1"}'
+  [ "$status" -eq 0 ]
+  [ "$stderr" = "$(refuse_owed_unremovable_note "$history/owed/session-1")"$'\n'"$(end_not_removed_note session-1)" ]
+  [ ! -e "$history/on/session-1" ]
+  [ ! -e "$history/woken/session-1" ]
+  [ -f "$history/owed/session-1" ]
 }

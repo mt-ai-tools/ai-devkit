@@ -333,9 +333,10 @@ refuse_unknown_placeholder_note() {
 
 # --- The entry.
 
-# The two waits' commands, then the case-writer's, as the agent types them.
+# The two waits' commands, then the case-writer's and the exam's, as the
+# agent types them.
 refuse_usage_note() {
-  printf 'Usage: read-reply (the reply on stdin) | sort <reader form> (the reply on stdin) | %s <brief> | %s <path> | %s\n' "$1" "$2" "$3"
+  printf 'Usage: read-reply (the reply on stdin) | sort <reader form> (the reply on stdin) | %s <brief> | %s <path> | %s | %s\n' "$1" "$2" "$3" "$4"
 }
 
 # --- The gate's event, switch and state.
@@ -1415,4 +1416,232 @@ question_box_unjudged_note() {
   local why="$1"
   [ -n "$why" ] || why='No part of the stand-in said why.'
   printf 'Stand-in: whether it is on for this session cannot be told, so the question box was let through, and the stand-in will not read its question. Why:\n%s\n' "$why"
+}
+
+# --- The exam: every test case replayed against the stand-in as it stands,
+# owed by a session that edited what the stand-in judges by.
+
+# A case's tuning mark, as its header writes it once a prompt was adjusted on
+# it.
+case_tuning_used_words() { printf 'used'; }
+
+# Where a replayed case was sent, as the exam names it: back to the agent, to
+# the operator, or settled by the stand-in without them.
+exam_route_words() {
+  case "$1" in
+    agent) printf 'back to the agent' ;;
+    operator) printf 'to the operator' ;;
+    *) printf 'settled by the stand-in alone' ;;
+  esac
+}
+
+# The parts a fault can name, as the operator reads them.
+exam_reader_words() { printf 'reader'; }
+exam_checker_words() { printf 'rules and conventions check'; }
+exam_sorter_words() { printf 'sorter'; }
+exam_labeller_words() { printf "step's labeller"; }
+exam_preset_words() { printf 'preset'; }
+
+# What a case is read as, as the faults name it.
+exam_question_words() { printf 'a question to the operator'; }
+exam_step_words() { printf "a step's report waiting for the go"; }
+
+# Under a case's name where its tuning is used: replayed, never scored.
+exam_tuning_used_words() {
+  printf ' (tuning used: replayed, never counted toward a score)'
+}
+
+# One case's outcome, given its name, the tuning words (empty for none) and,
+# for a passed one, where it was sent.
+exam_passed_line() {
+  printf 'Passed: %s%s, sent %s.\n' "$1" "$2" "$(exam_route_words "$3")"
+}
+
+exam_dropped_line() {
+  printf 'Dropped: %s%s. It passed the last passing exam, so it blocks the change.\n' "$1" "$2"
+}
+
+exam_dropped_unknown_line() {
+  printf 'Dropped: %s%s. No last results are kept, so whether it passed before cannot be told, and it blocks the change.\n' "$1" "$2"
+}
+
+exam_failed_new_line() {
+  printf 'Failed: %s%s. It never passed an exam before, so it does not block the change.\n' "$1" "$2"
+}
+
+# A fault or a note under its case's line.
+exam_detail_line() {
+  printf -- '  - %s\n' "$1"
+}
+
+# The faults a replay can find, each one line.
+exam_part_failed_fault() {
+  printf 'The %s gave no answer it could be judged on: %s' "$1" "$2"
+}
+
+exam_misread_fault() {
+  printf 'The reader did not read it as %s, as the case says it is.' "$1"
+}
+
+exam_finding_missing_fault() {
+  printf 'The rules and conventions check did not find what the case expects: %s.' "$1"
+}
+
+exam_break_missing_fault() {
+  printf 'The rules and conventions check did not find the entry the case says it breaks: %s.' "$1"
+}
+
+exam_kind_fault() {
+  printf 'The sorter sorted it as %s; the case is %s.' "$1" "$2"
+}
+
+exam_route_fault() {
+  printf 'It was sent %s; the case expects it sent %s.' "$(exam_route_words "$1")" "$(exam_route_words "$2")"
+}
+
+exam_route_alone_fault() {
+  printf 'It would have been settled without the operator, who did not take the agent'\''s recommendation.'
+}
+
+exam_unjudgeable_fault() {
+  printf 'The case cannot be judged: %s' "$1"
+}
+
+# Why a case cannot be judged.
+exam_case_no_reply_words() {
+  printf 'it holds no reply between its two marker lines.'
+}
+
+exam_case_bad_route_words() {
+  printf 'it expects the route "%s", which is none the exam knows (agent, operator, alone).' "$1"
+}
+
+exam_case_no_expectation_words() {
+  printf 'it says neither where it must be sent nor whether the operator picked the recommended option.'
+}
+
+exam_case_bad_finding_words() {
+  printf 'it expects the finding "%s", which the rules and conventions check never gives.' "$1"
+}
+
+exam_case_unreadable_words() {
+  printf 'the file cannot be read.'
+}
+
+# The notes a replay leaves where it could not run a part as the gate would.
+exam_challenged_note() {
+  printf 'Its kind, %s, is challenged first, which sends it back to the agent; the agent'\''s answer to the challenge is not replayed.' "$1"
+}
+
+exam_climb_unreplayed_note() {
+  printf 'Its kind'\''s route, %s, climbs on the agent'\''s later replies, which the case does not hold, so the matcher was not run and the answer is taken as held.' "$1"
+}
+
+# The exam's last lines, given how many cases were replayed, passed and
+# failed, and for a failed exam how many dropped.
+exam_passed_note() {
+  printf 'The exam passed: %s cases, %s passed, %s failed, none dropped.\n' "$1" "$2" "$3"
+}
+
+exam_failed_note() {
+  printf 'The exam failed: %s cases, %s passed, %s failed, %s dropped. Each drop blocks the change until it passes again.\n' "$1" "$2" "$3" "$4"
+}
+
+exam_no_results_line() {
+  printf 'No last results of a passing exam are kept on this machine, so every failing case counts as a drop.\n'
+}
+
+exam_mark_cleared_line() {
+  printf 'This session'\''s exam owed is cleared.\n'
+}
+
+exam_mark_kept_line() {
+  printf 'This session'\''s exam owed stands: its step reports and its "brief done" wait until an exam passes.\n'
+}
+
+exam_mark_moved_line() {
+  printf 'An edit of what the stand-in judges by was noted while the exam ran, so this session'\''s exam owed stands; run the exam again.\n'
+}
+
+exam_no_session_line() {
+  printf 'The environment names no session, so no session'\''s exam owed was cleared.\n'
+}
+
+refuse_exam_session_note() {
+  printf 'The environment'\''s %s holds no session id the stand-in can use, so whose exam owed to clear cannot be told.\n' "$1"
+}
+
+refuse_exam_no_cases_note() {
+  printf 'No test case is kept in %s, so the exam has nothing to replay and cannot pass.\n' "$1"
+}
+
+refuse_exam_results_unreadable_note() {
+  printf 'The last results of a passing exam, %s, cannot be read, so which case dropped cannot be told.\n' "$1"
+}
+
+refuse_exam_results_unwritable_note() {
+  printf 'The results of the passing exam cannot be kept in %s, so the next exam could not tell a drop; this exam is not taken as passed.\n' "$1"
+}
+
+# --- The exam owed: the mark an edit of what the stand-in judges by leaves.
+
+refuse_owed_unreadable_note() {
+  printf 'This session'\''s exam owed, %s, cannot be read.\n' "$1"
+}
+
+refuse_owed_unwritable_note() {
+  printf 'A session'\''s exam owed cannot be written in %s.\n' "$1"
+}
+
+refuse_owed_unremovable_note() {
+  printf 'This session'\''s exam owed, %s, cannot be removed.\n' "$1"
+}
+
+refuse_edit_session_note() {
+  printf 'The after-tool event carries no session id the stand-in can use.\n'
+}
+
+refuse_edit_path_note() {
+  printf 'The after-tool event names no file the tool edited.\n'
+}
+
+# The files the session edited, one a line, under the words sent.
+owed_file_line() {
+  printf -- '- %s\n' "$1"
+}
+
+# To the agent, in a session the stand-in is on for: its step's report or its
+# "brief done", sent back; given the exam's command and the files, one a line.
+gate_exam_owed_note() {
+  gate_from_note "$(printf 'run the exam first. This session edited what the stand-in judges by, so its step reports and its "brief done" wait until the exam passes. Run it, then report again:\n%s' "$1")"
+  printf 'Edited:\n%s' "$2"
+}
+
+# To the operator, once the report was sent back as often as it may be; given
+# how often, the exam's command and the files, one a line.
+gate_exam_owed_operator_note() {
+  printf 'Stand-in: this session edited what the stand-in judges by, and was sent back %s times to run the exam, which has not passed since. The report above is yours to weigh. The exam runs by:\n%s\nEdited:\n%s' "$1" "$2" "$3"
+}
+
+# To the agent each turn, in a session the stand-in is off for; given the
+# exam's command and the files, one a line.
+exam_reminder_note() {
+  gate_from_note "$(printf 'an exam is owed. This session edited what the stand-in judges by; run the exam before you report a step or say the brief is done, and say what it showed:\n%s' "$1")"
+  printf 'Edited:\n%s' "$2"
+}
+
+# To the operator, where an edit could not be checked for whether it owes the
+# exam, with why.
+edit_unnoted_note() {
+  local why="$1"
+  [ -n "$why" ] || why='No part of the stand-in said why.'
+  printf 'Stand-in: an edit could not be checked for whether it owes the exam, so no exam is asked for it. Why:\n%s\n' "$why"
+}
+
+# To the operator and the agent, where whether an exam is owed cannot be told
+# at the start of a turn, with why.
+exam_reminder_unread_note() {
+  local why="$1"
+  [ -n "$why" ] || why='No part of the stand-in said why.'
+  printf 'Stand-in: whether this session owes the exam cannot be told, so no reminder could be given. Why:\n%s\n' "$why"
 }

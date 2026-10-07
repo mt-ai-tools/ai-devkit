@@ -2260,3 +2260,110 @@ watch_end() {
   run_gate true "mf-users landed the frozen flag."
   [ "$(message)" = "$(format_resumed_note '{"kind":"repository","on":"monoframe/mf-users"}')" ]
 }
+
+# --- The exam owed.
+
+# An edit of the preset's kind named, noted by the stand-in's edit hook as
+# Claude Code hands it an Edit of that file.
+edit_kind() {
+  run --separate-stderr "$BATS_TEST_DIRNAME/../hooks/edit-hook.sh" <<<"$(jq -cn --arg s "$session" \
+    --arg p "$preset_dir/questions/$1.md" '{session_id: $s, hook_event_name: "PostToolUse", tool_name: "Edit",
+      tool_input: {file_path: $p, old_string: "a", new_string: "b"}, tool_response: {}}')"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+# The words a report is sent back with while the session owes the exam for
+# an edit of the kind named.
+owed_note() {
+  gate_exam_owed_note "$(cd "$BATS_TEST_DIRNAME/.." && pwd)/bin/stand-in.sh exam" \
+    "$(owed_file_line "$preset_dir/questions/$1.md")"
+}
+
+owed_file() { printf '%s/owed/%s' "$history" "$session"; }
+
+@test "a step's report from a session owing the exam is sent back to run it first, before its problems are labelled" {
+  . "$lib/step-go.sh"
+  step_report
+  edit_kind naming
+  run_gate false "$step_reply"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '.decision' <<<"$output")" = block ]
+  [ "$(reason)" = "$(owed_note naming)" ]
+  [[ "$(reason)" == "From the stand-in: run the exam first."* ]]
+  [ "$(calls)" = "reader $READER_MODEL" ]
+  [ ! -e "$(log_file)" ]
+}
+
+@test "a claim of done, and a report naming no next step, are sent back to run the exam too; a question is not held for it" {
+  closing_ground
+  . "$lib/step-go.sh"
+  edit_kind naming
+  answer_for reader "$(done_form)"
+  run_gate false "$done_reply"
+  [ "$(reason)" = "$(owed_note naming)" ]
+  step_report "$(no_next_form)"
+  run_gate false "$no_next_reply"
+  [ "$(reason)" = "$(owed_note naming)" ]
+  answer_for reader "$(whole_form)"
+  run_gate false
+  [ "$(reason)" = "$(gate_challenge_note "$standing_test")" ]
+}
+
+@test "a report sent back for the exam as often as it may be reaches the operator, the exam still owed" {
+  . "$lib/step-go.sh"
+  step_report
+  edit_kind naming
+  run_gate false "$step_reply"
+  run_gate true "$step_reply"
+  run_gate true "$step_reply"
+  [ "$(reason)" = "$(owed_note naming)" ]
+  run_gate true "$step_reply"
+  [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
+  [ "$(message)" = "$(gate_exam_owed_operator_note 3 "$(cd "$BATS_TEST_DIRNAME/.." && pwd)/bin/stand-in.sh exam" \
+    "$(owed_file_line "$preset_dir/questions/naming.md")")" ]
+  [ -f "$(owed_file)" ]
+}
+
+@test "proof: after an edit, a step's report is sent back until the exam passes; a passing exam clears it, and the session's end clears a new one" {
+  . "$lib/step-go.sh"
+  step_report
+  export CLAUDE_CODE_SESSION_ID="$session"
+  # A case the operator did not take the recommendation of, which passed the
+  # last exam.
+  mkdir -p "$history/answers" "$history/exam"
+  printf -- '---\nsummary: A case.\nbrief: file-trash\nkind: naming\npicked-recommended: no\ntuning: none\n---\n\n=====REPLY START=====\nFive or ten?\n=====REPLY END=====\n' \
+    >"$history/answers/naming.md"
+  printf '%s\n' '{"passed":["naming.md"]}' >"$history/exam/last-passed.json"
+  answer_for sorter '{"kind":"naming","unsure":false,"risks":[],"defers":false}'
+  # The edit: the kind's route flipped, so the case would stand alone.
+  kind naming accept
+  edit_kind naming
+  run_gate false "$step_reply"
+  [ "$(reason)" = "$(owed_note naming)" ]
+  answer_for reader "$(whole_form)"
+  run --separate-stderr "$BATS_TEST_DIRNAME/../bin/stand-in.sh" exam
+  [ "$status" -eq 1 ]
+  [ "$(head -n 1 <<<"$output")" = "$(exam_dropped_line naming.md "")" ]
+  [ -f "$(owed_file)" ]
+  answer_for reader "$(step_form)"
+  run_gate true "$step_reply"
+  [ "$(reason)" = "$(owed_note naming)" ]
+  # Put back, the exam passes, and the report is weighed for the go.
+  kind naming ask
+  edit_kind naming
+  answer_for reader "$(whole_form)"
+  run --separate-stderr "$BATS_TEST_DIRNAME/../bin/stand-in.sh" exam
+  [ "$status" -eq 0 ]
+  [ "$(tail -n 1 <<<"$output")" = "$(exam_mark_cleared_line)" ]
+  [ ! -e "$(owed_file)" ]
+  answer_for reader "$(step_form)"
+  run_gate true "$step_reply"
+  [ "$(message)" = "$(trial_message)" ]
+  # A new edit, and the session ends: its exam owed goes with it.
+  edit_kind naming
+  [ -f "$(owed_file)" ]
+  run --separate-stderr "$BATS_TEST_DIRNAME/../hooks/end-hook.sh" <<<"$(jq -cn --arg s "$session" '{session_id: $s}')"
+  [ "$status" -eq 0 ]
+  [ ! -e "$(owed_file)" ]
+}

@@ -44,7 +44,9 @@ learns their names.
   version control. Its `on` (which
   sessions the stand-in is switched on for), `sessions` (where the gate
   stands with each), `woken` (the mark a session's wait leaves when it
-  ends, until the gate reads it) and `log` (every question, step report and request to
+  ends, until the gate reads it), `owed` (which sessions edited what the
+  stand-in judges by and owe its exam), `exam` (which cases passed the
+  last passing exam) and `log` (every question, step report and request to
   build it let go, with the operator's answer) are this machine's alone
   and worth ignoring; `sessions` and `log` may hold raw agent text. The config
   file can move it.
@@ -79,9 +81,14 @@ exposes the stand-in's entry skill there too, with the stand-in's start
 hook registered for the turn-start event and its end hook for the
 session-end event: the skill offers the command that switches the
 stand-in on, the start hook is what carries it out, and without the end
-hook a session's switch outlives it. Last, it registers the stand-in's
+hook a session's switch outlives it. It registers the stand-in's
 question hook for the before-tool event of Claude Code's question tool:
 without it, a question asked in the question box passes the gate unseen.
+Last, it registers the stand-in's edit hook for the after-tool event of
+Claude Code's file-editing tools (Edit, Write, MultiEdit and NotebookEdit),
+and its reminder hook for the turn-start event: without the one an edit of
+the stand-in's preset, prompts or models owes no exam, and without the other
+a session the stand-in is off for is never told it owes one.
 The machine installs the stand-in's secret scanner through mise, at the
 release the stand-in pins: the case-writer never fetches it, and without
 it holds every case back, naming the command that installs it.
