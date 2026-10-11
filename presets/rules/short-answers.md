@@ -35,7 +35,9 @@ further down.
 - Write so it reads cold. Name the subject by something with exactly one
   meaning — the command as it is typed, the path, the identifier. A
   plain noun that could point at more than one thing names nothing,
-  however complete the phrase around it reads.
+  however complete the phrase around it reads. A step is named with the
+  count of all steps and what it does: "step 5 of 9, the journal pen",
+  never "step 5" alone.
 - Never point back at what the reader is not holding: not "it", not
   "that approach", not "as said above", and not a numbered question or a
   position in a list that lives somewhere else. The reader may hold none
