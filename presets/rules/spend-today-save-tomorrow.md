@@ -13,6 +13,9 @@ code and worse structure.
 
 - Read the extra file, run the extra check, do the extra search. Thoroughness
   now is the cheap option.
+- Read the extra file, but search wide through a search agent and keep only
+  its answer; read yourself the files a decision rests on. What a session
+  reads stays in it and is read again on every reply after.
 - Never shrink a design, a split, or a test to "keep it quick" or "save
   tokens". Economy of effort is not a goal; it is the debt.
 - Watch for the tells: a search skipped to be fast, a structure flattened to be
