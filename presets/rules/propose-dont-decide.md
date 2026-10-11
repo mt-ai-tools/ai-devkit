@@ -12,6 +12,9 @@ Conventions and structural choices are the operator's call. Propose a concrete r
 - One question per reply. The next waits for the answer to this one: a
   reader settling two at once settles the second worse, and an answer can
   change what the next question should be.
+- In a round of questions, each one opens with where it stands: "Question 2
+  of 5". When an answer adds or removes a question, say so and give the new
+  count.
 - Put the issue plainly, with an everyday example of it going wrong: what
   somebody would do, and what they would see happen.
 - Name each option's risks: a security gap, a departure from established
