@@ -196,8 +196,15 @@ skill_name_unreadable_note() {
 # Finished once nothing is left to do around it, never the moment its steps
 # are built: a session that looks around its work after the last step would
 # otherwise finish the brief first, and have no brief left to look for.
+#
+# The closing sentence spares the operator asking whether the session may be
+# closed (settled with them 2026-10-12). Said here and not after done: once
+# done deletes the brief, the session holds none, and this reminder is no
+# longer sent. The session judges it alone: in a shared checkout no code can
+# tell whose uncommitted changes are whose. Reviews are named as the ones it
+# started, so a session never runs rounds nobody asked for just to say it.
 turn_held_note() {
-  printf 'You are working on `%s` (taken %s ago). Once it is built and nothing is left to do around it, finish it with the organizer'\''s `done` and commit the paths it prints.\n' "$1" "$2"
+  printf 'You are working on `%s` (taken %s ago). Once it is built and nothing is left to do around it, finish it with the organizer'\''s `done` and commit the paths it prints. Then end your report with "It'\''s safe to close this session." — said only when everything this session changed is committed, every leftover is written down, no command it started is still running, and every review it started has finished with nothing it found left open; where any of these is not so, say which instead.\n' "$1" "$2"
 }
 
 turn_unknown_note() {
