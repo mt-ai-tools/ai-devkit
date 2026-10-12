@@ -21,6 +21,7 @@
 # stderr and is the answer too. Where the organizer cannot be run at all,
 # the user is told so; the list is never silently missing.
 set -euo pipefail
+shopt -s inherit_errexit
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 tool_root="$(cd "$here/.." && pwd)"

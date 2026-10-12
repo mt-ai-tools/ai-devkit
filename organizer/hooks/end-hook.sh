@@ -16,6 +16,7 @@
 # Freeing nothing is the safe miss, since the mark stays in the list with its
 # age; freeing on a guess could free a brief another session is working on.
 set -euo pipefail
+shopt -s inherit_errexit
 
 session=""
 

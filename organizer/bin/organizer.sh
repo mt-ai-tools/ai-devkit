@@ -24,6 +24,7 @@
 # anything else. A config file the kit refuses stops it with the config
 # reader's own reason, before any operation runs.
 set -euo pipefail
+shopt -s inherit_errexit
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 tool_root="$(cd "$here/.." && pwd)"

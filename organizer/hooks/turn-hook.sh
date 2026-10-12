@@ -18,6 +18,7 @@
 # rules' injector, on the same event, does the opposite and refuses a turn its
 # rules did not reach — the rules are the point of a turn, a reminder is not.
 set -euo pipefail
+shopt -s inherit_errexit
 
 # Armed before anything is loaded, as the injector's refusal is and for the
 # same reason: a part that cannot be loaded ends bash with an ordinary error

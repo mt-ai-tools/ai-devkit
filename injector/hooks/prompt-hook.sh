@@ -30,6 +30,7 @@
 # Advice that silently went missing is worse than a session that stops and
 # says so.
 set -euo pipefail
+shopt -s inherit_errexit
 
 # The refusal is armed before anything is loaded, and on the way out rather
 # than on an error: bash ends the script outright when a file it was told to

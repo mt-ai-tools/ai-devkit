@@ -12,6 +12,7 @@
 #
 # Usage: <conventions-dir>
 set -euo pipefail
+shopt -s inherit_errexit
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 tool_root="$(cd "$here/.." && pwd)"
