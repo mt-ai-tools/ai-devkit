@@ -1,6 +1,6 @@
 ---
 name: builder
-description: Carries out one step of a written brief and verifies it; never commits. Use it for every building step once a brief exists — the launching session plans, reads the diff against the brief, and commits. One step at a time is the default; the session may start several, one builder each, only for steps that need nothing from each other, whose shape nothing found in the other could change, and that touch different files — and reads and commits each on its own.
+description: Carries out one step of a written brief and verifies it; never commits. Use it for every building step once a brief exists — the launching session plans, reads the diff against the brief, and commits. One step at a time is the default; the session may start several, one builder each, only for steps that need nothing from each other, whose shape nothing found in the other could change, and that touch different files — and reads and commits each on its own. No reviewer runs during a brief unless the operator asks for one. After the brief's last step, before its closing, ask them: "Review before closing? N steps, M repos, K reviewers" — K is 1, or 3–4 parts of equal size when the brief ran more than 5 steps or changed more than 3 repos. On their yes: the reviewers run at once, each finding goes to the fixer, one confirming review reads only the fixes, and what is still open is reported, never looped on. Then close the brief.
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: opus
 ---
