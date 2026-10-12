@@ -45,7 +45,7 @@ Answer one claim about the code.
    - Does it matter — under the law named, or under another one that catches
      it instead.
    - What would you do about it — your own fix, written before you have seen
-     theirs.
+     the proposal.
 
    Stop at the first if the claim is false. What to do about something that
    is not happening has no answer, and supplying one anyway is how a false
@@ -55,7 +55,7 @@ Answer one claim about the code.
    missing. A guess offered here is indistinguishable from a reading, and it
    arrives while the operator is deciding.
 
-5. Now read the proposal, and say where it stands against yours.
+5. Now read the proposal, and say where it stands against the advisor's.
 
    - Where they agree, say what independently led you there. Agreement that
      only repeats the claim's own reasoning is agreement about nothing —
@@ -78,9 +78,9 @@ Answer one claim about the code.
 
        Matters: yes | no — <the law that decides it>
 
-       Mine:    <the fix you arrived at, one or two sentences>
+       Advisor:  <the fix the cold reading arrived at, one or two sentences>
 
-       Theirs:  agrees | differs | true claim, wrong fix — <what separates them>
+       Proposal: agrees | differs | true claim, wrong fix — <what separates them>
 
        Back:    <the answer as one message, addressed to whoever raised the claim>
 
