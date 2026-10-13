@@ -1,6 +1,6 @@
 ---
 enforce: [premise, before-finishing]
-summary: Every fact lives in exactly one place. Reference it, never copy it.
+summary: Every fact lives in one place; reference it, never copy it.
 autonomy: >
   A copy may be deleted where the finding names which one is the source. Where
   either could be, it goes to the operator with both places and what each holds.

@@ -1,6 +1,6 @@
 ---
 enforce: [premise]
-summary: Tokens and time spent today are pre-approved. Never cut quality to save them — tomorrow pays double.
+summary: Time and tokens spent today are pre-approved; never cut quality to save them.
 ---
 
 # Spend today, save tomorrow

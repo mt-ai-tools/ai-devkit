@@ -1,6 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
-summary: When a shared abstraction almost fits, extend it. Never fork or copy it.
+summary: When a shared abstraction almost fits, extend it; never fork or copy it.
 ---
 
 # Extend, don't duplicate

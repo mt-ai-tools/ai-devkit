@@ -1,6 +1,6 @@
 ---
 enforce: [before-thinking]
-summary: Conventions and structural choices are the operator's — recommend one option concretely, then wait.
+summary: Conventions and structural choices are the operator's; recommend one option concretely, then wait.
 ---
 
 # Propose, don't decide

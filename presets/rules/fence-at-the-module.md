@@ -1,6 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
-summary: An outside library stops at the module that binds it, and no module is named after one.
+summary: An outside library stops at the module that binds it; no module is named after one.
 ---
 
 # Fence at the module

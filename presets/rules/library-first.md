@@ -1,6 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
-summary: Check for a maintained library before hand-rolling. If you still hand-roll, justify it in writing.
+summary: Check for a maintained library before hand-rolling; justify hand-rolling in writing.
 ---
 
 # Library first

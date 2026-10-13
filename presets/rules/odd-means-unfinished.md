@@ -1,6 +1,6 @@
 ---
 enforce: [before-thinking, before-acting, before-finishing]
-summary: A shape that needs excusing is a design not yet found. Say what you would have had to accept, and stop.
+summary: A shape that needs excusing is a design not yet found; say what you would have had to accept, and stop.
 ---
 
 # Odd means unfinished

@@ -1,6 +1,6 @@
 ---
 enforce: [before-thinking]
-summary: Work in coherent chunks and commit each one as it lands. Don't ask, and don't let changes pile up.
+summary: Commit each coherent chunk as it lands, without asking; never let changes pile up.
 ---
 
 # Commit per chunk

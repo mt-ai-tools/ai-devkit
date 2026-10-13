@@ -1,6 +1,6 @@
 ---
 enforce: [before-thinking]
-summary: Build exactly what was asked. Propose unrelated improvements in text; never commit them.
+summary: Build exactly what was asked; propose improvements in text, never commit them.
 ---
 
 # Stay in scope

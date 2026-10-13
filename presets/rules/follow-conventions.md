@@ -1,6 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
-summary: Follow established conventions — written ones from the project's conventions collection, unwritten ones from surrounding code; propose recording what you had to infer.
+summary: Follow the written conventions, else the surrounding code; propose recording what you had to infer.
 ---
 
 # Follow conventions

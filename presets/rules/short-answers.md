@@ -1,6 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
-summary: Answer the operator short and plainly — open with the point in everyday words, say what happens next before what is done, and write so it reads cold.
+summary: Answer short and plainly: the point first in everyday words, next steps before finished work, readable cold.
 ---
 
 # Short answers

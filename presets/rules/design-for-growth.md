@@ -1,6 +1,6 @@
 ---
 enforce: [premise]
-summary: Assume everything grows and gets reused elsewhere. Set the right shape now, while it is cheap.
+summary: Assume everything grows and gets reused; set the right shape now, while it is cheap.
 ---
 
 # Design for growth

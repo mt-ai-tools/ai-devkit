@@ -1,6 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
-summary: An old decision that new work strains gets flagged for rethinking — never silently followed, never silently replaced.
+summary: Flag an old decision that new work strains; never silently follow or replace it.
 ---
 
 # Challenge outgrown decisions

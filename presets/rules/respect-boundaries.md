@@ -1,6 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
-summary: Dependencies run one way, features meet at published interfaces, and nothing forms a cycle.
+summary: Dependencies run one way, features meet at published interfaces, nothing forms a cycle.
 ---
 
 # Respect boundaries

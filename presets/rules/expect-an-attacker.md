@@ -1,6 +1,6 @@
 ---
 enforce: [before-thinking, before-acting, before-finishing]
-summary: The outside is hostile. Name what an attacker gains before shaping a change, refuse what cannot be decided, and keep secrets where only the deployment reads them.
+summary: The outside is hostile: name what an attacker gains, refuse what cannot be decided, keep secrets where only the deployment reads them.
 autonomy: >
   A refusal that names which check failed may be reworded to the generic
   refusal the code already answers elsewhere. A secret found anywhere is

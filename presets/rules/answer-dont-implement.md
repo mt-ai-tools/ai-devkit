@@ -1,6 +1,6 @@
 ---
 enforce: [before-thinking, before-acting]
-summary: A question gets a text answer, not code. Wait for an explicit instruction before changing anything.
+summary: A question gets a text answer, not code; change nothing until explicitly told to.
 ---
 
 # Answer, don't implement

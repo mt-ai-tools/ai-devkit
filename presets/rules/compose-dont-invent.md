@@ -1,6 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
-summary: A consumer composes what the shared modules provide; anything generic it had to invent is a gap to report, not to build.
+summary: Compose what the shared modules provide; anything generic you had to invent is a gap to report, not to build.
 ---
 
 # Compose, don't invent

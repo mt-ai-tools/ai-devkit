@@ -1,6 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
-summary: Fix a problem in the module that owns it. Never reach into an unrelated module to hide a symptom.
+summary: Fix a problem in the module that owns it; never reach into another to hide a symptom.
 ---
 
 # Keep modules independent
