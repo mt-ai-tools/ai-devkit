@@ -48,7 +48,7 @@ copy_kit() {
 }
 
 @test "the organizer's skill gets the list byte for byte, with a note for the model" {
-  brief file-trash "Deleted files wait before they go." "[]" "[aidk-plans]" "[]"
+  brief p2-required file-trash "Deleted files wait before they go." "[]" "[aidk-plans]" "[]"
   run_hook "$hook" devkit-whats-next
   organizer list >"$BATS_TEST_TMPDIR/expected" 2>&1
   jq -j '.systemMessage' "$answer" >"$BATS_TEST_TMPDIR/shown"
@@ -58,7 +58,7 @@ copy_kit() {
 }
 
 @test "a list whose check finds problems is shown all the same" {
-  brief waits "Waits." "[no-such-brief]" "[aidk-plans]" "[]"
+  brief p2-required waits "Waits." "[no-such-brief]" "[aidk-plans]" "[]"
   run_hook "$hook" devkit-whats-next
   run organizer list
   [ "$status" -eq 1 ]
@@ -71,7 +71,7 @@ copy_kit() {
 @test "the skill's name is read from the skill's own file" {
   copy_kit
   sed -i 's/^name: devkit-whats-next$/name: renamed-skill/' "$kit/organizer/skills/whats-next/SKILL.md"
-  brief file-trash "Deleted files wait before they go." "[]" "[aidk-plans]" "[]"
+  brief p2-required file-trash "Deleted files wait before they go." "[]" "[aidk-plans]" "[]"
   run_hook "$copied_hook" devkit-whats-next
   [ ! -s "$answer" ]
   run_hook "$copied_hook" renamed-skill

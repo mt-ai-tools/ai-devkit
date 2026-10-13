@@ -18,7 +18,7 @@ setup() {
   . "$BATS_TEST_DIRNAME/../lib/wait.sh"
   project="$BATS_TEST_TMPDIR/project"
   history="$project/aidk-stand-in"
-  mkdir -p "$project/aidk-plans" "$project/aidk-organizer/taken" "$BATS_TEST_TMPDIR/elsewhere"
+  mkdir -p "$project/aidk-plans/p2-required" "$project/aidk-organizer/taken" "$BATS_TEST_TMPDIR/elsewhere"
   export CLAUDE_PROJECT_DIR="$project"
   export CLAUDE_CODE_SESSION_ID="session-1"
   cd "$BATS_TEST_TMPDIR/elsewhere"
@@ -48,7 +48,7 @@ teardown() {
 # A brief in the suite's project, with what it waits on.
 brief() {
   printf -- '---\nsummary: The %s brief.\nafter: %s\ntouches: [aidk-plans]\ncreates: []\n---\n\n# %s\n' \
-    "$1" "$2" "$1" >"$project/aidk-plans/$1.md"
+    "$1" "$2" "$1" >"$project/aidk-plans/p2-required/$1.md"
 }
 
 commit_all() {
@@ -104,15 +104,15 @@ mark() { cat "$history/woken/session-1"; }
 
 @test "a brief wait is written into the session's brief, and is over when the brief waited for is finished, not before" {
   start_watch brief media-bucket
-  holds_line "$project/aidk-plans/file-trash.md" "after: [media-bucket]"
+  holds_line "$project/aidk-plans/p2-required/file-trash.md" "after: [media-bucket]"
   still_waiting 4
   [ "$("$organizer" waits file-trash)" = media-bucket ]
   "$organizer" done media-bucket >/dev/null
   watch_status
   [ "$(mark)" = "$(to_woken_mark over brief media-bucket)" ]
-  [ "$(cat "$BATS_TEST_TMPDIR/out")" = "$(wait_written_line; printf '%s\n' "$project/aidk-plans/file-trash.md"; wait_over_note "$(wait_brief_words media-bucket)")" ]
+  [ "$(cat "$BATS_TEST_TMPDIR/out")" = "$(wait_written_line; printf '%s\n' "$project/aidk-plans/p2-required/file-trash.md"; wait_over_note "$(wait_brief_words media-bucket)")" ]
   [ ! -s "$BATS_TEST_TMPDIR/err" ]
-  grep -qxF -- "after: []" "$project/aidk-plans/file-trash.md"
+  grep -qxF -- "after: []" "$project/aidk-plans/p2-required/file-trash.md"
 }
 
 @test "a repository wait is over once it holds nothing uncommitted and nothing unpushed: uncommitted alone, then unpushed alone, keep it waiting" {
@@ -129,9 +129,9 @@ mark() { cat "$history/woken/session-1"; }
 
 @test "a refusal at a later look ends the watch: the brief waited for gone by hand is never read as finished" {
   start_watch brief media-bucket
-  holds_line "$project/aidk-plans/file-trash.md" "after: [media-bucket]"
+  holds_line "$project/aidk-plans/p2-required/file-trash.md" "after: [media-bucket]"
   still_waiting 2
-  rm "$project/aidk-plans/media-bucket.md"
+  rm "$project/aidk-plans/p2-required/media-bucket.md"
   status=0
   watch_status || status=$?
   [ "$status" -eq 1 ]

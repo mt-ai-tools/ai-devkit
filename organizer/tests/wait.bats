@@ -11,19 +11,19 @@ load project
 setup() {
   setup_project
   place aidk-plans
-  brief file-trash "Trash." "[]" "[aidk-plans]" "[]"
-  brief media-bucket "Bucket." "[]" "[aidk-plans]" "[]"
-  brief one-reporter "Reporter." "[media-bucket]" "[aidk-plans]" "[]"
+  brief p2-required file-trash "Trash." "[]" "[aidk-plans]" "[]"
+  brief p2-required media-bucket "Bucket." "[]" "[aidk-plans]" "[]"
+  brief p2-required one-reporter "Reporter." "[media-bucket]" "[aidk-plans]" "[]"
 }
 
 @test "wait writes the brief waited on into the after list, prints the path, and waits reads it back" {
   run --separate-stderr organizer wait file-trash media-bucket
   [ "$status" -eq 0 ]
-  [ "$output" = "$plans/file-trash.md" ]
-  [ "$(cat "$plans/file-trash.md")" = "$(printf -- '---\nsummary: Trash.\nafter: [media-bucket]\ntouches: [aidk-plans]\ncreates: []\n---\n\n# file-trash\n\nBody.')" ]
+  [ "$output" = "$plans/p2-required/file-trash.md" ]
+  [ "$(cat "$plans/p2-required/file-trash.md")" = "$(printf -- '---\nsummary: Trash.\nafter: [media-bucket]\ntouches: [aidk-plans]\ncreates: []\n---\n\n# file-trash\n\nBody.')" ]
   run organizer wait file-trash one-reporter
   [ "$status" -eq 0 ]
-  grep -qxF -- "after: [media-bucket, one-reporter]" "$plans/file-trash.md"
+  grep -qxF -- "after: [media-bucket, one-reporter]" "$plans/p2-required/file-trash.md"
   run --separate-stderr organizer waits file-trash
   [ "$status" -eq 0 ]
   [ "$output" = $'media-bucket\none-reporter' ]
@@ -35,7 +35,7 @@ setup() {
   run organizer wait one-reporter media-bucket
   [ "$status" -eq 0 ]
   [ -z "$output" ]
-  grep -qxF -- "after: [media-bucket]" "$plans/one-reporter.md"
+  grep -qxF -- "after: [media-bucket]" "$plans/p2-required/one-reporter.md"
 }
 
 @test "a brief waiting on nothing reads back as nothing" {
@@ -80,14 +80,14 @@ setup() {
 }
 
 @test "a wait closing a longer cycle is refused too" {
-  brief far-end "Far." "[one-reporter]" "[aidk-plans]" "[]"
+  brief p2-required far-end "Far." "[one-reporter]" "[aidk-plans]" "[]"
   run --separate-stderr organizer wait media-bucket far-end
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_wait_cycle_note media-bucket far-end)" ]
 }
 
 @test "an after list that cannot be read, or a folder that cannot be written, is refused, and nothing changes" {
-  printf -- '---\nsummary: Broken.\nafter: media-bucket\ntouches: [aidk-plans]\ncreates: []\n---\n' >"$plans/broken.md"
+  printf -- '---\nsummary: Broken.\nafter: media-bucket\ntouches: [aidk-plans]\ncreates: []\n---\n' >"$plans/p2-required/broken.md"
   run --separate-stderr organizer wait broken file-trash
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_header_unreadable_note broken)" ]
@@ -95,18 +95,18 @@ setup() {
   [ "$status" -eq 1 ]
   [ -z "$output" ]
   [ "$stderr" = "$(refuse_header_unreadable_note broken)" ]
-  cp "$plans/file-trash.md" "$BATS_TEST_TMPDIR/file-trash-before"
-  chmod a-w "$plans"
+  cp "$plans/p2-required/file-trash.md" "$BATS_TEST_TMPDIR/file-trash-before"
+  chmod a-w "$plans/p2-required"
   run --separate-stderr organizer wait file-trash media-bucket
-  chmod u+w "$plans"
+  chmod u+w "$plans/p2-required"
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_wait_unwritten_note file-trash)" ]
-  cmp "$plans/file-trash.md" "$BATS_TEST_TMPDIR/file-trash-before"
+  cmp "$plans/p2-required/file-trash.md" "$BATS_TEST_TMPDIR/file-trash-before"
   [ -z "$(find "$plans" -name '.*' -type f)" ]
 }
 
 @test "waits never reads a name that is no brief as over: it is refused" {
-  brief stranded "Stranded." "[gone-brief]" "[aidk-plans]" "[]"
+  brief p2-required stranded "Stranded." "[gone-brief]" "[aidk-plans]" "[]"
   run --separate-stderr organizer waits stranded
   [ "$status" -eq 1 ]
   [ -z "$output" ]
@@ -114,4 +114,31 @@ setup() {
   run --separate-stderr organizer waits no-such-brief
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_no_brief_note no-such-brief)" ]
+}
+
+@test "a wait is written and read across levels, where the brief lies" {
+  brief p1-critical urgent "Urgent." "[]" "[aidk-plans]" "[]"
+  brief p4-optional later "Later." "[]" "[aidk-plans]" "[]"
+  run --separate-stderr organizer wait later urgent
+  [ "$status" -eq 0 ]
+  [ "$output" = "$plans/p4-optional/later.md" ]
+  grep -qxF -- "after: [urgent]" "$plans/p4-optional/later.md"
+  run --separate-stderr organizer waits later
+  [ "$status" -eq 0 ]
+  [ "$output" = "urgent" ]
+  [ -z "$(find "$plans" -name '.*' -type f)" ]
+}
+
+@test "waits never reads a brief in no level, or in two, as one that can finish: it is refused" {
+  brief p2-required stranded "Stranded." "[flat, twice]" "[aidk-plans]" "[]"
+  printf -- '---\nsummary: Flat.\nafter: []\ntouches: [aidk-plans]\ncreates: []\n---\n' >"$plans/flat.md"
+  run --separate-stderr organizer waits stranded
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_awaited_missing_note stranded flat)" ]
+  brief p2-required flat "Flat." "[]" "[aidk-plans]" "[]"
+  brief p1-critical twice "Once." "[]" "[aidk-plans]" "[]"
+  brief p3-conditional twice "Twice." "[]" "[aidk-plans]" "[]"
+  run --separate-stderr organizer waits stranded
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_awaited_missing_note stranded twice)" ]
 }

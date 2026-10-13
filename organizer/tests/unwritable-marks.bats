@@ -11,10 +11,10 @@ load project
 setup() {
   setup_project
   place aidk-plans
-  brief file-trash "Trash." "[]" "[aidk-plans]" "[]"
-  brief frozen-account "Frozen." "[]" "[aidk-plans]" "[]"
-  brief waits "Waits." "[file-trash]" "[aidk-plans]" "[]"
-  brief also-waits "Also." "[frozen-account, file-trash]" "[aidk-plans]" "[]"
+  brief p2-required file-trash "Trash." "[]" "[aidk-plans]" "[]"
+  brief p2-required frozen-account "Frozen." "[]" "[aidk-plans]" "[]"
+  brief p2-required waits "Waits." "[file-trash]" "[aidk-plans]" "[]"
+  brief p2-required also-waits "Also." "[frozen-account, file-trash]" "[aidk-plans]" "[]"
   mark file-trash session-1 "$now"
   chmod 555 "$marks"
 }
@@ -53,15 +53,15 @@ list_marks() {
 }
 
 @test "finishing is refused before the brief or any waiter changes" {
-  cp -p "$plans/file-trash.md" "$plans/waits.md" "$plans/also-waits.md" "$BATS_TEST_TMPDIR/"
+  cp -p "$plans/p2-required/file-trash.md" "$plans/p2-required/waits.md" "$plans/p2-required/also-waits.md" "$BATS_TEST_TMPDIR/"
   run --separate-stderr organizer done file-trash
   [ "$status" -eq 1 ]
   [ -z "$output" ]
   [ "$stderr" = "$(refuse_marks_unwritable_note "$marks")" ]
-  cmp "$plans/file-trash.md" "$BATS_TEST_TMPDIR/file-trash.md"
-  cmp "$plans/waits.md" "$BATS_TEST_TMPDIR/waits.md"
-  cmp "$plans/also-waits.md" "$BATS_TEST_TMPDIR/also-waits.md"
-  [ "$(ls -A "$plans")" = "$(printf 'also-waits.md\nfile-trash.md\nfrozen-account.md\nwaits.md')" ]
+  cmp "$plans/p2-required/file-trash.md" "$BATS_TEST_TMPDIR/file-trash.md"
+  cmp "$plans/p2-required/waits.md" "$BATS_TEST_TMPDIR/waits.md"
+  cmp "$plans/p2-required/also-waits.md" "$BATS_TEST_TMPDIR/also-waits.md"
+  [ "$(ls -A "$plans/p2-required")" = "$(printf 'also-waits.md\nfile-trash.md\nfrozen-account.md\nwaits.md')" ]
   [ -f "$marks/file-trash" ]
 }
 
@@ -74,15 +74,15 @@ list_marks() {
   printf '#!/usr/bin/env bash\nfor a in "$@"; do case "$a" in %s/*) chmod 555 %s ;; esac; done\nexec /bin/rm "$@"\n' \
     "$marks" "$marks" >"$fakebin/rm"
   chmod +x "$fakebin/rm"
-  cp -p "$plans/file-trash.md" "$plans/waits.md" "$plans/also-waits.md" "$BATS_TEST_TMPDIR/"
+  cp -p "$plans/p2-required/file-trash.md" "$plans/p2-required/waits.md" "$plans/p2-required/also-waits.md" "$BATS_TEST_TMPDIR/"
   run --separate-stderr organizer done file-trash
   [ "$status" -eq 1 ]
   [ -z "$output" ]
   [ "$stderr" = "$(refuse_marks_unwritable_note "$marks")" ]
-  cmp "$plans/file-trash.md" "$BATS_TEST_TMPDIR/file-trash.md"
-  cmp "$plans/waits.md" "$BATS_TEST_TMPDIR/waits.md"
-  cmp "$plans/also-waits.md" "$BATS_TEST_TMPDIR/also-waits.md"
-  [ "$(ls -A "$plans")" = "$(printf 'also-waits.md\nfile-trash.md\nfrozen-account.md\nwaits.md')" ]
+  cmp "$plans/p2-required/file-trash.md" "$BATS_TEST_TMPDIR/file-trash.md"
+  cmp "$plans/p2-required/waits.md" "$BATS_TEST_TMPDIR/waits.md"
+  cmp "$plans/p2-required/also-waits.md" "$BATS_TEST_TMPDIR/also-waits.md"
+  [ "$(ls -A "$plans/p2-required")" = "$(printf 'also-waits.md\nfile-trash.md\nfrozen-account.md\nwaits.md')" ]
   [ -f "$marks/file-trash" ]
 }
 
@@ -109,7 +109,7 @@ list_marks() {
   [ "$status" -eq 0 ]
   run organizer done file-trash
   [ "$status" -eq 0 ]
-  [ ! -e "$plans/file-trash.md" ]
+  [ ! -e "$plans/p2-required/file-trash.md" ]
 }
 
 @test "the session-end hook says the refusal and lets the session end" {

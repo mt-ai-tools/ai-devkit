@@ -25,7 +25,7 @@
 # one. A mark whose brief is gone is left out: it names no places, so nothing
 # is worked on there, and the check already shows it as a problem.
 list_taken_briefs() {
-  local plans="$1" marks="$2" path rows brief held since name summary after touches creates places table=""
+  local plans="$1" marks="$2" path rows brief held since name summary after touches creates draft level places table=""
   local -A held_by
   shift 2
   for path in "$@"; do
@@ -38,7 +38,7 @@ list_taken_briefs() {
     held_by[$brief]="$held"
   done <<<"$rows"
   rows="$(list_brief_rows "$plans")" || return 1
-  while IFS="$HEADER_US" read -r name summary after touches creates; do
+  while IFS="$HEADER_US" read -r name summary after touches creates draft level; do
     [ -n "$name" ] && [ -n "${held_by[$name]+held}" ] || continue
     if ! parse_flow_list "$touches" >/dev/null || ! parse_flow_list "$creates" >/dev/null; then
       refuse_places_unreadable_note "$name" >&2

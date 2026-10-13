@@ -12,16 +12,16 @@ setup() {
 }
 
 @test "a clean folder passes in silence" {
-  brief one "One." "[]" "[aidk-plans]" "[monoframe/mf-new]"
-  brief two "Two." "[one]" "[monoframe, aidk-plans]" "[]"
+  brief p2-required one "One." "[]" "[aidk-plans]" "[monoframe/mf-new]"
+  brief p2-required two "Two." "[one]" "[monoframe, aidk-plans]" "[]"
   run organizer check
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
 
 @test "a missing or empty field is named, each on its own line" {
-  printf -- '---\nsummary:\nafter: []\n---\n# No lists\n' >"$plans/thin.md"
-  printf '# No header at all\n' >"$plans/bare.md"
+  printf -- '---\nsummary:\nafter: []\n---\n# No lists\n' >"$plans/p2-required/thin.md"
+  printf '# No header at all\n' >"$plans/p2-required/bare.md"
   run organizer check
   [ "$status" -eq 1 ]
   expected="$(problem_missing_field_note bare summary)
@@ -35,7 +35,7 @@ $(problem_missing_field_note thin creates)"
 }
 
 @test "a list not written in brackets is refused, never guessed at" {
-  brief loose "Loose." "one, two" "[aidk-plans" "[]"
+  brief p2-required loose "Loose." "one, two" "[aidk-plans" "[]"
   run organizer check
   [ "$status" -eq 1 ]
   [[ "$output" == *"$(problem_not_a_list_note loose after)"* ]]
@@ -43,32 +43,32 @@ $(problem_missing_field_note thin creates)"
 }
 
 @test "a folded summary is refused" {
-  brief folded ">" "[]" "[aidk-plans]" "[]"
+  brief p2-required folded ">" "[]" "[aidk-plans]" "[]"
   run organizer check
   [ "$status" -eq 1 ]
   [ "$output" = "$(problem_folded_summary_note folded)" ]
 }
 
 @test "an after name with no brief behind it is an error, never read as done" {
-  brief waits "Waits." "[built-long-ago]" "[aidk-plans]" "[]"
+  brief p2-required waits "Waits." "[built-long-ago]" "[aidk-plans]" "[]"
   run organizer check
   [ "$status" -eq 1 ]
   [ "$output" = "$(problem_after_missing_note waits built-long-ago)" ]
 }
 
 @test "an after entry that is no name is refused" {
-  brief waits "Waits." "[../escape, Upper]" "[aidk-plans]" "[]"
+  brief p2-required waits "Waits." "[../escape, Upper]" "[aidk-plans]" "[]"
   run organizer check
   [ "$status" -eq 1 ]
   [ "$output" = "$(problem_bad_after_name_note waits ../escape)"$'\n'"$(problem_bad_after_name_note waits Upper)" ]
 }
 
 @test "every brief on a cycle is reported, and one leading into it is not" {
-  brief a "A." "[c]" "[aidk-plans]" "[]"
-  brief b "B." "[a]" "[aidk-plans]" "[]"
-  brief c "C." "[b]" "[aidk-plans]" "[]"
-  brief d "D." "[a]" "[aidk-plans]" "[]"
-  brief self "Self." "[self]" "[aidk-plans]" "[]"
+  brief p2-required a "A." "[c]" "[aidk-plans]" "[]"
+  brief p2-required b "B." "[a]" "[aidk-plans]" "[]"
+  brief p2-required c "C." "[b]" "[aidk-plans]" "[]"
+  brief p2-required d "D." "[a]" "[aidk-plans]" "[]"
+  brief p2-required self "Self." "[self]" "[aidk-plans]" "[]"
   run organizer check
   [ "$status" -eq 1 ]
   expected="$(problem_cycle_note a)
@@ -79,21 +79,21 @@ $(problem_cycle_note self)"
 }
 
 @test "a touches path that does not exist is named" {
-  brief edits "Edits." "[]" "[aidk-plans, monoframe/mf-gone]" "[]"
+  brief p2-required edits "Edits." "[]" "[aidk-plans, monoframe/mf-gone]" "[]"
   run organizer check
   [ "$status" -eq 1 ]
   [ "$output" = "$(problem_touches_missing_note edits monoframe/mf-gone)" ]
 }
 
 @test "a creates path may be missing, but its folder may not" {
-  brief makes "Makes." "[]" "[]" "[monoframe/mf-new, nowhere/mf-new]"
+  brief p2-required makes "Makes." "[]" "[]" "[monoframe/mf-new, nowhere/mf-new]"
   run organizer check
   [ "$status" -eq 1 ]
   [ "$output" = "$(problem_creates_folder_missing_note makes nowhere/mf-new)" ]
 }
 
 @test "an absolute path or one with a .. segment leaves the root and is never looked at" {
-  brief out "Out." "[]" "[/etc, aidk-plans/../.., ..]" "[../sibling, a/../b]"
+  brief p2-required out "Out." "[]" "[/etc, aidk-plans/../.., ..]" "[../sibling, a/../b]"
   run organizer check
   [ "$status" -eq 1 ]
   expected="$(problem_path_outside_note out touches /etc)
@@ -105,7 +105,7 @@ $(problem_path_outside_note out creates a/../b)"
 }
 
 @test "a file whose name is no brief name is reported" {
-  brief Bad_Name "Bad." "[]" "[aidk-plans]" "[]"
+  brief p2-required Bad_Name "Bad." "[]" "[aidk-plans]" "[]"
   run organizer check
   [ "$status" -eq 1 ]
   [ "$output" = "$(problem_bad_name_note Bad_Name)" ]
@@ -118,9 +118,46 @@ $(problem_path_outside_note out creates a/../b)"
 }
 
 @test "a mark naming a brief that is gone is a problem of the marks" {
-  brief here "Here." "[]" "[aidk-plans]" "[]"
+  brief p2-required here "Here." "[]" "[aidk-plans]" "[]"
   mark gone s1 "$now"
   run organizer check
   [ "$status" -eq 1 ]
   [ "$output" = "$(problem_mark_orphan_note gone)" ]
+}
+
+@test "a draft is checked for its summary alone" {
+  draft p1-critical bare-item "Bare."
+  printf -- '---\nsummary: Loose.\ndraft: true\nafter: [nowhere, loose-item]\ntouches: [/etc, no-such-folder]\n---\n' >"$plans/p3-conditional/loose-item.md"
+  run organizer check
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  printf -- '---\ndraft: true\n---\n# Untitled\n' >"$plans/p4-optional/no-summary.md"
+  run organizer check
+  [ "$status" -eq 1 ]
+  [ "$output" = "$(problem_missing_field_note no-summary summary)" ]
+}
+
+@test "a folder that is no level is a problem, and nothing in it is read" {
+  brief p2-required kept "Kept." "[]" "[aidk-plans]" "[]"
+  mkdir -p "$plans/p2-requried"
+  printf '# No header at all\n' >"$plans/p2-requried/lost.md"
+  run organizer check
+  [ "$status" -eq 1 ]
+  [ "$output" = "$(problem_unknown_level_folder_note p2-requried "p1-critical, p2-required, p3-conditional, p4-optional")" ]
+}
+
+@test "a file lying directly in the briefs folder is in no level, and still checked" {
+  printf -- '---\nsummary: Flat.\nafter: [nowhere]\ntouches: [aidk-plans]\ncreates: []\n---\n' >"$plans/flat.md"
+  run organizer check
+  [ "$status" -eq 1 ]
+  [ "$output" = "$(problem_in_no_level_note flat)"$'\n'"$(problem_after_missing_note flat nowhere)" ]
+}
+
+@test "one name in two levels is a problem naming both" {
+  brief p1-critical twice "Once." "[]" "[aidk-plans]" "[]"
+  draft p4-optional twice "Twice."
+  brief p2-required single "Single." "[]" "[aidk-plans]" "[]"
+  run organizer check
+  [ "$status" -eq 1 ]
+  [ "$output" = "$(problem_name_in_levels_note twice "p1-critical, p4-optional")" ]
 }

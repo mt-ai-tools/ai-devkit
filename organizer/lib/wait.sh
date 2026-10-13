@@ -33,20 +33,21 @@ with_after_row() {
 # The briefs a brief waits on, one a line, in the order its after list names
 # them; nothing where it waits on none. Refused, with nothing printed, where
 # the brief is unknown, its after list cannot be read, or the list names a
-# brief that is not in the folder: whoever asks is deciding whether a wait is
-# over, and a name left behind is never read as finished, as the check never
-# reads one so either.
+# brief no one level holds: whoever asks is deciding whether a wait is over,
+# and a name left behind is never read as finished, as the check never reads
+# one so either. A brief lying in no level, or in two, is no answer either:
+# it cannot be finished by name, so the wait on it could never end.
 list_awaited_briefs() {
   local plans="$1" brief="$2" after items item list=()
   refuse_unknown_brief "$plans" "$brief" || return 1
-  after="$(read_header_fields "$(brief_file "$plans" "$brief")" after)"
+  after="$(read_header_fields "$(find_brief_file "$plans" "$brief")" after)"
   if ! items="$(parse_flow_list "$after")"; then
     refuse_header_unreadable_note "$brief" >&2
     return 1
   fi
   IFS=, read -ra list <<<"$items"
   for item in "${list[@]}"; do
-    if ! is_brief_name "$item" || [ ! -f "$(brief_file "$plans" "$item")" ]; then
+    if ! is_brief_name "$item" || [ -z "$(find_brief_file "$plans" "$item")" ]; then
       refuse_awaited_missing_note "$brief" "$item" >&2
       return 1
     fi
@@ -62,21 +63,22 @@ list_awaited_briefs() {
 # its after list, and the path changed printed, for whoever called it to
 # commit; nothing printed where it already waits on it, since nothing changed.
 # Only the after line changes, every other byte copied as it stood, through a
-# hidden draft moved into place, as finishing writes a waiter.
+# hidden copy beside the brief, wherever it lies, moved into place, as
+# finishing writes a waiter.
 #
 # Refused, changing nothing, where either brief is unknown, the two are one,
 # the after list cannot be read, or the wait would close a cycle: a brief on
 # a cycle can never start, and the check would show every brief on it as
 # broken, the one whose session waits among them.
 write_wait() {
-  local plans="$1" brief="$2" on="$3" file after items rows line draft
+  local plans="$1" brief="$2" on="$3" file after items rows line hidden
   refuse_unknown_brief "$plans" "$brief" || return 1
   refuse_unknown_brief "$plans" "$on" || return 1
   if [ "$brief" = "$on" ]; then
     refuse_wait_self_note "$brief" >&2
     return 1
   fi
-  file="$(brief_file "$plans" "$brief")"
+  file="$(find_brief_file "$plans" "$brief")"
   after="$(read_header_fields "$file" after)"
   if ! items="$(parse_flow_list "$after")"; then
     refuse_header_unreadable_note "$brief" >&2
@@ -90,10 +92,10 @@ write_wait() {
     return 1
   fi
   line="$(find_header_line "$file" after)"
-  draft="$plans/.$brief.wait.$$"
-  if ! write_with_line "$file" "$line" "after: $(format_flow_list "$items")" "$draft" 2>/dev/null \
-    || ! mv "$draft" "$file" 2>/dev/null; then
-    rm -f "$draft" 2>/dev/null || true
+  hidden="$(dirname "$file")/.$brief.wait.$$"
+  if ! write_with_line "$file" "$line" "after: $(format_flow_list "$items")" "$hidden" 2>/dev/null \
+    || ! mv "$hidden" "$file" 2>/dev/null; then
+    rm -f "$hidden" 2>/dev/null || true
     refuse_wait_unwritten_note "$brief" >&2
     return 1
   fi

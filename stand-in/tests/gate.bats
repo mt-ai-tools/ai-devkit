@@ -861,8 +861,8 @@ log_file() { printf '%s/log/questions.jsonl' "$history"; }
 }
 
 @test "an answer that held is logged as would have been approved, with every rung's pick, and the brief the session holds" {
-  mkdir -p "$project/aidk-plans" "$project/aidk-organizer/taken"
-  printf -- '---\nsummary: Trash.\nafter: []\ntouches: [aidk-plans]\ncreates: []\n---\n\n# file-trash\n' >"$project/aidk-plans/file-trash.md"
+  mkdir -p "$project/aidk-plans/p2-required" "$project/aidk-organizer/taken"
+  printf -- '---\nsummary: Trash.\nafter: []\ntouches: [aidk-plans]\ncreates: []\n---\n\n# file-trash\n' >"$project/aidk-plans/p2-required/file-trash.md"
   printf 'session: %s\nsince: 2026-10-06T09:00:00Z\n' "$session" >"$project/aidk-organizer/taken/file-trash"
   climb "$(item five)" "$(item five)"
   answered_operator
@@ -910,8 +910,8 @@ log_file() { printf '%s/log/questions.jsonl' "$history"; }
 # The suite's session holding a brief through the work organizer, as its take
 # leaves it.
 hold_brief() {
-  mkdir -p "$project/aidk-plans" "$project/aidk-organizer/taken"
-  printf -- '---\nsummary: Trash.\nafter: []\ntouches: [aidk-plans]\ncreates: []\n---\n\n# file-trash\n' >"$project/aidk-plans/file-trash.md"
+  mkdir -p "$project/aidk-plans/p2-required" "$project/aidk-organizer/taken"
+  printf -- '---\nsummary: Trash.\nafter: []\ntouches: [aidk-plans]\ncreates: []\n---\n\n# file-trash\n' >"$project/aidk-plans/p2-required/file-trash.md"
   printf 'session: %s\nsince: 2026-10-06T09:00:00Z\n' "$session" >"$project/aidk-organizer/taken/file-trash"
 }
 
@@ -1608,7 +1608,7 @@ closing_ground() {
   . "$lib/closing.sh"
   hold_brief
   printf -- '---\nsummary: Frozen.\nafter: []\ntouches: [monoframe/mf-users]\ncreates: []\n---\n\n# frozen-account\n' \
-    >"$project/aidk-plans/frozen-account.md"
+    >"$project/aidk-plans/p2-required/frozen-account.md"
   printf 'session: session-2\nsince: 2026-10-06T09:00:00Z\n' >"$project/aidk-organizer/taken/frozen-account"
   mkdir -p "$project/monoframe/mf-users/src" "$project/monoframe/mf-media/src"
   printf 'users\n' >"$project/monoframe/mf-users/src/users.ts"
@@ -1774,9 +1774,9 @@ here_finding="$(finding "The README still calls the loop beta" here '["aidk-plan
 # finishing the suite's brief frees one and leaves the other as it was.
 waiter_ground() {
   printf -- '---\nsummary: Waiter.\nafter: [file-trash]\ntouches: [aidk-plans]\ncreates: []\n---\n\n# waiter\n' \
-    >"$project/aidk-plans/waiter.md"
+    >"$project/aidk-plans/p2-required/waiter.md"
   printf -- '---\nsummary: Alone.\nafter: []\ntouches: [aidk-plans]\ncreates: []\n---\n\n# alone\n' \
-    >"$project/aidk-plans/alone.md"
+    >"$project/aidk-plans/p2-required/alone.md"
   git -C "$project" add -A
   git -C "$project" -c user.name=suite -c user.email=suite@example.invalid commit -qm waiters
 }
@@ -1798,10 +1798,10 @@ organizer_done() {
   sweep_round "$(look_form)" "$(look_form)"
   [ "$(jq -r '.decision' <<<"$output")" = block ]
   [ "$(reason)" = "$(closing_swept_note; closing_commit_line "$cases_command"; printf '%s\n' "$printed")" ]
-  [ "$printed" = "$project/aidk-plans/file-trash.md"$'\n'"$project/aidk-plans/waiter.md" ]
-  [ ! -e "$project/aidk-plans/file-trash.md" ]
-  grep -qxF -- "after: []" "$project/aidk-plans/waiter.md"
-  [ -z "$(git -C "$project" status --porcelain -- aidk-plans/alone.md)" ]
+  [ "$printed" = "$project/aidk-plans/p2-required/file-trash.md"$'\n'"$project/aidk-plans/p2-required/waiter.md" ]
+  [ ! -e "$project/aidk-plans/p2-required/file-trash.md" ]
+  grep -qxF -- "after: []" "$project/aidk-plans/p2-required/waiter.md"
+  [ -z "$(git -C "$project" status --porcelain -- aidk-plans/p2-required/alone.md)" ]
   [ ! -e "$project/aidk-organizer/taken/file-trash" ]
   [ "$(last_line | jq -c '{outcome, closing: (.closing | {number, findings})}')" = \
     '{"outcome":"to-agent","closing":{"number":1,"findings":[]}}' ]
@@ -1823,7 +1823,7 @@ organizer_done() {
     closing_park_heading
     gate_problem_line "A settings screen of its own"
     closing_commit_line "$cases_command"
-    printf '%s\n' "$project/aidk-plans/file-trash.md")"
+    printf '%s\n' "$project/aidk-plans/p2-required/file-trash.md")"
   [ "$(reason)" = "$expected" ]
 }
 
@@ -1938,7 +1938,7 @@ finished_reply="Committed. The brief built the end report; the full check passed
       end_parked_heading; end_none_line
       end_cases_never_line
       end_freed_heading
-      printf '%s\n' "$project/aidk-plans/file-trash.md")"
+      printf '%s\n' "$project/aidk-plans/p2-required/file-trash.md")"
     [ "$(message)" = "$expected" ]
   done
 }
@@ -1961,7 +1961,7 @@ finished_reply="Committed. The brief built the end report; the full check passed
   closing_ground
   start_sweep
   look_reply "$(look_form "$(finding "A settings screen of its own" park)")"
-  printf 'not a header\n' >"$project/aidk-plans/broken.md"
+  printf 'not a header\n' >"$project/aidk-plans/p2-required/broken.md"
   look_reply "$(look_form)"
   [ "$(jq -r 'has("decision")' <<<"$output")" = false ]
   why="$(. "$BATS_TEST_DIRNAME/../../organizer/lib/words.sh"; refuse_header_unreadable_note broken)"
@@ -1969,7 +1969,7 @@ finished_reply="Committed. The brief built the end report; the full check passed
     closing_round_findings_heading
     closing_finding_line "A settings screen of its own" "$(closing_sort_words park)")"
   [ "$(message)" = "$expected" ]
-  [ -e "$project/aidk-plans/file-trash.md" ]
+  [ -e "$project/aidk-plans/p2-required/file-trash.md" ]
   [ "$(jq -c . "$record_file")" = "$EMPTY_RECORD" ]
 }
 
@@ -2067,7 +2067,7 @@ closing_line() {
 
 @test "a reply saying the work is done in a session holding no brief stops as it is; where which cannot be told, the operator is told" {
   . "$lib/closing.sh"
-  mkdir -p "$project/aidk-plans"
+  mkdir -p "$project/aidk-plans/p2-required"
   start_sweep
   [ "$status" -eq 0 ]
   [ -z "$output" ]
@@ -2122,7 +2122,7 @@ no_next_reply="Step 9 is built and its proof passed."
 @test "a step's report naming no next step, in a session holding no brief, is weighed as before" {
   . "$lib/step-go.sh"
   kind step-go go
-  mkdir -p "$project/aidk-plans"
+  mkdir -p "$project/aidk-plans/p2-required"
   answer_for reader "$(no_next_form)"
   answer_for step-sorter "$clean_step_sort"
   run_gate false "$no_next_reply"
@@ -2279,14 +2279,14 @@ watch_end() {
   . "$lib/resume.sh"
   hold_brief
   printf -- '---\nsummary: Bucket.\nafter: []\ntouches: [aidk-plans]\ncreates: []\n---\n\n# media-bucket\n' \
-    >"$project/aidk-plans/media-bucket.md"
+    >"$project/aidk-plans/p2-required/media-bucket.md"
   watch brief media-bucket
-  for i in $(seq 200); do grep -qxF -- "after: [media-bucket]" "$project/aidk-plans/file-trash.md" && break; sleep 0.1; done
+  for i in $(seq 200); do grep -qxF -- "after: [media-bucket]" "$project/aidk-plans/p2-required/file-trash.md" && break; sleep 0.1; done
   sleep 3
   kill -0 "$watcher"
   [ ! -e "$(woken_file)" ]
   "$BATS_TEST_DIRNAME/../../organizer/bin/organizer.sh" done media-bucket >/dev/null
-  [ ! -e "$project/aidk-plans/media-bucket.md" ]
+  [ ! -e "$project/aidk-plans/p2-required/media-bucket.md" ]
   watch_end
   run_gate false "The wait is over."
   [ "$(reason)" = "$(look_around_note "$brief_over")" ]
@@ -2405,7 +2405,7 @@ owed_file() { printf '%s/owed/%s' "$history" "$session"; }
   look_reply "$(look_form)"
   [ "$(jq -r '.decision' <<<"$output")" = block ]
   [ "$(reason)" = "$(owed_note naming)" ]
-  [ -e "$project/aidk-plans/file-trash.md" ]
+  [ -e "$project/aidk-plans/p2-required/file-trash.md" ]
   [ -e "$project/aidk-organizer/taken/file-trash" ]
   [ "$(jq -c '{round, closing}' "$record_file")" = '{"round":null,"closing":null}' ]
   # Once the exam has passed, the next claim of done sweeps again.
@@ -2494,7 +2494,7 @@ end_report() {
   end_report
   [ "$status" -eq 0 ]
   expected="$(end_freed_heading
-    printf '%s\n' "$project/aidk-plans/file-trash.md"
+    printf '%s\n' "$project/aidk-plans/p2-required/file-trash.md"
     end_switch_heading whole 20 19
     end_switch_misses_heading
     end_switch_miss_line miss-1.md "Miss 1."
@@ -2518,7 +2518,7 @@ end_report() {
   sweep_round "$(look_form)" "$(look_form)"
   answer_for reader "$(finished_form passed)"
   run_gate true "$finished_reply"
-  [ "$(message | tail -n 1)" = "$project/aidk-plans/file-trash.md" ]
+  [ "$(message | tail -n 1)" = "$project/aidk-plans/p2-required/file-trash.md" ]
   [ "$(last_line | jq -r '.trust')" = null ]
 }
 
@@ -2527,7 +2527,7 @@ end_report() {
   kept_scores "$(jq -cn --argjson w "$(score_of 20 0)" '{whole: $w}')"
   switch_kinds whole
   end_report
-  [ "$(message | tail -n 1)" = "$project/aidk-plans/file-trash.md" ]
+  [ "$(message | tail -n 1)" = "$project/aidk-plans/p2-required/file-trash.md" ]
   # Two of its silent decisions reopened since the yes: back on trial, and
   # asked about again, so a new yes can start the count over.
   add_log_lines "$history" \

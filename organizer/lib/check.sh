@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-# The header check: every way a brief's header can be wrong, and every mark
+# The header check: every way a brief's header can be wrong, every way the
+# briefs folder can hold a file or folder outside its levels, and every mark
 # naming a brief that is gone. Sourced, never executed.
 #
 # A problem travels as "<brief><US><line>", the line being the words shown to
 # the operator. A brief with any problem is broken, and a broken brief is never
 # offered as ready: what the check cannot vouch for is refused, per brief, so
 # one bad header does not hide the rest of the folder. A mark's problem carries
-# no brief where the brief it names is not there to be broken.
+# no brief where the brief it names is not there to be broken, and so does a
+# folder that is no level.
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/header.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/names.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/levels.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/flow-list.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/places.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/briefs.sh"
@@ -22,20 +25,35 @@ problem_row() {
   printf '%s%s%s\n' "$1" "$HEADER_US" "$2"
 }
 
-# What is wrong with one brief's row, judged alone: its name, a field missing
-# or not in form, an after entry that is no name, a path that leaves the root.
-# A summary's folded-block marker (`>` or `|`) is refused, since the header
-# reader hands back only a field's first line and the list would show the
-# marker in place of the summary.
+# The level names, as one line for the operator to read.
+format_level_names() {
+  local joined
+  printf -v joined '%s, ' "${BRIEF_LEVEL_NAMES[@]}"
+  printf '%s' "${joined%, }"
+}
+
+# What is wrong with one brief's row, judged alone: its name, lying in no
+# level, a field missing or not in form, an after entry that is no name, a
+# path that leaves the root. A summary's folded-block marker (`>` or `|`) is
+# refused, since the header reader hands back only a field's first line and
+# the list would show the marker in place of the summary.
+#
+# A file in no level is a problem rather than a brief allowed beside the
+# levels: a folder holds files or folders, never a mix, and a pile let lie
+# there grows back into the unsorted list the levels replace. A draft is held
+# to its summary alone: it is an item not yet written out, which has no after,
+# touches or creates to judge until the operator's yes makes it a brief.
 derive_brief_problems() {
-  local name summary after touches creates field value items item list
-  IFS="$HEADER_US" read -r name summary after touches creates <<<"$1"
+  local name summary after touches creates draft level field value items item list
+  IFS="$HEADER_US" read -r name summary after touches creates draft level <<<"$1"
   is_brief_name "$name" || problem_row "$name" "$(problem_bad_name_note "$name")"
+  [ -n "$level" ] || problem_row "$name" "$(problem_in_no_level_note "$name")"
   if [ -z "$summary" ]; then
     problem_row "$name" "$(problem_missing_field_note "$name" summary)"
   elif [[ "$summary" =~ ^[\>\|][-+0-9]*$ ]]; then
     problem_row "$name" "$(problem_folded_summary_note "$name")"
   fi
+  ! is_draft_value "$draft" || return 0
   for field in after touches creates; do
     value="${!field}"
     if [ -z "$value" ]; then
@@ -62,11 +80,13 @@ derive_brief_problems() {
 # them. A missing name is always a problem and never read as built: finishing a
 # brief takes its name out of every after list, so one still there is a typo or
 # an edit gone wrong, and reading it as done would offer blocked work as ready.
+# A draft's after list is never judged; derive_brief_problems says why.
 derive_missing_after_problems() {
-  local rows="$1" names name summary after rest items item list
+  local rows="$1" names name summary after touches creates draft level items item list
   names="$(cut -d "$HEADER_US" -f 1 <<<"$rows" | paste -sd, -)"
-  while IFS="$HEADER_US" read -r name summary after rest; do
+  while IFS="$HEADER_US" read -r name summary after touches creates draft level; do
     [ -n "$name" ] || continue
+    ! is_draft_value "$draft" || continue
     items="$(parse_flow_list "$after")" || continue
     list=()
     IFS=, read -ra list <<<"$items"
@@ -80,12 +100,14 @@ derive_missing_after_problems() {
 
 # The names of every brief on a cycle of after entries, each once, in the
 # order the rows came in. A cycle can never start, so each brief on it is
-# reported rather than only the first found, and none of them is offered.
+# reported rather than only the first found, and none of them is offered. A
+# draft's after list is read as empty, since it is never judged.
 derive_cycle_names() {
-  local rows="$1" name summary after rest items
-  while IFS="$HEADER_US" read -r name summary after rest; do
+  local rows="$1" name summary after touches creates draft level items
+  while IFS="$HEADER_US" read -r name summary after touches creates draft level; do
     [ -n "$name" ] || continue
     items="$(parse_flow_list "$after")" || items=""
+    ! is_draft_value "$draft" || items=""
     printf '%s%s%s\n' "$name" "$HEADER_US" "$items"
   done <<<"$rows" | awk -F "$HEADER_US" '
     { count++; name[count] = $1; known[$1] = 1; after[count] = $2 }
@@ -116,6 +138,25 @@ derive_cycle_problems() {
   done < <(derive_cycle_names "$1")
 }
 
+# A problem row for every name found in more than one level, naming each, in
+# the order the rows came in. Operations address a brief by name alone, so
+# with two files under one name they could not tell which was meant. A file
+# in no level is left out: it is never found by name, and is a problem of its
+# own already.
+derive_name_in_levels_problems() {
+  local rows="$1" name summary after touches creates draft level order=()
+  local -A levels_of
+  while IFS="$HEADER_US" read -r name summary after touches creates draft level; do
+    [ -n "$name" ] && [ -n "$level" ] || continue
+    [ -n "${levels_of[$name]+found}" ] || order+=("$name")
+    levels_of[$name]+="${levels_of[$name]:+, }$level"
+  done <<<"$rows"
+  for name in "${order[@]}"; do
+    [[ "${levels_of[$name]}" == *", "* ]] || continue
+    problem_row "$name" "$(problem_name_in_levels_note "$name" "${levels_of[$name]}")"
+  done
+}
+
 # What is wrong with each mark: one naming no brief among the names given, or
 # one whose lines are not a session and a since. The second is a problem of
 # the brief it names too: nobody can say whether that brief is taken, so it is
@@ -137,11 +178,12 @@ derive_mark_problems() {
 # Every touches path that does not exist under the root, and every creates
 # path whose folder does not. A path leaving the root is never looked at: it
 # is already a problem, and looking would answer a question about a file the
-# brief has no business naming.
+# brief has no business naming. A draft names no places that are judged.
 list_place_problems() {
-  local rows="$1" root="$2" name summary after touches creates items item list
-  while IFS="$HEADER_US" read -r name summary after touches creates; do
+  local rows="$1" root="$2" name summary after touches creates draft level items item list
+  while IFS="$HEADER_US" read -r name summary after touches creates draft level; do
     [ -n "$name" ] || continue
+    ! is_draft_value "$draft" || continue
     if items="$(parse_flow_list "$touches")"; then
       list=()
       IFS=, read -ra list <<<"$items"
@@ -161,20 +203,29 @@ list_place_problems() {
   done <<<"$rows"
 }
 
-# Every problem in the briefs folder and the marks folder: the briefs' grouped
-# by brief in name order, the marks' after them. A marks folder that cannot be
-# read is one problem naming no brief, shown in place of the marks' own: what
-# a mark says cannot be told when the marks cannot be read.
+# Every problem in the briefs folder and the marks folder: each folder that
+# is no level first, then the briefs' grouped by brief in name order, the
+# marks' after them. A folder that is no level is never looked into: what it
+# holds is in no level, and a typo in its name would otherwise show as a level
+# of its own. A marks folder that cannot be read is one problem naming no
+# brief, shown in place of the marks' own: what a mark says cannot be told
+# when the marks cannot be read.
 list_problems() {
-  local plans="$1" root="$2" marks="$3" rows row names mark_rows
+  local plans="$1" root="$2" marks="$3" rows row names mark_rows folders folder
   rows="$(list_brief_rows "$plans")" || return 1
   names="$(cut -d "$HEADER_US" -f 1 <<<"$rows" | paste -sd, -)"
+  folders="$(list_unknown_level_folders "$plans")"
+  while IFS= read -r folder; do
+    [ -n "$folder" ] || continue
+    problem_row "" "$(problem_unknown_level_folder_note "$folder" "$(format_level_names)")"
+  done <<<"$folders"
   {
     while IFS= read -r row; do
       [ -n "$row" ] || continue
       derive_brief_problems "$row"
     done <<<"$rows"
     derive_missing_after_problems "$rows"
+    derive_name_in_levels_problems "$rows"
     derive_cycle_problems "$rows"
     list_place_problems "$rows" "$root"
   } | LC_ALL=C sort -s -t "$HEADER_US" -k1,1

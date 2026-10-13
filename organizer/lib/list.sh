@@ -6,7 +6,8 @@
 # Order among ready briefs is the operator's pick, so the list ranks nothing:
 # every section is in name order. A broken brief appears among the problems
 # only, never in a section below them, since whatever the check could not
-# vouch for must not be offered as work.
+# vouch for must not be offered as work. Nor is a draft, which is an item not
+# yet written out as a brief.
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/header.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/flow-list.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/places.sh"
@@ -30,7 +31,7 @@ SESSION_SHOWN_LENGTH=8
 # since what it waits on is read from the briefs alone.
 format_list() {
   local problems="$1" rows="$2" marks="$3" now="$4" marks_unknown="${5:-}"
-  local broken subject text brief session since name summary after touches creates items
+  local broken subject text brief session since name summary after touches creates draft level items
   local ready=() waiting=() taken=() places_lines="" same="" opened=""
   local -A held_by since_of age_of summary_of after_of
   broken="$(cut -d "$HEADER_US" -f 1 <<<"$problems" | paste -sd, -)"
@@ -41,9 +42,10 @@ format_list() {
     since_of[$brief]="$since"
   done <<<"$marks"
 
-  while IFS="$HEADER_US" read -r name summary after touches creates; do
+  while IFS="$HEADER_US" read -r name summary after touches creates draft level; do
     [ -n "$name" ] || continue
     has_list_item "$broken" "$name" && continue
+    is_draft_value "$draft" && continue
     items="$(parse_flow_list "$after")"
     summary_of[$name]="$summary"
     after_of[$name]="$items"

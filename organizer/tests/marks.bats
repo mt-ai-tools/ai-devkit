@@ -9,8 +9,8 @@ load project
 setup() {
   setup_project
   place aidk-plans
-  brief file-trash "Trash." "[]" "[aidk-plans]" "[]"
-  brief frozen-account "Frozen." "[]" "[aidk-plans]" "[]"
+  brief p2-required file-trash "Trash." "[]" "[aidk-plans]" "[]"
+  brief p2-required frozen-account "Frozen." "[]" "[aidk-plans]" "[]"
 }
 
 @test "taking writes the session and now, making the marks folder" {
@@ -44,7 +44,7 @@ setup() {
 }
 
 @test "a brief that waits on another is refused, naming what it waits on, and nothing is marked" {
-  brief stand-in-loops "Loops." "[file-trash, frozen-account]" "[aidk-plans]" "[]"
+  brief p2-required stand-in-loops "Loops." "[file-trash, frozen-account]" "[aidk-plans]" "[]"
   run --separate-stderr organizer take stand-in-loops session-1
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_waiting_note stand-in-loops "file-trash, frozen-account")" ]
@@ -52,7 +52,7 @@ setup() {
 }
 
 @test "a brief whose after list cannot be read is refused, never taken as ready" {
-  brief half-written "Half." "file-trash" "[aidk-plans]" "[]"
+  brief p2-required half-written "Half." "file-trash" "[aidk-plans]" "[]"
   run --separate-stderr organizer take half-written session-1
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_header_unreadable_note half-written)" ]
@@ -169,4 +169,29 @@ setup() {
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_mark_not_placed_note file-trash)" ]
   [ -z "$(ls -A "$marks")" ]
+}
+
+@test "a draft is refused, and nothing is marked" {
+  draft p1-critical bare-item "Bare."
+  run --separate-stderr organizer take bare-item session-1
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_draft_note bare-item)" ]
+  [ ! -e "$marks/bare-item" ]
+}
+
+@test "a brief is taken in whichever level it lies, never in none or in two" {
+  brief p4-optional someday "Someday." "[]" "[aidk-plans]" "[]"
+  run organizer take someday session-1
+  [ "$status" -eq 0 ]
+  [ -f "$marks/someday" ]
+  printf -- '---\nsummary: Flat.\nafter: []\ntouches: [aidk-plans]\ncreates: []\n---\n' >"$plans/flat.md"
+  run --separate-stderr organizer take flat session-1
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_no_brief_note flat)" ]
+  brief p3-conditional file-trash "Again." "[]" "[aidk-plans]" "[]"
+  run --separate-stderr organizer take file-trash session-1
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(refuse_name_in_levels_note file-trash "p2-required, p3-conditional")" ]
+  [ ! -e "$marks/flat" ]
+  [ ! -e "$marks/file-trash" ]
 }

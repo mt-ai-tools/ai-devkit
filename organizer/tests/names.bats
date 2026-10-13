@@ -30,3 +30,17 @@ setup() {
     [ "$status" -eq 1 ]
   done
 }
+
+@test "a level's name is one of the four levels" {
+  for level in p1-critical p2-required p3-conditional p4-optional; do
+    run is_level_name "$level"
+    [ "$status" -eq 0 ]
+  done
+}
+
+@test "anything else is no level's name" {
+  for level in '' '../x' 'p2-requried' 'p5-later' 'p1-critical/' 'P1-critical' '.' $'p1-critical\nx'; do
+    run is_level_name "$level"
+    [ "$status" -eq 1 ]
+  done
+}

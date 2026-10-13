@@ -5,7 +5,8 @@
 #
 #   list                      the check's problems, then ready, waiting, taken
 #   check                     the check's problems alone
-#   take <brief> <session>    mark a ready brief taken by a session
+#   take <brief> <session>    mark a ready brief, never a draft, taken by a
+#                             session
 #   free <session>            free every brief a session holds
 #   held <session>            the briefs a session holds and for how long,
 #                             one "<brief><TAB><age>" line each
@@ -60,10 +61,11 @@ if [ ! -d "$plans" ]; then
   exit 1
 fi
 # One that is there but cannot be listed is refused here too, with the
-# collection reader's reason, before any operation runs: an operation that
-# only looks a brief up by name would otherwise refuse it as unknown, naming
-# the wrong cause. Every listing of the briefs refuses it again on its own.
-list_collection_entries "$plans" >/dev/null || exit 1
+# collection reader's reason, before any operation runs, and so is any of its
+# level folders: an operation that only looks a brief up by name would
+# otherwise refuse it as unknown, naming the wrong cause. Every listing of the
+# briefs refuses it again on its own.
+list_brief_entries "$plans" >/dev/null || exit 1
 
 command="${1:-}"
 [ "$#" -gt 0 ] && shift
@@ -81,6 +83,7 @@ case "$command" in
   take)
     [ "$#" -eq 2 ] || usage
     refuse_unknown_brief "$plans" "$1" || exit 1
+    refuse_draft_brief "$plans" "$1" || exit 1
     refuse_waiting_brief "$plans" "$1" || exit 1
     now="$(get_now)"
     take_brief "$marks" "$1" "$2" "$now"

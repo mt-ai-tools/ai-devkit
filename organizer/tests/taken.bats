@@ -12,9 +12,9 @@ setup() {
   place aidk-plans
   place monoframe/mf-users
   place monoframe/mf-media
-  brief file-trash "Trash." "[]" "[monoframe/mf-media]" "[]"
-  brief frozen-account "Frozen." "[]" "[monoframe/mf-users]" "[monoframe/mf-users/src/frozen]"
-  brief ready-one "Ready." "[]" "[monoframe/mf-users]" "[]"
+  brief p2-required file-trash "Trash." "[]" "[monoframe/mf-media]" "[]"
+  brief p2-required frozen-account "Frozen." "[]" "[monoframe/mf-users]" "[monoframe/mf-users/src/frozen]"
+  brief p2-required ready-one "Ready." "[]" "[monoframe/mf-users]" "[]"
   mark file-trash session-1 "$now"
   mark frozen-account session-2 "$now"
 }
@@ -75,7 +75,7 @@ setup() {
 }
 
 @test "a taken brief whose places cannot be read is refused" {
-  brief frozen-account "Frozen." "[]" "monoframe/mf-users" "[]"
+  brief p2-required frozen-account "Frozen." "[]" "monoframe/mf-users" "[]"
   run --separate-stderr organizer taken aidk-plans
   [ "$status" -eq 1 ]
   [ -z "$output" ]

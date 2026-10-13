@@ -12,8 +12,8 @@ load project
 setup() {
   setup_project
   place aidk-plans
-  brief file-trash "Trash." "[]" "[aidk-plans]" "[]"
-  brief waits "Waits." "[file-trash]" "[aidk-plans]" "[]"
+  brief p2-required file-trash "Trash." "[]" "[aidk-plans]" "[]"
+  brief p2-required waits "Waits." "[file-trash]" "[aidk-plans]" "[]"
   . "$BATS_TEST_DIRNAME/../../lib/readers/collection.sh"
   chmod 000 "$plans"
 }
@@ -42,7 +42,7 @@ teardown() {
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(collection_unreadable_note "$plans")" ]
   chmod u+rwx "$plans"
-  [ -f "$plans/file-trash.md" ]
+  [ -f "$plans/p2-required/file-trash.md" ]
 }
 
 @test "the brief rows are refused on their own, never listed as none" {
@@ -81,18 +81,18 @@ load_operations() {
   [ "$status" -eq 1 ]
   [ -z "$output" ]
   [ "$stderr" = "$(collection_unreadable_note "$plans")" ]
-  [ -f "$plans/file-trash.md" ]
+  [ -f "$plans/p2-required/file-trash.md" ]
 }
 
 @test "past the entry, a wait is refused and nothing is written" {
   chmod u+rwx "$plans"
-  brief other "Other." "[]" "[aidk-plans]" "[]"
+  brief p2-required other "Other." "[]" "[aidk-plans]" "[]"
   load_operations
   run --separate-stderr write_wait "$plans" other file-trash
   [ "$status" -eq 1 ]
   [ -z "$output" ]
   [ "$stderr" = "$(collection_unreadable_note "$plans")" ]
-  grep -qx 'after: \[\]' "$plans/other.md"
+  grep -qx 'after: \[\]' "$plans/p2-required/other.md"
 }
 
 @test "past the entry, the taken briefs are refused rather than listed as none" {
@@ -102,4 +102,14 @@ load_operations() {
   [ "$status" -eq 1 ]
   [ -z "$output" ]
   [ "$stderr" = "$(collection_unreadable_note "$plans")" ]
+}
+
+@test "a level folder that cannot be listed refuses taking with its reason, not as an unknown brief" {
+  chmod u+rwx "$plans"
+  chmod 000 "$plans/p2-required"
+  run --separate-stderr organizer take file-trash session-1
+  chmod u+rwx "$plans/p2-required"
+  [ "$status" -eq 1 ]
+  [ "$stderr" = "$(collection_unreadable_note "$plans/p2-required")" ]
+  [ ! -e "$marks/file-trash" ]
 }

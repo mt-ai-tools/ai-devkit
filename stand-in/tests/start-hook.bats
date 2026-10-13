@@ -19,7 +19,7 @@ setup() {
   printf -- '---\nsummary: Opener.\n---\n\n# The opener\n\nRead the brief whole.\n' >"$opener_file"
   history="$project/aidk-stand-in"
   marks="$project/aidk-organizer/taken"
-  mkdir -p "$project/aidk-plans"
+  mkdir -p "$project/aidk-plans/p2-required"
   brief file-trash "[]"
   brief incidents "[file-trash]"
 }
@@ -31,7 +31,7 @@ teardown() {
 # A brief in the suite's project, with what it waits on.
 brief() {
   printf -- '---\nsummary: The %s brief.\nafter: %s\ntouches: []\ncreates: []\n---\n\n# %s\n' \
-    "$1" "$2" "$1" >"$project/aidk-plans/$1.md"
+    "$1" "$2" "$1" >"$project/aidk-plans/p2-required/$1.md"
 }
 
 # A turn's event, as Claude Code hands it to a prompt hook.

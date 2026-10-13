@@ -33,37 +33,41 @@ find_header_line() {
 # Finish a brief. Every other brief's after list is read first, and one that
 # cannot be read refuses the whole finish before anything changes: whether it
 # names the brief cannot be told, and a half-made finish would leave a name
-# behind that the check then reports as missing. Each waiter is written whole
-# to a hidden draft beside it and moved into place, its after line rewritten
-# and every other byte copied as it stood.
+# behind that the check then reports as missing. Each waiter is rewritten
+# where it lies, whatever its level, or in no level, since the name it waits
+# on is gone wherever it is read: written whole to a hidden draft beside it
+# and moved into place, its after line rewritten and every other byte copied
+# as it stood. A draft brief is never a waiter: its after list is not judged,
+# and one it does not hold must not refuse the finish.
 finish_brief() {
-  local plans="$1" marks="$2" brief="$3" file rows name summary after rest items line draft
-  local waiters=() drafts=()
+  local plans="$1" marks="$2" brief="$3" file rows name summary after touches creates draft level items line hidden
+  local waiters=() hiddens=() i
   refuse_unknown_brief "$plans" "$brief" || return 1
   # Asked before anything changes: a finish that could not free the mark after
   # deleting the brief would leave a mark naming a brief that is gone.
   refuse_unwritable_marks_dir "$marks" || return 1
-  file="$(brief_file "$plans" "$brief")"
+  file="$(find_brief_file "$plans" "$brief")"
   rows="$(list_brief_rows "$plans")" || return 1
 
-  while IFS="$HEADER_US" read -r name summary after rest; do
+  while IFS="$HEADER_US" read -r name summary after touches creates draft level; do
     [ -n "$name" ] && [ "$name" != "$brief" ] || continue
+    ! is_draft_value "$draft" || continue
     if ! items="$(parse_flow_list "$after")"; then
       refuse_header_unreadable_note "$name" >&2
       return 1
     fi
     has_list_item "$items" "$brief" || continue
-    waiters+=("$name")
+    waiters+=("$(brief_path "$plans" "$level" "$name")")
   done <<<"$rows"
 
-  for name in "${waiters[@]}"; do
-    line="$(find_header_line "$(brief_file "$plans" "$name")" after)"
-    after="$(read_header_fields "$(brief_file "$plans" "$name")" after)"
+  for i in "${!waiters[@]}"; do
+    line="$(find_header_line "${waiters[$i]}" after)"
+    after="$(read_header_fields "${waiters[$i]}" after)"
     items="$(without_list_item "$(parse_flow_list "$after")" "$brief")"
-    draft="$plans/.$name.done.$$"
-    drafts+=("$draft")
-    if ! write_with_line "$(brief_file "$plans" "$name")" "$line" "after: $(format_flow_list "$items")" "$draft"; then
-      rm -f "${drafts[@]}"
+    hidden="$(dirname "${waiters[$i]}")/.$(basename "${waiters[$i]}" .md).done.$$"
+    hiddens+=("$hidden")
+    if ! write_with_line "${waiters[$i]}" "$line" "after: $(format_flow_list "$items")" "$hidden"; then
+      rm -f "${hiddens[@]}"
       return 1
     fi
   done
@@ -77,16 +81,16 @@ finish_brief() {
   # lives only on this machine and outside version control, so it is freed
   # without being printed: a path printed here is one to commit.
   if ! free_brief "$marks" "$brief"; then
-    rm -f "${drafts[@]}"
+    rm -f "${hiddens[@]}"
     return 1
   fi
-  for name in "${waiters[@]}"; do
-    mv "$plans/.$name.done.$$" "$(brief_file "$plans" "$name")"
+  for i in "${!waiters[@]}"; do
+    mv "${hiddens[$i]}" "${waiters[$i]}"
   done
   rm "$file"
   printf '%s\n' "$file"
-  for name in "${waiters[@]}"; do
-    brief_file "$plans" "$name"
+  for i in "${!waiters[@]}"; do
+    printf '%s\n' "${waiters[$i]}"
   done
 }
 

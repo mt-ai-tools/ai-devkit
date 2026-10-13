@@ -10,9 +10,9 @@ setup() {
   setup_project
   hook="$BATS_TEST_DIRNAME/../hooks/end-hook.sh"
   place aidk-plans
-  brief file-trash "Trash." "[]" "[aidk-plans]" "[]"
-  brief frozen-account "Frozen." "[]" "[aidk-plans]" "[]"
-  brief media-one-bucket "Bucket." "[]" "[aidk-plans]" "[]"
+  brief p2-required file-trash "Trash." "[]" "[aidk-plans]" "[]"
+  brief p2-required frozen-account "Frozen." "[]" "[aidk-plans]" "[]"
+  brief p2-required media-one-bucket "Bucket." "[]" "[aidk-plans]" "[]"
 }
 
 # The hook, run on an event.

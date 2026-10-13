@@ -34,7 +34,6 @@ default_paths() {
     "AIDK_STAND_IN$us$kit/presets/stand-in" \
     "AIDK_CONVENTIONS$us$project/aidk-conventions" \
     "AIDK_PLANS$us$project/aidk-plans" \
-    "AIDK_NOTES$us$project/aidk-notes" \
     "AIDK_STAND_IN_HISTORY$us$project/aidk-stand-in" \
     "AIDK_REVIEW$us$project/aidk-review" \
     "AIDK_ORGANIZER$us$project/aidk-organizer"
@@ -73,7 +72,7 @@ default_paths() {
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "AIDK_RULES$us$project/docs/agent-rules" ]
   [ "${lines[2]}" = "AIDK_CONVENTIONS$us$project/aidk-conventions" ]
-  [ "${#lines[@]}" -eq 8 ]
+  [ "${#lines[@]}" -eq 7 ]
 }
 
 @test "a path beginning with a slash is taken as written" {
@@ -250,12 +249,12 @@ default_paths() {
 }
 
 @test "the text parses to its settings in order, numbered by line" {
-  run parse_config_settings <<<$'# c\nAIDK_NOTES=n\nAIDK_PLANS=p'
+  run parse_config_settings <<<$'# c\nAIDK_REVIEW=n\nAIDK_PLANS=p'
   [ "$status" -eq 0 ]
-  [ "$output" = "2${us}AIDK_NOTES${us}n"$'\n'"3${us}AIDK_PLANS${us}p" ]
-  run --separate-stderr parse_config_settings <<<$'AIDK_NOTES=n\nAIDK_NOTES=m'
+  [ "$output" = "2${us}AIDK_REVIEW${us}n"$'\n'"3${us}AIDK_PLANS${us}p" ]
+  run --separate-stderr parse_config_settings <<<$'AIDK_REVIEW=n\nAIDK_REVIEW=m'
   [ "$status" -eq 1 ]
-  [ "$stderr" = "$(config_key_twice_note 2 AIDK_NOTES 1)" ]
+  [ "$stderr" = "$(config_key_twice_note 2 AIDK_REVIEW 1)" ]
 }
 
 @test "a value resolves against the kit and the root" {

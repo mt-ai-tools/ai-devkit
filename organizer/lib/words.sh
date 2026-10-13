@@ -10,6 +10,18 @@ problem_bad_name_note() {
   printf '%s: the file name is not a brief name (lower-case letters, digits and hyphens).\n' "$1"
 }
 
+problem_in_no_level_note() {
+  printf '%s: in no level; it lies directly in the briefs folder, and belongs in one of its level folders.\n' "$1"
+}
+
+problem_name_in_levels_note() {
+  printf '%s: found in more than one level (%s); keep it in one.\n' "$1" "$2"
+}
+
+problem_unknown_level_folder_note() {
+  printf 'folder %s: not a level, so nothing in it is read; the levels are %s.\n' "$1" "$2"
+}
+
 problem_missing_field_note() {
   printf '%s: the header has no %s.\n' "$1" "$2"
 }
@@ -122,6 +134,14 @@ refuse_bad_session_note() {
 
 refuse_no_brief_note() {
   printf 'There is no brief named %s.\n' "$1"
+}
+
+refuse_name_in_levels_note() {
+  printf '%s is found in more than one level (%s), so which is meant cannot be told.\n' "$1" "$2"
+}
+
+refuse_draft_note() {
+  printf '%s is a draft, not yet written as a brief, so it cannot be taken.\n' "$1"
 }
 
 refuse_waiting_note() {

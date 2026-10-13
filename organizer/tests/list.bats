@@ -16,16 +16,16 @@ setup() {
 }
 
 @test "a brief with nothing to wait on is ready, with its summary" {
-  brief file-trash "Deleted files wait before they go." "[]" "[monoframe/mf-media]" "[]"
+  brief p2-required file-trash "Deleted files wait before they go." "[]" "[monoframe/mf-media]" "[]"
   run organizer list
   [ "$status" -eq 0 ]
   [ "$output" = "$(list_ready_heading)"$'\n'"$(list_ready_line file-trash "Deleted files wait before they go.")" ]
 }
 
 @test "a brief with an after list waits, saying on what" {
-  brief one-reporter "One reporter." "[]" "[monoframe/mf-media]" "[]"
-  brief mount-parts "Mount parts." "[]" "[aidk-plans]" "[]"
-  brief users-going "Users going." "[one-reporter, mount-parts]" "[monoframe/mf-users]" "[]"
+  brief p2-required one-reporter "One reporter." "[]" "[monoframe/mf-media]" "[]"
+  brief p2-required mount-parts "Mount parts." "[]" "[aidk-plans]" "[]"
+  brief p2-required users-going "Users going." "[one-reporter, mount-parts]" "[monoframe/mf-users]" "[]"
   run organizer list
   [ "$status" -eq 0 ]
   [[ "$output" == *"$(list_waiting_heading)"$'\n'"$(list_waiting_line users-going "one-reporter, mount-parts")"* ]]
@@ -33,10 +33,10 @@ setup() {
 }
 
 @test "sections come in order, each in name order, parted by a blank line" {
-  brief zeta "Zeta." "[]" "[aidk-plans]" "[]"
-  brief alpha "Alpha." "[]" "[monoframe/mf-media]" "[]"
-  brief waits "Waits." "[alpha]" "[aidk-plans]" "[]"
-  brief held "Held." "[]" "[monoframe/mf-users-old]" "[]"
+  brief p2-required zeta "Zeta." "[]" "[aidk-plans]" "[]"
+  brief p2-required alpha "Alpha." "[]" "[monoframe/mf-media]" "[]"
+  brief p2-required waits "Waits." "[alpha]" "[aidk-plans]" "[]"
+  brief p2-required held "Held." "[]" "[monoframe/mf-users-old]" "[]"
   mark held 0123456789abcdef "2026-10-04T21:15:00Z"
   run organizer list
   [ "$status" -eq 0 ]
@@ -53,9 +53,9 @@ $(list_taken_line held "15 min" 01234567)"
 }
 
 @test "a taken brief shows its age from the mark: minutes, hours, days" {
-  brief fresh "Fresh." "[]" "[monoframe/mf-media]" "[]"
-  brief hours "Hours." "[]" "[aidk-plans]" "[]"
-  brief stale "Stale." "[]" "[monoframe/mf-users-old]" "[]"
+  brief p2-required fresh "Fresh." "[]" "[monoframe/mf-media]" "[]"
+  brief p2-required hours "Hours." "[]" "[aidk-plans]" "[]"
+  brief p2-required stale "Stale." "[]" "[monoframe/mf-users-old]" "[]"
   mark fresh session-fresh-1 "2026-10-04T21:29:30Z"
   mark hours session-hours-1 "2026-10-03T16:30:00Z"
   mark stale session-stale-1 "2026-10-01T09:00:00Z"
@@ -68,8 +68,8 @@ $(list_taken_line held "15 min" 01234567)"
 }
 
 @test "a taken brief is neither ready nor waiting" {
-  brief first "First." "[]" "[aidk-plans]" "[]"
-  brief second "Second." "[first]" "[monoframe/mf-media]" "[]"
+  brief p2-required first "First." "[]" "[aidk-plans]" "[]"
+  brief p2-required second "Second." "[first]" "[monoframe/mf-media]" "[]"
   mark first s1 "$now"
   mark second s2 "$now"
   run organizer list
@@ -80,16 +80,16 @@ $(list_taken_line held "15 min" 01234567)"
 }
 
 @test "ready briefs in the same place are both listed, and neither is marked" {
-  brief file-trash "Trash." "[]" "[monoframe/mf-users]" "[]"
-  brief frozen-account "Frozen." "[]" "[monoframe/mf-users/src]" "[]"
+  brief p2-required file-trash "Trash." "[]" "[monoframe/mf-users]" "[]"
+  brief p2-required frozen-account "Frozen." "[]" "[monoframe/mf-users/src]" "[]"
   run organizer list
   [ "$status" -eq 0 ]
   [ "$output" = "$(list_ready_heading)"$'\n'"$(list_ready_line file-trash "Trash.")"$'\n'"$(list_ready_line frozen-account "Frozen.")" ]
 }
 
 @test "a ready brief in a taken brief's place is marked with the mark's age" {
-  brief file-trash "Trash." "[]" "[monoframe/mf-users/src]" "[]"
-  brief frozen-account "Frozen." "[]" "[monoframe/mf-users]" "[]"
+  brief p2-required file-trash "Trash." "[]" "[monoframe/mf-users/src]" "[]"
+  brief p2-required frozen-account "Frozen." "[]" "[monoframe/mf-users]" "[]"
   mark frozen-account abc "2026-10-04T19:30:00Z"
   run organizer list
   [ "$status" -eq 0 ]
@@ -97,8 +97,8 @@ $(list_taken_line held "15 min" 01234567)"
 }
 
 @test "one brief's touches and another's creates are the same place" {
-  brief makes "Makes." "[]" "[]" "[monoframe/mf-media/thumbs]"
-  brief edits "Edits." "[]" "[monoframe/mf-media]" "[]"
+  brief p2-required makes "Makes." "[]" "[]" "[monoframe/mf-media/thumbs]"
+  brief p2-required edits "Edits." "[]" "[monoframe/mf-media]" "[]"
   mark makes abc "2026-10-04T19:30:00Z"
   run organizer list
   [ "$status" -eq 0 ]
@@ -106,8 +106,8 @@ $(list_taken_line held "15 min" 01234567)"
 }
 
 @test "a sibling sharing a prefix is not the same place" {
-  brief users "Users." "[]" "[monoframe/mf-users]" "[]"
-  brief users-old "Old." "[]" "[monoframe/mf-users-old]" "[]"
+  brief p2-required users "Users." "[]" "[monoframe/mf-users]" "[]"
+  brief p2-required users-old "Old." "[]" "[monoframe/mf-users-old]" "[]"
   mark users-old abc "2026-10-04T19:30:00Z"
   run organizer list
   [ "$status" -eq 0 ]
@@ -115,9 +115,9 @@ $(list_taken_line held "15 min" 01234567)"
 }
 
 @test "a broken brief is among the problems only, and the rest still lists" {
-  brief good "Good." "[]" "[aidk-plans]" "[]"
-  brief broken "Broken." "[nowhere]" "[aidk-plans]" "[]"
-  brief broken-ready "Broken ready." "[]" "[no-such-folder]" "[]"
+  brief p2-required good "Good." "[]" "[aidk-plans]" "[]"
+  brief p2-required broken "Broken." "[nowhere]" "[aidk-plans]" "[]"
+  brief p2-required broken-ready "Broken ready." "[]" "[no-such-folder]" "[]"
   run organizer list
   [ "$status" -eq 1 ]
   [[ "$output" == "$(list_problems_heading)"$'\n'"$(list_problem_line "$(problem_after_missing_note broken nowhere)")"* ]]
@@ -128,7 +128,7 @@ $(list_taken_line held "15 min" 01234567)"
 }
 
 @test "a brief whose mark cannot be read is never ready" {
-  brief held "Held." "[]" "[aidk-plans]" "[]"
+  brief p2-required held "Held." "[]" "[aidk-plans]" "[]"
   mkdir -p "$marks"
   printf 'garbage\n' >"$marks/held"
   run organizer list
@@ -141,16 +141,16 @@ $(list_taken_line held "15 min" 01234567)"
   run organizer list
   [ "$status" -eq 0 ]
   [ -z "$output" ]
-  rmdir "$plans"
+  rm -r "$plans"
   run --separate-stderr organizer list
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_no_briefs_folder_note "$plans")" ]
 }
 
 @test "a briefs folder set in the config file is the one listed" {
-  mkdir -p "$project/docs/plans"
+  mkdir -p "$project/docs/plans/p4-optional"
   printf 'AIDK_PLANS=docs/plans\n' >"$project/aidk-config.env"
-  printf -- '---\nsummary: Moved.\nafter: []\ntouches: [docs]\ncreates: []\n---\n' >"$project/docs/plans/moved.md"
+  printf -- '---\nsummary: Moved.\nafter: []\ntouches: [docs]\ncreates: []\n---\n' >"$project/docs/plans/p4-optional/moved.md"
   run organizer list
   [ "$status" -eq 0 ]
   [ "$output" = "$(list_ready_heading)"$'\n'"$(list_ready_line moved "Moved.")" ]
@@ -175,4 +175,22 @@ $(list_taken_line held "15 min" 01234567)"
   run --separate-stderr organizer
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_usage_note)" ]
+}
+
+@test "briefs from every level are listed; a draft is never offered, and a brief in no level is a problem only" {
+  brief p1-critical urgent "Urgent." "[]" "[aidk-plans]" "[]"
+  brief p4-optional later "Later." "[urgent]" "[aidk-plans]" "[]"
+  draft p2-required item "Item."
+  printf -- '---\nsummary: Flat.\nafter: []\ntouches: [aidk-plans]\ncreates: []\n---\n' >"$plans/flat.md"
+  run organizer list
+  [ "$status" -eq 1 ]
+  expected="$(list_problems_heading)
+$(list_problem_line "$(problem_in_no_level_note flat)")
+
+$(list_ready_heading)
+$(list_ready_line urgent "Urgent.")
+
+$(list_waiting_heading)
+$(list_waiting_line later urgent)"
+  [ "$output" = "$expected" ]
 }

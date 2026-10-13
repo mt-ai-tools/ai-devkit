@@ -25,7 +25,6 @@ CONFIG_DEFAULTS=(
   "AIDK_STAND_IN={ai-devkit}/presets/stand-in"
   "AIDK_CONVENTIONS=aidk-conventions"
   "AIDK_PLANS=aidk-plans"
-  "AIDK_NOTES=aidk-notes"
   "AIDK_STAND_IN_HISTORY=aidk-stand-in"
   "AIDK_REVIEW=aidk-review"
   "AIDK_ORGANIZER=aidk-organizer"

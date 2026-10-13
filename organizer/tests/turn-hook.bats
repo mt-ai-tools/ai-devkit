@@ -10,8 +10,8 @@ setup() {
   setup_project
   hook="$BATS_TEST_DIRNAME/../hooks/turn-hook.sh"
   place aidk-plans
-  brief file-trash "Trash." "[]" "[aidk-plans]" "[]"
-  brief frozen-account "Frozen." "[]" "[aidk-plans]" "[]"
+  brief p2-required file-trash "Trash." "[]" "[aidk-plans]" "[]"
+  brief p2-required frozen-account "Frozen." "[]" "[aidk-plans]" "[]"
 }
 
 # The folder is opened up again whatever a test did to it, so the run's

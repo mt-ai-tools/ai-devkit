@@ -10,9 +10,9 @@ load project
 setup() {
   setup_project
   place aidk-plans
-  brief file-trash "Trash." "[]" "[aidk-plans]" "[]"
-  brief frozen-account "Frozen." "[]" "[aidk-plans]" "[]"
-  brief waits "Waits." "[file-trash]" "[aidk-plans]" "[]"
+  brief p2-required file-trash "Trash." "[]" "[aidk-plans]" "[]"
+  brief p2-required frozen-account "Frozen." "[]" "[aidk-plans]" "[]"
+  brief p2-required waits "Waits." "[file-trash]" "[aidk-plans]" "[]"
   mark file-trash session-1 "$now"
   chmod 000 "$marks"
 }
@@ -67,8 +67,8 @@ teardown() {
   run --separate-stderr organizer done file-trash
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_marks_unreadable_note "$marks")" ]
-  [ -f "$plans/file-trash.md" ]
-  grep -qx 'after: \[file-trash\]' "$plans/waits.md"
+  [ -f "$plans/p2-required/file-trash.md" ]
+  grep -qx 'after: \[file-trash\]' "$plans/p2-required/waits.md"
 }
 
 @test "a missing marks folder is still no marks at all" {
