@@ -79,7 +79,7 @@ read_exam_results() {
 
 # --- Writes.
 
-# Keep a passing exam's results, through a hidden draft moved over the last,
+# Keep a passing exam's results, through a hidden copy moved over the last,
 # so no exam reads half of them. Results that cannot be kept are refused on
 # stderr with a non-zero status.
 write_exam_results() {

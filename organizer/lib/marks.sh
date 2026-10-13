@@ -150,7 +150,7 @@ list_held_briefs() {
 # at the same moment cannot both win, and nobody ever reads a half-written
 # mark. The loser is answered as if the winner had been there first.
 take_brief() {
-  local dir="$1" brief="$2" session="$3" now="$4" mark draft held since
+  local dir="$1" brief="$2" session="$3" now="$4" mark hidden held since
   is_brief_name "$brief" || { refuse_bad_name_note "$brief" >&2; return 1; }
   is_session_id "$session" || { refuse_bad_session_note "$session" >&2; return 1; }
   refuse_unwritable_marks_dir "$dir" || return 1
@@ -166,37 +166,37 @@ take_brief() {
     refuse_marks_unwritable_note "$dir" >&2
     return 1
   fi
-  draft="$dir/.$brief.$$"
-  if ! { printf 'session: %s\nsince: %s\n' "$session" "$now" >"$draft"; } 2>/dev/null; then
+  hidden="$dir/.$brief.$$"
+  if ! { printf 'session: %s\nsince: %s\n' "$session" "$now" >"$hidden"; } 2>/dev/null; then
     refuse_marks_unwritable_note "$dir" >&2
     return 1
   fi
-  # A draft that cannot be removed is said, never left unmentioned, but it
-  # does not undo a take: the mark stands, and a hidden draft is never read
+  # A hidden copy that cannot be removed is said, never left unmentioned, but
+  # it does not undo a take: the mark stands, and a hidden copy is never read
   # as one.
-  if ln "$draft" "$mark" 2>/dev/null; then
-    remove_draft "$draft" || true
+  if ln "$hidden" "$mark" 2>/dev/null; then
+    remove_hidden_copy "$hidden" || true
     return 0
   fi
   # Where the link failed and no mark stands, something other than a race
   # stopped it; that is refused as it is, never taken for success, and the
-  # refusal is said before anything about the draft.
+  # refusal is said before anything about the hidden copy.
   if [ ! -e "$mark" ]; then
     refuse_mark_not_placed_note "$brief" >&2
-    remove_draft "$draft" || true
+    remove_hidden_copy "$hidden" || true
     return 1
   fi
-  remove_draft "$draft" || true
+  remove_hidden_copy "$hidden" || true
   IFS="$HEADER_US" read -r held since < <(read_mark "$mark")
   refuse_held_mark "$brief" "$session" "$held" "$since"
 }
 
-# Remove a mark's hidden draft. One that cannot be removed, the folder closed
+# Remove a mark's hidden copy. One that cannot be removed, the folder closed
 # since it was written, is named on stderr in the organizer's own words with a
 # non-zero status, rather than left behind with only rm's message, or none.
-remove_draft() {
+remove_hidden_copy() {
   rm -f "$1" 2>/dev/null && return 0
-  refuse_draft_left_note "$1" >&2
+  refuse_hidden_copy_left_note "$1" >&2
   return 1
 }
 

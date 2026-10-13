@@ -22,6 +22,10 @@ problem_unknown_level_folder_note() {
   printf 'folder %s: not a level, so nothing in it is read; the levels are %s.\n' "$1" "$2"
 }
 
+problem_bad_draft_value_note() {
+  printf '%s: draft holds "%s"; a draft says true, and a brief has no draft line.\n' "$1" "$2"
+}
+
 problem_missing_field_note() {
   printf '%s: the header has no %s.\n' "$1" "$2"
 }
@@ -73,7 +77,7 @@ problem_marks_unreadable_note() {
 # --- Refusals: the operation stops and changes nothing.
 
 refuse_usage_note() {
-  printf 'Usage: list | check | take <brief> <session> | free <session> | held <session> | taken [<path>...] | free-brief <brief> | done <brief> | wait <brief> <on> | waits <brief>\n'
+  printf 'Usage: list | check | drafts [<level>] | take <brief> <session> | free <session> | held <session> | taken [<path>...] | free-brief <brief> | done <brief> | wait <brief> <on> | waits <brief>\n'
 }
 
 refuse_wait_self_note() {
@@ -104,8 +108,8 @@ refuse_mark_not_placed_note() {
   printf 'The taken mark for %s could not be put in place, so the brief was not taken.\n' "$1"
 }
 
-refuse_draft_left_note() {
-  printf 'The hidden draft %s could not be removed; it is never read as a mark, and can be deleted by hand.\n' "$1"
+refuse_hidden_copy_left_note() {
+  printf 'The hidden copy %s could not be removed; it is never read as a mark, and can be deleted by hand.\n' "$1"
 }
 
 refuse_held_unreadable_note() {
@@ -126,6 +130,10 @@ refuse_path_outside_note() {
 
 refuse_bad_name_note() {
   printf '"%s" is not a brief name (lower-case letters, digits and hyphens).\n' "$1"
+}
+
+refuse_bad_level_note() {
+  printf '"%s" is not a level; the levels are %s.\n' "$1" "$2"
 }
 
 refuse_bad_session_note() {
@@ -164,15 +172,17 @@ refuse_header_unreadable_note() {
   printf '%s: its after list cannot be read, so no brief was changed.\n' "$1"
 }
 
-# --- The list.
+# --- The list. Every brief's line carries its level after its name, so the
+# order read off the levels shows on the line itself.
 
 list_problems_heading() { printf 'Problems:\n'; }
 list_ready_heading() { printf 'Ready now:\n'; }
 list_waiting_heading() { printf 'Waiting:\n'; }
 list_taken_heading() { printf 'Taken:\n'; }
+list_unwritten_heading() { printf 'Not yet written:\n'; }
 
 list_ready_line() {
-  printf -- '- %s — %s\n' "$1" "$2"
+  printf -- '- %s [%s] — %s\n' "$1" "$2" "$3"
 }
 
 list_same_place_taken_line() {
@@ -180,15 +190,36 @@ list_same_place_taken_line() {
 }
 
 list_waiting_line() {
-  printf -- '- %s — waits on: %s\n' "$1" "$2"
+  printf -- '- %s [%s] — waits on: %s\n' "$1" "$2" "$3"
 }
 
 list_taken_line() {
-  printf -- '- %s — taken %s ago (session %s)\n' "$1" "$2" "$3"
+  printf -- '- %s [%s] — taken %s ago (session %s)\n' "$1" "$2" "$3" "$4"
 }
 
 list_problem_line() {
   printf -- '- %s\n' "$1"
+}
+
+# One level's count of drafts, and the drafts named where the list names them.
+list_unwritten_count_line() {
+  printf -- '- [%s] %s\n' "$1" "$2"
+}
+
+list_unwritten_named_line() {
+  printf -- '- [%s] %s — %s\n' "$1" "$2" "$3"
+}
+
+# --- The drafts, listed in full.
+
+# Said on stderr where the check found problems, so a status of 1 with the
+# drafts alone, or nothing, is never left unexplained.
+drafts_problems_note() {
+  printf 'The check found problems, and any draft among them is left out; the organizer'\''s check or list shows them.\n'
+}
+
+drafts_line() {
+  printf -- '- %s [%s] — %s\n' "$1" "$2" "$3"
 }
 
 # --- The skill's hook. The notes go to the model, which never sees what the

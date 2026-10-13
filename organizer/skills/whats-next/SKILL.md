@@ -3,8 +3,9 @@
 # written here once, and renaming the skill is the whole of renaming it.
 name: devkit-whats-next
 description: >-
-  Shows the user the work organizer's list of briefs (ready now, waiting
-  and on what, taken, same place as a taken one). Use whenever the user
+  Shows the user the work organizer's list of briefs, each with its
+  priority level (ready now, waiting and on what, taken, same place as a
+  taken one, drafts not yet written). Use whenever the user
   asks in plain words what to work on: "what's next?", "what can I
   start?", "what's ready?", "what is waiting?", "what is taken?".
 # Asked in plain words, never typed: the list has no command of its own,

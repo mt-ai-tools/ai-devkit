@@ -28,7 +28,7 @@ setup() {
   [ "$status" -eq 0 ]
   [ "$output" = $'media-bucket\none-reporter' ]
   run organizer list
-  [[ "$output" == *"$(list_waiting_line file-trash "media-bucket, one-reporter")"* ]]
+  [[ "$output" == *"$(list_waiting_line file-trash p2-required "media-bucket, one-reporter")"* ]]
 }
 
 @test "a wait already written changes nothing and prints nothing" {
@@ -58,7 +58,7 @@ setup() {
   run organizer wait file-trash media-bucket
   [ "$status" -eq 0 ]
   run organizer list
-  [[ "$output" == *"$(list_taken_line file-trash "0 min" session-)"* ]]
+  [[ "$output" == *"$(list_taken_line file-trash p2-required "0 min" session-)"* ]]
 }
 
 @test "an unknown brief, a name that is no name, a brief waiting on itself, or one waiting back is refused, and nothing changes" {

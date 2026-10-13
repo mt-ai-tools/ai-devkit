@@ -37,6 +37,27 @@ is_draft_value() {
   [ "$1" = "$DRAFT_VALUE" ]
 }
 
+# The rows given, in level order and by name within a level; rows in no level
+# first, as they are listed first. The order is the levels' own, never the
+# names' spelling, so the order shown is the operator's, read off the folders
+# a file was put in, and the organizer ranks nothing itself.
+with_level_order() {
+  local rows="$1" i row level at
+  local -A rank
+  for i in "${!BRIEF_LEVEL_NAMES[@]}"; do
+    rank[${BRIEF_LEVEL_NAMES[$i]}]="$((i + 1))"
+  done
+  while IFS= read -r row; do
+    [ -n "$row" ] || continue
+    level="${row##*"$HEADER_US"}"
+    # An empty key is no subscript bash takes, so a row in no level is ranked
+    # without asking.
+    at=0
+    [ -z "$level" ] || at="${rank[$level]:-0}"
+    printf '%s%s%s\n' "$at" "$HEADER_US" "$row"
+  done <<<"$rows" | LC_ALL=C sort -s -t "$HEADER_US" -k1,1n -k2,2 | cut -d "$HEADER_US" -f 2-
+}
+
 # --- Reads.
 
 # Every entry file of the briefs folder, as "<level><US><path>": those lying

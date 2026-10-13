@@ -26,8 +26,8 @@ setup() {
   [ ! -e "$marks/media-bucket" ]
   run organizer list
   [ "$status" -eq 0 ]
-  [[ "$output" == *"$(list_ready_line file-trash "Trash.")"* ]]
-  [[ "$output" == *"$(list_waiting_line users-going "one-reporter, mount-parts")"* ]]
+  [[ "$output" == *"$(list_ready_line file-trash p3-conditional "Trash.")"* ]]
+  [[ "$output" == *"$(list_waiting_line users-going p2-required "one-reporter, mount-parts")"* ]]
 }
 
 @test "only the after line changes; every other byte stays as it was" {

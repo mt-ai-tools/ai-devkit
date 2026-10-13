@@ -121,7 +121,7 @@ find_owed_mark() {
 
 # --- Writes.
 
-# Put a session's mark in place, through a hidden draft moved over any mark
+# Put a session's mark in place, through a hidden copy moved over any mark
 # before it, so nobody reads half of one. Two edits noted at once, from tools
 # Claude Code runs side by side, may each put back the mark it read, and one
 # file then goes unlisted; the mark itself stands either way, which is all

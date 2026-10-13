@@ -318,7 +318,7 @@ read_session_record() {
 
 # --- Writes.
 
-# Put a session's record in place. Written to a hidden draft and moved over
+# Put a session's record in place. Written to a hidden copy and moved over
 # the old one, so nobody ever reads a half-written record; a record that
 # cannot be written is refused, never left half-done.
 write_session_record() {

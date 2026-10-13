@@ -137,6 +137,19 @@ $(problem_path_outside_note out creates a/../b)"
   [ "$output" = "$(problem_missing_field_note no-summary summary)" ]
 }
 
+# regression: a draft line saying anything but true made the file an ordinary
+# brief without a word, offered as ready where its header passed.
+@test "a draft line saying anything but true is a problem, and the file is never offered" {
+  printf -- '---\nsummary: Unsure.\ndraft: yes\nafter: []\ntouches: [aidk-plans]\ncreates: []\n---\n' >"$plans/p2-required/unsure.md"
+  printf -- '---\nsummary: Bare.\ndraft: false\n---\n' >"$plans/p4-optional/bare-item.md"
+  run organizer check
+  [ "$status" -eq 1 ]
+  [ "$output" = "$(problem_bad_draft_value_note bare-item false)"$'\n'"$(problem_bad_draft_value_note unsure yes)" ]
+  run organizer list
+  [ "$status" -eq 1 ]
+  [[ "$output" != *"$(list_ready_line unsure p2-required "Unsure.")"* ]]
+}
+
 @test "a folder that is no level is a problem, and nothing in it is read" {
   brief p2-required kept "Kept." "[]" "[aidk-plans]" "[]"
   mkdir -p "$plans/p2-requried"

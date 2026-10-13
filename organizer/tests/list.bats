@@ -1,9 +1,10 @@
 bats_require_minimum_version 1.5.0
 
 # Behavior tests for the list: ready, waiting and taken briefs each in their
-# section and in name order, ages from the mark's since, a ready brief in a
-# taken brief's place marked, and a broken brief shown among the problems and
-# nowhere else.
+# section, in level order and then name order, each line saying its level;
+# drafts counted per level and never offered; ages from the mark's since, a
+# ready brief in a taken brief's place marked, and a broken brief shown among
+# the problems and nowhere else.
 
 load project
 
@@ -19,7 +20,7 @@ setup() {
   brief p2-required file-trash "Deleted files wait before they go." "[]" "[monoframe/mf-media]" "[]"
   run organizer list
   [ "$status" -eq 0 ]
-  [ "$output" = "$(list_ready_heading)"$'\n'"$(list_ready_line file-trash "Deleted files wait before they go.")" ]
+  [ "$output" = "$(list_ready_heading)"$'\n'"$(list_ready_line file-trash p2-required "Deleted files wait before they go.")" ]
 }
 
 @test "a brief with an after list waits, saying on what" {
@@ -28,11 +29,11 @@ setup() {
   brief p2-required users-going "Users going." "[one-reporter, mount-parts]" "[monoframe/mf-users]" "[]"
   run organizer list
   [ "$status" -eq 0 ]
-  [[ "$output" == *"$(list_waiting_heading)"$'\n'"$(list_waiting_line users-going "one-reporter, mount-parts")"* ]]
-  [[ "$output" != *"$(list_ready_line users-going "Users going.")"* ]]
+  [[ "$output" == *"$(list_waiting_heading)"$'\n'"$(list_waiting_line users-going p2-required "one-reporter, mount-parts")"* ]]
+  [[ "$output" != *"$(list_ready_line users-going p2-required "Users going.")"* ]]
 }
 
-@test "sections come in order, each in name order, parted by a blank line" {
+@test "sections come in order, parted by a blank line" {
   brief p2-required zeta "Zeta." "[]" "[aidk-plans]" "[]"
   brief p2-required alpha "Alpha." "[]" "[monoframe/mf-media]" "[]"
   brief p2-required waits "Waits." "[alpha]" "[aidk-plans]" "[]"
@@ -41,14 +42,14 @@ setup() {
   run organizer list
   [ "$status" -eq 0 ]
   expected="$(list_ready_heading)
-$(list_ready_line alpha "Alpha.")
-$(list_ready_line zeta "Zeta.")
+$(list_ready_line alpha p2-required "Alpha.")
+$(list_ready_line zeta p2-required "Zeta.")
 
 $(list_waiting_heading)
-$(list_waiting_line waits alpha)
+$(list_waiting_line waits p2-required alpha)
 
 $(list_taken_heading)
-$(list_taken_line held "15 min" 01234567)"
+$(list_taken_line held p2-required "15 min" 01234567)"
   [ "$output" = "$expected" ]
 }
 
@@ -61,9 +62,9 @@ $(list_taken_line held "15 min" 01234567)"
   mark stale session-stale-1 "2026-10-01T09:00:00Z"
   run organizer list
   [ "$status" -eq 0 ]
-  [[ "$output" == *"$(list_taken_line fresh "0 min" session-)"* ]]
-  [[ "$output" == *"$(list_taken_line hours "29 h" session-)"* ]]
-  [[ "$output" == *"$(list_taken_line stale "3 d" session-)"* ]]
+  [[ "$output" == *"$(list_taken_line fresh p2-required "0 min" session-)"* ]]
+  [[ "$output" == *"$(list_taken_line hours p2-required "29 h" session-)"* ]]
+  [[ "$output" == *"$(list_taken_line stale p2-required "3 d" session-)"* ]]
   [[ "$output" != *"$(list_ready_heading)"* ]]
 }
 
@@ -76,7 +77,7 @@ $(list_taken_line held "15 min" 01234567)"
   [ "$status" -eq 0 ]
   [[ "$output" != *"$(list_ready_heading)"* ]]
   [[ "$output" != *"$(list_waiting_heading)"* ]]
-  [[ "$output" == *"$(list_taken_line second "0 min" s2)"* ]]
+  [[ "$output" == *"$(list_taken_line second p2-required "0 min" s2)"* ]]
 }
 
 @test "ready briefs in the same place are both listed, and neither is marked" {
@@ -84,7 +85,7 @@ $(list_taken_line held "15 min" 01234567)"
   brief p2-required frozen-account "Frozen." "[]" "[monoframe/mf-users/src]" "[]"
   run organizer list
   [ "$status" -eq 0 ]
-  [ "$output" = "$(list_ready_heading)"$'\n'"$(list_ready_line file-trash "Trash.")"$'\n'"$(list_ready_line frozen-account "Frozen.")" ]
+  [ "$output" = "$(list_ready_heading)"$'\n'"$(list_ready_line file-trash p2-required "Trash.")"$'\n'"$(list_ready_line frozen-account p2-required "Frozen.")" ]
 }
 
 @test "a ready brief in a taken brief's place is marked with the mark's age" {
@@ -93,7 +94,7 @@ $(list_taken_line held "15 min" 01234567)"
   mark frozen-account abc "2026-10-04T19:30:00Z"
   run organizer list
   [ "$status" -eq 0 ]
-  [[ "$output" == *"$(list_ready_line file-trash "Trash.")"$'\n'"$(list_same_place_taken_line frozen-account "2 h")"* ]]
+  [[ "$output" == *"$(list_ready_line file-trash p2-required "Trash.")"$'\n'"$(list_same_place_taken_line frozen-account "2 h")"* ]]
 }
 
 @test "one brief's touches and another's creates are the same place" {
@@ -102,7 +103,7 @@ $(list_taken_line held "15 min" 01234567)"
   mark makes abc "2026-10-04T19:30:00Z"
   run organizer list
   [ "$status" -eq 0 ]
-  [[ "$output" == *"$(list_ready_line edits "Edits.")"$'\n'"$(list_same_place_taken_line makes "2 h")"* ]]
+  [[ "$output" == *"$(list_ready_line edits p2-required "Edits.")"$'\n'"$(list_same_place_taken_line makes "2 h")"* ]]
 }
 
 @test "a sibling sharing a prefix is not the same place" {
@@ -122,9 +123,9 @@ $(list_taken_line held "15 min" 01234567)"
   [ "$status" -eq 1 ]
   [[ "$output" == "$(list_problems_heading)"$'\n'"$(list_problem_line "$(problem_after_missing_note broken nowhere)")"* ]]
   [[ "$output" == *"$(list_problem_line "$(problem_touches_missing_note broken-ready no-such-folder)")"* ]]
-  [[ "$output" == *"$(list_ready_line good "Good.")"* ]]
-  [[ "$output" != *"$(list_ready_line broken-ready "Broken ready.")"* ]]
-  [[ "$output" != *"$(list_waiting_line broken nowhere)"* ]]
+  [[ "$output" == *"$(list_ready_line good p2-required "Good.")"* ]]
+  [[ "$output" != *"$(list_ready_line broken-ready p2-required "Broken ready.")"* ]]
+  [[ "$output" != *"$(list_waiting_line broken p2-required nowhere)"* ]]
 }
 
 @test "a brief whose mark cannot be read is never ready" {
@@ -134,7 +135,7 @@ $(list_taken_line held "15 min" 01234567)"
   run organizer list
   [ "$status" -eq 1 ]
   [[ "$output" == *"$(problem_mark_unreadable_note held)"* ]]
-  [[ "$output" != *"$(list_ready_line held "Held.")"* ]]
+  [[ "$output" != *"$(list_ready_line held p2-required "Held.")"* ]]
 }
 
 @test "an empty briefs folder lists nothing, and a missing one is refused" {
@@ -153,7 +154,7 @@ $(list_taken_line held "15 min" 01234567)"
   printf -- '---\nsummary: Moved.\nafter: []\ntouches: [docs]\ncreates: []\n---\n' >"$project/docs/plans/p4-optional/moved.md"
   run organizer list
   [ "$status" -eq 0 ]
-  [ "$output" = "$(list_ready_heading)"$'\n'"$(list_ready_line moved "Moved.")" ]
+  [ "$output" = "$(list_ready_heading)"$'\n'"$(list_ready_line moved p4-optional "Moved.")" ]
 }
 
 @test "a config file the kit refuses stops the list with the config's reason" {
@@ -188,9 +189,89 @@ $(list_taken_line held "15 min" 01234567)"
 $(list_problem_line "$(problem_in_no_level_note flat)")
 
 $(list_ready_heading)
-$(list_ready_line urgent "Urgent.")
+$(list_ready_line urgent p1-critical "Urgent.")
 
 $(list_waiting_heading)
-$(list_waiting_line later urgent)"
+$(list_waiting_line later p4-optional urgent)
+
+$(list_unwritten_heading)
+$(list_unwritten_count_line p1-critical 0)
+$(list_unwritten_count_line p2-required 1)
+$(list_unwritten_count_line p3-conditional 0)
+$(list_unwritten_count_line p4-optional 0)"
+  [ "$output" = "$expected" ]
+}
+
+# The line's form is what a session searches the list by, and what the
+# operator reads the order off, so it is spelled here rather than read from
+# the words.
+@test "a line names the brief, then its level in brackets, then what it says" {
+  brief p1-critical billing-tiers "Plans and tiers." "[]" "[aidk-plans]" "[]"
+  run organizer list
+  [ "$status" -eq 0 ]
+  [ "${lines[1]}" = "- billing-tiers [p1-critical] — Plans and tiers." ]
+}
+
+@test "every section is in level order, then name order, and every line says its level" {
+  brief p3-conditional alpha "Alpha." "[]" "[aidk-plans]" "[]"
+  brief p1-critical zeta "Zeta." "[]" "[aidk-plans]" "[]"
+  brief p1-critical beta "Beta." "[]" "[aidk-plans]" "[]"
+  brief p4-optional aaa-waits "Waits." "[zeta]" "[aidk-plans]" "[]"
+  brief p2-required zz-waits "Waits too." "[alpha]" "[aidk-plans]" "[]"
+  brief p4-optional a-held "Held." "[]" "[monoframe/mf-media]" "[]"
+  brief p2-required z-held "Held too." "[]" "[monoframe/mf-users-old]" "[]"
+  mark a-held s1 "$now"
+  mark z-held s2 "$now"
+  run organizer list
+  [ "$status" -eq 0 ]
+  expected="$(list_ready_heading)
+$(list_ready_line beta p1-critical "Beta.")
+$(list_ready_line zeta p1-critical "Zeta.")
+$(list_ready_line alpha p3-conditional "Alpha.")
+
+$(list_waiting_heading)
+$(list_waiting_line zz-waits p2-required alpha)
+$(list_waiting_line aaa-waits p4-optional zeta)
+
+$(list_taken_heading)
+$(list_taken_line z-held p2-required "0 min" s2)
+$(list_taken_line a-held p4-optional "0 min" s1)"
+  [ "$output" = "$expected" ]
+}
+
+@test "drafts are counted per level, the first level's named, and never offered" {
+  brief p2-required ready-one "Ready." "[]" "[aidk-plans]" "[]"
+  draft p1-critical zz-broken-now "Broken now."
+  draft p1-critical aa-blocking "Blocking."
+  draft p2-required before-release "Before release."
+  draft p2-required also-required "Also required."
+  draft p2-required third-required "Third."
+  draft p4-optional someday "Someday."
+  run organizer list
+  [ "$status" -eq 0 ]
+  expected="$(list_ready_heading)
+$(list_ready_line ready-one p2-required "Ready.")
+
+$(list_unwritten_heading)
+$(list_unwritten_named_line p1-critical 2 "aa-blocking, zz-broken-now")
+$(list_unwritten_count_line p2-required 3)
+$(list_unwritten_count_line p3-conditional 0)
+$(list_unwritten_count_line p4-optional 1)"
+  [ "$output" = "$expected" ]
+}
+
+@test "with no first-level draft its line is a count alone, and a broken draft is not counted" {
+  draft p3-conditional when-asked "When asked."
+  printf -- '---\ndraft: true\n---\n' >"$plans/p1-critical/no-summary.md"
+  run organizer list
+  [ "$status" -eq 1 ]
+  expected="$(list_problems_heading)
+$(list_problem_line "$(problem_missing_field_note no-summary summary)")
+
+$(list_unwritten_heading)
+$(list_unwritten_count_line p1-critical 0)
+$(list_unwritten_count_line p2-required 0)
+$(list_unwritten_count_line p3-conditional 1)
+$(list_unwritten_count_line p4-optional 0)"
   [ "$output" = "$expected" ]
 }

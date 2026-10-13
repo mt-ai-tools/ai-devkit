@@ -29,7 +29,7 @@ teardown() {
   [ "${lines[0]}" = "$(list_problems_heading)" ]
   [[ "$output" == *"$(list_problem_line "$(problem_marks_unreadable_note "$marks")")"* ]]
   [[ "$output" != *"$(list_ready_heading)"* ]]
-  [[ "$output" == *"$(list_waiting_line waits file-trash)"* ]]
+  [[ "$output" == *"$(list_waiting_line waits p2-required file-trash)"* ]]
 }
 
 @test "the check reports the folder as a problem" {
@@ -76,7 +76,7 @@ teardown() {
   rm -r "$marks"
   run organizer list
   [ "$status" -eq 0 ]
-  [[ "$output" == *"$(list_ready_line file-trash Trash.)"* ]]
+  [[ "$output" == *"$(list_ready_line file-trash p2-required Trash.)"* ]]
   run organizer held session-1
   [ "$status" -eq 0 ]
   run organizer free session-1

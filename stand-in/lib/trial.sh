@@ -190,7 +190,7 @@ is_every_kind_on_trial() {
 # --- Writes.
 
 # Keep the operator's yes to the kind given, given the stand-in's working
-# folder and when it was given: written to a hidden draft and moved over any
+# folder and when it was given: written to a hidden copy and moved over any
 # yes before it, so no reader finds half a file and a newer yes replaces the
 # older whole. A yes that cannot be kept is refused on stderr with a non-zero
 # status, and no draft left.

@@ -32,6 +32,18 @@ format_level_names() {
   printf '%s' "${joined%, }"
 }
 
+# Every level with what it means, as one line for the operator to read, read
+# off the kit's level list. Parted by semicolons, since a meaning may hold a
+# comma. Where a level is refused, this is where the operator learns what the
+# levels mean: the README names the folders and leaves their meanings here.
+format_level_meanings() {
+  local joined entry
+  for entry in "${BRIEF_LEVELS[@]}"; do
+    joined+="${entry%%=*} (${entry#*=}); "
+  done
+  printf '%s' "${joined%; }"
+}
+
 # What is wrong with one brief's row, judged alone: its name, lying in no
 # level, a field missing or not in form, an after entry that is no name, a
 # path that leaves the root. A summary's folded-block marker (`>` or `|`) is
@@ -54,6 +66,14 @@ derive_brief_problems() {
     problem_row "$name" "$(problem_folded_summary_note "$name")"
   fi
   ! is_draft_value "$draft" || return 0
+  # Any other value fails closed: whether `draft: yes` meant a draft or a brief
+  # cannot be told, and read as a brief it would be offered as work. Its other
+  # fields are not judged here: a missing after or touches would assume the
+  # brief reading nobody chose, and bury the one line that needs fixing.
+  if [ -n "$draft" ]; then
+    problem_row "$name" "$(problem_bad_draft_value_note "$name" "$draft")"
+    return 0
+  fi
   for field in after touches creates; do
     value="${!field}"
     if [ -z "$value" ]; then

@@ -93,7 +93,7 @@ find_woken_mark() {
 
 # --- Writes.
 
-# Put a session's mark in place, through a hidden draft moved over any mark
+# Put a session's mark in place, through a hidden copy moved over any mark
 # before it, so the gate never reads half of one. A mark that cannot be
 # written is refused on stderr with a non-zero status.
 write_woken_mark() {

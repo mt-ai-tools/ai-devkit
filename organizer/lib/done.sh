@@ -35,7 +35,7 @@ find_header_line() {
 # names the brief cannot be told, and a half-made finish would leave a name
 # behind that the check then reports as missing. Each waiter is rewritten
 # where it lies, whatever its level, or in no level, since the name it waits
-# on is gone wherever it is read: written whole to a hidden draft beside it
+# on is gone wherever it is read: written whole to a hidden copy beside it
 # and moved into place, its after line rewritten and every other byte copied
 # as it stood. A draft brief is never a waiter: its after list is not judged,
 # and one it does not hold must not refuse the finish.

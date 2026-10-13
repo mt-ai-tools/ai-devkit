@@ -3,8 +3,10 @@
 # the project root and the marks folder, asks the clock where an operation
 # needs now, and hands each subcommand to the concern that holds it.
 #
-#   list                      the check's problems, then ready, waiting, taken
+#   list                      the check's problems, then ready, waiting, taken,
+#                             and how many drafts each level holds
 #   check                     the check's problems alone
+#   drafts [<level>]          every draft, or one level's, one line each
 #   take <brief> <session>    mark a ready brief, never a draft, taken by a
 #                             session
 #   free <session>            free every brief a session holds
@@ -36,6 +38,7 @@ tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/marks.sh"
 . "$tool_root/lib/check.sh"
 . "$tool_root/lib/list.sh"
+. "$tool_root/lib/drafts.sh"
 . "$tool_root/lib/done.sh"
 . "$tool_root/lib/taken.sh"
 . "$tool_root/lib/wait.sh"
@@ -79,6 +82,10 @@ case "$command" in
   check)
     [ "$#" -eq 0 ] || usage
     list_problem_lines "$plans" "$root" "$marks"
+    ;;
+  drafts)
+    [ "$#" -le 1 ] || usage
+    list_drafts "$plans" "$root" "$marks" "$@"
     ;;
   take)
     [ "$#" -eq 2 ] || usage
