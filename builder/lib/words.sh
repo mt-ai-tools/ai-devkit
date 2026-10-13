@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Every word the break check hands its reader, in one place, so the suite
+# Every word the builder's tools hand their reader, in one place, so the suite
 # asserts the wiring rather than the wording. Sourced, never executed.
 
 break_check_usage_note() {
@@ -36,4 +36,25 @@ break_check_empty_old_text_note() {
 
 break_check_restore_failed_note() {
   printf 'RESTORE FAILED: %s differs from what it held before the break; its copy is at %s\n' "$1" "$2"
+}
+
+# The session has grown past the size worth compacting at a clean point.
+session_size_compact_note() {
+  printf 'compact: %s tokens\n' "$1"
+}
+
+session_size_fine_note() {
+  printf 'fine: %s tokens\n' "$1"
+}
+
+session_size_no_session_note() {
+  printf 'refused: no session id in %s, so there is no transcript to read\n' "$1"
+}
+
+session_size_no_transcript_note() {
+  printf 'refused: no transcript for session %s under %s\n' "$1" "$2"
+}
+
+session_size_usage_note() {
+  printf 'usage: session-size.sh [<transcript>]\n'
 }
