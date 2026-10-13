@@ -23,9 +23,8 @@ first:
    > Your work introduced something new. Find every place in the frame
    > that should now use it: code still doing the same job by hand,
    > older copies of it, workarounds and comments waiting for it ('until
-   > X exists'), and pending lines or briefs it unblocks. Take your
-   > time. Don't propose things that belong to other ongoing sessions'
-   > work.
+   > X exists'), and drafts or briefs it unblocks. Take your time.
+   > Don't propose things that belong to other ongoing sessions' work.
 
 Only where it is the same job: the new thing replaces hand-made copies
 of itself, never "could also be used for".
@@ -35,7 +34,7 @@ Each finding is filtered first, by the agent:
 - It belongs to this brief (its summary and what it touches): asked as
   a question, one at a time.
 - It belongs elsewhere and is already written down, in another brief or
-  the notes: dropped.
+  draft: dropped.
 - It is written down nowhere and quick (no decision needed, a few lines
   in one module, nobody else's uncommitted edits there): fixed in
   passing — unless another session's brief works where it lies, which
@@ -43,8 +42,9 @@ Each finding is filtered first, by the agent:
   which parks it.
 - A place to use the new thing in an area another session is working
   in: a hand-off written into that session's brief.
-- Anything else: a line in the notes, or "write a brief for this?" to
-  the operator.
+- Anything else: a draft, written through the work organizer's `draft`
+  command in the level the session picks, each draft named with its level
+  in the session's report; or "write a brief for this?" to the operator.
 
 Rounds repeat until both looks come back with nothing that belongs
 here. After three rounds that still find something belonging here, the

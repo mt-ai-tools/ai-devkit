@@ -77,7 +77,7 @@ problem_marks_unreadable_note() {
 # --- Refusals: the operation stops and changes nothing.
 
 refuse_usage_note() {
-  printf 'Usage: list | check | drafts [<level>] | take <brief> <session> | free <session> | held <session> | taken [<path>...] | free-brief <brief> | done <brief> | wait <brief> <on> | waits <brief>\n'
+  printf 'Usage: list | check | drafts [<level>] | draft <level> <name> (the summary on the first line of stdin, then the text, opening with its "# " title line) | take <brief> <session> | free <session> | held <session> | taken [<path>...] | free-brief <brief> | done <brief> | wait <brief> <on> | waits <brief>\n'
 }
 
 refuse_wait_self_note() {
@@ -109,7 +109,7 @@ refuse_mark_not_placed_note() {
 }
 
 refuse_hidden_copy_left_note() {
-  printf 'The hidden copy %s could not be removed; it is never read as a mark, and can be deleted by hand.\n' "$1"
+  printf 'The hidden copy %s could not be removed; it is never read as a mark or a brief, and can be deleted by hand.\n' "$1"
 }
 
 refuse_held_unreadable_note() {
@@ -170,6 +170,36 @@ refuse_mark_unreadable_note() {
 
 refuse_header_unreadable_note() {
   printf '%s: its after list cannot be read, so no brief was changed.\n' "$1"
+}
+
+# --- Refusals of a new draft: nothing is written.
+
+refuse_no_level_folder_note() {
+  printf 'There is no %s folder in the briefs folder %s; the level folders are made by hand, so no draft was written.\n' "$1" "$2"
+}
+
+refuse_draft_name_taken_note() {
+  printf 'A brief or draft named %s already stands in %s, so no draft was written.\n' "$1" "$2"
+}
+
+refuse_draft_name_in_no_level_note() {
+  printf 'A file named %s already lies directly in the briefs folder, so no draft was written.\n' "$1"
+}
+
+refuse_draft_no_summary_note() {
+  printf 'No summary was handed in: the first line read is the draft'\''s summary, so no draft was written.\n'
+}
+
+refuse_draft_bad_summary_note() {
+  printf 'The summary cannot stand on the header'\''s one line as written (it holds a control character, opens with a space, or is a lone > or | that reads as a folded block), so no draft was written.\n'
+}
+
+refuse_draft_no_title_note() {
+  printf 'The draft'\''s text, on the lines after the summary, must open with its "# " title line, so no draft was written.\n'
+}
+
+refuse_draft_not_written_note() {
+  printf 'The draft %s could not be written, so nothing was.\n' "$1"
 }
 
 # --- The list. Every brief's line carries its level after its name, so the

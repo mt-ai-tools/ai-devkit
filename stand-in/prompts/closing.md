@@ -8,7 +8,7 @@ The agent was asked to give each thing it found one of these sorts:
 
 - "here": it belongs to the brief the agent is working on.
 - "written-down": it belongs elsewhere and is already written down, in
-  another brief or the notes.
+  another brief or draft.
 - "not-same-job": the new thing the agent built could also be used there,
   but it is not the same job.
 - "quick": it is written down nowhere, needs no decision, is a few lines in

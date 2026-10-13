@@ -46,9 +46,8 @@ format_level_meanings() {
 
 # What is wrong with one brief's row, judged alone: its name, lying in no
 # level, a field missing or not in form, an after entry that is no name, a
-# path that leaves the root. A summary's folded-block marker (`>` or `|`) is
-# refused, since the header reader hands back only a field's first line and
-# the list would show the marker in place of the summary.
+# path that leaves the root. A summary written as a folded block is refused,
+# for the reason is_folded_marker gives.
 #
 # A file in no level is a problem rather than a brief allowed beside the
 # levels: a folder holds files or folders, never a mix, and a pile let lie
@@ -62,7 +61,7 @@ derive_brief_problems() {
   [ -n "$level" ] || problem_row "$name" "$(problem_in_no_level_note "$name")"
   if [ -z "$summary" ]; then
     problem_row "$name" "$(problem_missing_field_note "$name" summary)"
-  elif [[ "$summary" =~ ^[\>\|][-+0-9]*$ ]]; then
+  elif is_folded_marker "$summary"; then
     problem_row "$name" "$(problem_folded_summary_note "$name")"
   fi
   ! is_draft_value "$draft" || return 0

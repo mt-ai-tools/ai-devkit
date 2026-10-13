@@ -109,7 +109,7 @@ GUIDANCE_ANSWERS="[\"$GUIDANCE_DROP\", \"$GUIDANCE_KEEP_PART\", \"$GUIDANCE_KEEP
 # The sorter's answer. kind: one kind of question from the preset. unsure:
 # the sorter could not tell. risks: the preset's risks the recommended option
 # carries. defers: the recommended option puts work off — to later, to a
-# pending line, or to another session — which a kind whose recommendation
+# draft, or to another session — which a kind whose recommendation
 # stands unchallenged still brings to the operator (settled 2026-10-06: their
 # own habit is to push toward doing it now). The sorter's to say rather than
 # the reader's, since it weighs the recommended option already, for its risks.
@@ -207,14 +207,14 @@ FINDING_FIELDS='["finding", "sort", "files", "brief"]'
 
 # The sorts a finding may be, by decision 2's filter: belongs to this brief,
 # and goes through the gate as a question; belongs elsewhere and is already
-# written down, in another brief or the notes, and is dropped; a place the new
+# written down, in another brief or draft, and is dropped; a place the new
 # thing could also be used that is not the same job, and is dropped, since
 # the second look adopts the new thing only where it replaces hand-made
 # copies of itself; written down nowhere and quick (no decision, a few lines
 # in one module, nobody else's uncommitted edits in its files), and fixed in
 # passing; a place to use the new thing in an area another session works in,
-# handed off into that session's brief; anything else, parked as a line in
-# the notes or asked about as a brief of its own. And unsorted, where the
+# handed off into that session's brief; anything else, parked as a draft
+# written through the work organizer or asked about as a brief of its own. And unsorted, where the
 # reply gives none: the reader says so rather than guess, and the check
 # refuses the form.
 FINDING_HERE="here"

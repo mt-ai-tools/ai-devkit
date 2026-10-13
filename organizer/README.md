@@ -22,14 +22,19 @@ waits on.
 A draft is an item decided on but not yet written out as a brief, marked so
 in its header and held to a summary. It is never offered or taken. The list
 counts the drafts in each level and names those in the most urgent one; the
-organizer lists every draft in full, or one level's, on request.
+organizer lists every draft in full, or one level's, on request. A new draft
+is written through the organizer, never by hand, into the level its caller
+picks: it is handed the summary on the first line, then the draft's text,
+opening with its title line. It writes only where no brief or draft of that
+name stands in any level, and never makes a level folder.
 
 It changes only its own marks; when a brief is finished, that brief and the
 after lists naming it; and when a wait on another brief is written into a
-brief, that brief's after list. Its writer adds only the one new brief, and
-the after lists the operator's yes named. Neither runs version control:
-finishing and a written wait print every path they changed, and committing
-them is left to whoever called it.
+brief, that brief's after list; and when a draft is written, that one new
+file. Its writer adds only the one new brief, and the after lists the
+operator's yes named. Neither runs version control: finishing, a written wait
+and a written draft print every path they changed, and committing them is
+left to whoever called it.
 
 Needs a folder of briefs holding four level folders, made by hand, and
 nothing else: `p1-critical`, `p2-required`, `p3-conditional` and

@@ -22,7 +22,7 @@ Answer four things:
   option carries none, or when no option is recommended. When in doubt
   whether it carries one, name it.
 - defers: true if the recommended option puts work off rather than doing it
-  now: to later, to a pending line or note, or to another session. False
+  now: to later, to a draft, or to another session. False
   when it does the work now, or when no option is recommended. When in
   doubt, true.
 

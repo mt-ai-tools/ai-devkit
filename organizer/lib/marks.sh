@@ -191,9 +191,10 @@ take_brief() {
   refuse_held_mark "$brief" "$session" "$held" "$since"
 }
 
-# Remove a mark's hidden copy. One that cannot be removed, the folder closed
-# since it was written, is named on stderr in the organizer's own words with a
-# non-zero status, rather than left behind with only rm's message, or none.
+# Remove a hidden copy, a mark's or a new draft's. One that cannot be removed,
+# its folder closed since it was written, is named on stderr in the
+# organizer's own words with a non-zero status, rather than left behind with
+# only rm's message, or none.
 remove_hidden_copy() {
   rm -f "$1" 2>/dev/null && return 0
   refuse_hidden_copy_left_note "$1" >&2

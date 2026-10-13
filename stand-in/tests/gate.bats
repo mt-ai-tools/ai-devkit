@@ -1696,7 +1696,7 @@ here_finding="$(finding "The README still calls the loop beta" here '["aidk-plan
   closing_ground
   sweep_round \
     "$(look_form "$here_finding" \
-      "$(finding "A typo the notes already hold" written-down)" \
+      "$(finding "A typo a draft already holds" written-down)" \
       "$(finding "A settings screen of its own" park)")" \
     "$(look_form \
       "$(finding "media.ts builds the sizes by hand; switch it to the new reader" quick '["monoframe/mf-media/src/media.ts"]')" \
@@ -1864,7 +1864,7 @@ finished_reply="Committed. The brief built the end report; the full check passed
   printf 'edited\n' >>"$project/monoframe/mf-media/src/sizes.ts"
   sweep_round \
     "$(look_form "$here_finding" \
-      "$(finding "A typo the notes already hold" written-down)" \
+      "$(finding "A typo a draft already holds" written-down)" \
       "$(finding "A settings screen of its own" park)")" \
     "$(look_form \
       "$(finding "media.ts builds the sizes by hand" quick '["monoframe/mf-media/src/media.ts"]')" \
@@ -1890,7 +1890,7 @@ finished_reply="Committed. The brief built the end report; the full check passed
     gate_fixed_heading
     gate_problem_line "media.ts builds the sizes by hand"
     end_dropped_heading
-    closing_finding_line "A typo the notes already hold" "$(closing_sort_words written-down)"
+    closing_finding_line "A typo a draft already holds" "$(closing_sort_words written-down)"
     closing_finding_line "It could also be used for logging" "$(closing_sort_words not-same-job)"
     end_dropped_line 1 "Five retries or ten?"
     end_parked_heading

@@ -7,6 +7,10 @@
 #                             and how many drafts each level holds
 #   check                     the check's problems alone
 #   drafts [<level>]          every draft, or one level's, one line each
+#   draft <level> <name>      write a new draft into a level, printing the
+#                             path it wrote; stdin hands in the summary on its
+#                             first line, then the draft's text, opening with
+#                             its "# " title line
 #   take <brief> <session>    mark a ready brief, never a draft, taken by a
 #                             session
 #   free <session>            free every brief a session holds
@@ -39,6 +43,7 @@ tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/check.sh"
 . "$tool_root/lib/list.sh"
 . "$tool_root/lib/drafts.sh"
+. "$tool_root/lib/draft.sh"
 . "$tool_root/lib/done.sh"
 . "$tool_root/lib/taken.sh"
 . "$tool_root/lib/wait.sh"
@@ -86,6 +91,10 @@ case "$command" in
   drafts)
     [ "$#" -le 1 ] || usage
     list_drafts "$plans" "$root" "$marks" "$@"
+    ;;
+  draft)
+    [ "$#" -eq 2 ] || usage
+    write_draft "$plans" "$1" "$2"
     ;;
   take)
     [ "$#" -eq 2 ] || usage

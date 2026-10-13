@@ -813,7 +813,7 @@ round_by_stand_in_prompt_words() {
 closing_report_note() {
   printf 'Report what you find, and change nothing yet. For each finding, say what it is, name the files it touches, and give it one of these sorts:\n'
   printf -- '- %s: it belongs to this brief (its summary and what it touches).\n' "$1"
-  printf -- '- %s: it belongs elsewhere and is already written down, in another brief or the notes.\n' "$2"
+  printf -- '- %s: it belongs elsewhere and is already written down, in another brief or draft.\n' "$2"
   printf -- '- %s: the new thing could also be used there, but it is not the same job.\n' "$3"
   printf -- '- %s: written down nowhere, needs no decision, a few lines in one module, and nobody else'\''s uncommitted edits in its files.\n' "$4"
   printf -- '- %s: a place to use the new thing in an area another session is working in; name that session'\''s brief.\n' "$5"
@@ -860,7 +860,7 @@ closing_hand_off_heading() {
 }
 
 closing_park_heading() {
-  printf 'Park each as a line in the notes, or ask the operator whether to write a brief for it:\n'
+  printf 'Park each as a draft, written through the work organizer'\''s `draft` command in the level you judge it belongs in, and name each draft with its level in your report; or ask the operator whether to write a brief for it:\n'
 }
 
 # A finding handed off, given what it is, the briefs it goes into, joined,

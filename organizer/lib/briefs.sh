@@ -37,6 +37,14 @@ is_draft_value() {
   [ "$1" = "$DRAFT_VALUE" ]
 }
 
+# True if a header value, as the header wrote it, is a folded-block marker
+# (`>` or `|`, with its chomping and indent signs). The header reader hands
+# back only a field's first line, so such a field reads as the marker alone,
+# and a list would show the marker in place of the value.
+is_folded_marker() {
+  [[ "$1" =~ ^[\>\|][-+0-9]*$ ]]
+}
+
 # The rows given, in level order and by name within a level; rows in no level
 # first, as they are listed first. The order is the levels' own, never the
 # names' spelling, so the order shown is the operator's, read off the folders
