@@ -182,7 +182,10 @@ decision that changes later replaces the old text; it is never kept
 beside it.
 
 **`## Steps`**: numbered, each a piece that can land alone, each with its
-proof: what is run or watched that shows it done. A step once built gains
+proof: what is run or watched that shows it done. A step changes one
+package, and one kind of thing in it — its tables, its server, or its
+screens — with only what must land beside it to stay green. Pieces that
+could each land green in turn are that many steps. A step once built gains
 one line — built, the date, each repository and its commit — and never a
 log of how it went: history is the repositories' to keep, and every builder
 reads the whole brief.
