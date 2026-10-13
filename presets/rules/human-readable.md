@@ -9,13 +9,5 @@ autonomy: >
 
 # Human-readable
 
-Write code for the human who reads it next, not the one writing it now.
-
-- Small, single-purpose functions; prefer flat control flow over deep nesting.
-- Name so intent is clear without tracing the code.
+- A name shows intent without tracing the code.
 - No cleverness that needs decoding — if a reader would stumble, simplify.
-- Put a comment directly above what it explains.
-
-Related:
-- [comment-the-why](comment-the-why.md) — what a comment should say.
-- [split-at-seams](split-at-seams.md) — the same principle at file scale.

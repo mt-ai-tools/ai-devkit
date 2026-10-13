@@ -7,18 +7,12 @@ summary: Dependencies run one way, features meet at published interfaces, and no
 
 Keep layers and features separate. No reaching across.
 
-- Dependencies run one way: a module uses what sits below it, never what sits
-  above. Which is below is evident from what each module is for — it needs no
-  declaring.
-- No cross-layer imports (e.g. a presentation layer importing server internals).
+- A module uses what sits below it, never what sits above. Which is below
+  is evident from what each module is for — it needs no declaring.
+- No cross-layer imports.
 - No cross-feature imports — features talk through shared, declared interfaces, not each other's internals.
-- No import cycles. A cycle says something sits in the wrong module; it is not
-  a graph that needs an exception.
+- A cycle says something sits in the wrong module.
 - Time is a boundary too. What runs in production never depends on what
-  exists only to build, test, or deploy it — those sit above it, and a
-  deployed artifact runs with its runtime dependencies alone. A decision the
-  running code must make is never taken from a module that stops existing
-  once it is deployed.
-
-Related:
-- [keep-modules-independent](keep-modules-independent.md) — its behavioral sibling: fix a problem where it lives.
+  exists only to build, test, or deploy it — those sit above it. A
+  decision the running code must make is never taken from a module that
+  stops existing once it is deployed.

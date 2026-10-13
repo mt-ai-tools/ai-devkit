@@ -5,10 +5,8 @@ summary: Work in coherent chunks and commit each one as it lands. Don't ask, and
 
 # Commit per chunk
 
-Work in coherent chunks. Commit each one as it lands, without asking.
-
 - A good boundary: one coherent thing is done and works.
 - Don't mix several features into one commit.
-- Don't let changes pile up past a boundary — an unbroken run of work is harder to review, revert, and understand than the same work in four commits.
+- Don't let changes pile up past a boundary — one unbroken run is harder to review and revert than several commits.
 - Write the message yourself: what changed and why.
-- Don't ask permission to commit. The commit isn't the risky step; losing the boundary is. A commit is local and revertible — pushing is the step that reaches other people.
+- The commit isn't the risky step; losing the boundary is. Pushing is another step: it reaches other people.

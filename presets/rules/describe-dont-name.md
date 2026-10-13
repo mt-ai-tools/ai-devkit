@@ -9,49 +9,33 @@ autonomy: >
 
 # Describe, don't name
 
-Prose describes what a thing is for. It never restates what code already holds.
-
 - Code is the source of every identifier, path, export, and dependency in it.
   A doc that repeats one is a second copy, and it rots silently — nothing
   checks prose.
 - Write in roles: what a piece does, what it must not do, what it needs.
   Not what it is called, or where it sits.
-- This binds every doc, whatever its kind — the exemptions below are the whole
-  list.
-- It binds prose that will be read again, which is what every doc is. An
-  answer to the operator is not one: it is read once, where it is written, and
-  nothing reads it afterwards, so it cannot go stale and this rule does not
-  reach it. There, naming the file, the path or the command is how the reader
-  finds the thing instead of searching for it.
-- No usage examples. Code that needs prose to explain how to use it is code to
-  fix, not to document, and an example nothing compiles is wrong from the
-  first rename.
+- This binds every doc; the exemptions below are the whole list. An answer
+  to the operator is not a doc: it is read once and cannot go stale, so
+  there, naming the file, the path or the command is how the reader finds
+  the thing.
+- No usage examples. Code that needs one is code to fix, and an example
+  nothing compiles goes stale at the first rename.
 
 Exempt:
 
 - Steps a human types verbatim may name external tools and their fixed files.
   Those names are not yours to change, so they cannot go stale from within.
-- Languages, formats, and platform features may be named. They are the medium
-  the prose is written about, not identifiers your code holds.
+- Languages, formats, and platform features may be named.
 - Prose may point at sibling prose that lives at least as long as it
   does. A broken link is findable; a stale identifier is not. A lasting
-  text never points at a temporary one — a plan, a note, a working
-  file — that will be deleted while it still stands: it says the thing
-  itself instead.
-- A migration note names freely. It records what one past release broke,
-  frozen at its date — its identifiers are history, and history cannot rot.
+  text never points at a temporary one that will be deleted while it
+  still stands: it says the thing itself instead.
+- A migration note names freely: its identifiers are history, and history
+  cannot rot.
 - A why-comment may name the specific library, tool, or version that caused
-  what it explains. When the name is the why — a dependency's bug, a vendor's
-  quirk — writing around it would hide the reason.
+  what it explains.
 - A placeholder form may show a shape a convention prescribes, when the shape
   is the point. Use it sparingly: a form shown in one entry and withheld in
   the next reads as a distinction that isn't there.
-- A place the operator must make by hand — a folder the tool looks for, a
-  file it expects — may be named where they are told to make it. A name to
-  create cannot be given in roles, and it goes stale only with the code that
-  looks for it, a change that already owes its note.
-
-Related:
-- [single-source-of-truth](single-source-of-truth.md) — its premise; the identifier's home is the code.
-- [blocks-not-bundles](blocks-not-bundles.md) — a block that names its neighbours in prose knows them just as surely.
-- [human-readable](human-readable.md) — why no usage example is needed: the code reads without one.
+- A place the operator must make by hand may be named where they are told
+  to make it.

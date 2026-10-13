@@ -9,12 +9,6 @@ autonomy: >
 
 # Compose, don't merge
 
-When several concerns must run together, keep each in its own file and combine them with a thin orchestrator — the entry point that wires them.
-
-- The orchestrator only wires and sequences. It holds no concern's own logic.
+- The orchestrator only wires and sequences.
 - Each concern stays a standalone, single-purpose file, testable alone.
 - "They always run together" is a reason to orchestrate, not to merge.
-
-Related:
-- [folder-shape](folder-shape.md) — the entry point stays; concerns live in siblings.
-- [keep-modules-independent](keep-modules-independent.md) — each concern stays independent.

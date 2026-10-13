@@ -9,23 +9,17 @@ autonomy: >
 
 # Ship tests
 
-Ship the tests with the change, not after it.
-
 - A bug fix in executable code ships a test that fails before and passes after.
 - A new executable module ships tests for its observable behavior.
-- Prose — specs, prompts, docs — needs no tests: nothing executes there.
 - Tests assert behavior, not implementation detail.
 - A test pins a value the outside world fixes — an environment key, a status
   code, a header, a filename another tool expects — by spelling it literally.
-  A test that reads the constant it asserts, asserts nothing: change the
-  constant to anything and the suite stays green while the contract breaks.
-  The duplicate spelling is not a second copy of a fact; it is the assertion.
-- Values that are yours to change — screen copy, log text — are the opposite
-  case: tests read them from their one home, and the test binds the wiring,
-  not the words.
+  A test that reads the constant it asserts, asserts nothing. The duplicate
+  spelling is not a second copy of a fact; it is the assertion.
+- Values that are yours to change — screen copy, log text — are read from
+  their one home: the test binds the wiring, not the words.
 
-How much is enough is settled here, so neither the writer nor a reviewer
-argues it per file:
+How much is enough:
 
 - Every public function gets two tests: one good input showing what it
   promises, one bad input showing how it refuses. That is the floor, and for
@@ -36,15 +30,9 @@ argues it per file:
   authentication path, a data write — because there the tests are the only
   witness.
 - A feature about several things relating — grouped, shared, ordered,
-  ranked, colliding — is not proved with one of them. One is the case
-  where every reading of the code agrees, so the test passes whichever
-  was built, and the reading nobody chose is found in use instead.
+  ranked, colliding — is not proved with one of them: with one, every
+  reading of the code passes.
 - A door's tests include the stranger: nobody signed in, the wrong role,
   and someone else's record, each refused. The invited caller proves the
   door opens; only the stranger proves it closes.
-- A surface still changing shape gets the floor and nothing more. A test
-  written against a shape that moves next week is written twice.
-
-Related:
-- [centralize-constants](centralize-constants.md) — defers to this for literals inside tests.
-- [single-source-of-truth](single-source-of-truth.md) — defers to this for the same; a pinned contract is not a drifting copy.
+- A surface still changing shape gets the floor and nothing more.

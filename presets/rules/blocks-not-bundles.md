@@ -3,10 +3,9 @@ enforce: [before-thinking, before-finishing]
 summary: Ship the smallest unit that stands alone, and never let it know who uses it.
 autonomy: >
   A sentence naming a consumer may be rewritten to say what the block is
-  instead — prose knowing its neighbours costs nothing to unsay. Where the
-  block reaches them for real, in a dependency, an import, or an interface
-  shaped around one, the fix changes what the block is, and that is the
-  operator's.
+  instead. Where the block reaches them for real, in a dependency, an import,
+  or an interface shaped around one, the fix changes what the block is, and
+  that is the operator's.
 ---
 
 # Blocks, not bundles
@@ -15,23 +14,14 @@ Build from small independent blocks. Each one ships, versions, and is replaced b
 itself.
 
 - Split at the seam where a piece could be useful on its own — not where it is convenient today.
-- Where there is no seam, there is no block. A piece that only reads as one
-  step of its caller gains a name, a version and a mount, and little else — a
-  split follows a boundary rather than making one.
+- Where there is no seam, there is no block: a split follows a boundary
+  rather than making one.
 - A shared subject is not a shared shape. A piece built around one consumer's
-  data model is that consumer's, however general its topic sounds; worth
-  asking before the topic answers for you.
-- Split early rather than late. Splitting early draws the shape from its only
-  caller, and that cost is paid once and in the open, where the next consumer
-  can push back on it. Splitting late is paid less visibly, in a copy somebody
-  made because reaching for the block was the harder path.
+  data model is that consumer's, however general its topic sounds.
+- Split early rather than late. An early split is paid once and in the open;
+  a late one is paid in copies.
 - "They are always used together" is a reason to compose them, not to ship them as one.
-- Think in layers: a block stands on what it uses and carries what uses it. It may know the layers beneath it, and nothing of the layers above — whatever they are, however close they sit. No naming them, no describing where they sit, no explaining the system it happens to be part of.
-- A block may declare what it *needs* — as a contract it accepts, not a place it expects to find one. "A directory of rule files" is a contract; "the folder next to me" is a layout assumption.
+- A block may know the layers beneath it and nothing of those above — not
+  their names, not where they sit, not the system it is part of.
+- A block may declare what it *needs* — as a contract it accepts, not a place it expects to find one.
 - Where a dependency must be named, name it once, in one place, and let the location be configurable.
-- A block that cannot be described without describing its neighbours is not a block yet.
-
-Related:
-- [keep-modules-independent](keep-modules-independent.md) — the same independence inside one codebase.
-- [compose-dont-merge](compose-dont-merge.md) — combine blocks with a thin orchestrator; never fuse them.
-- [single-source-of-truth](single-source-of-truth.md) — a fact repeated in two blocks drifts twice as fast.

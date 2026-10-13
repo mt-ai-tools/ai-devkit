@@ -5,12 +5,8 @@ summary: Follow established conventions — written ones from the project's conv
 
 # Follow conventions
 
-The project's established conventions are followed, not rediscovered
-or reinvented.
-
-- Written conventions live in the project's conventions collection — a
-  directory of one-file-per-convention entries. Find it before shaping
-  new code, and follow what it says.
+- Find the project's conventions collection before shaping new code, and
+  follow what it says.
 - Entries are normative, as the rules are: code conforms to them, never
   the other way around. Code that disagrees with one is wrong, however
   old — point it out, never copy it as the house style. A comment in the
@@ -18,28 +14,16 @@ or reinvented.
 - An entry holds a convention the project settled, nothing more: one
   that many modules could break, stated as what must hold rather than
   how the code does it today. A fact about one module's workings is a
-  why-comment beside that code, and what the code does today is read
-  off the code.
-- Breadth is not altitude. An entry every module could break is still
-  the wrong size when it would have to be rewritten the day the
-  library, the protocol or the numbers change: what survives that
-  change is the convention, and what does not is the mechanism — a
-  why-comment where that mechanism lives. A unit, a count, a field
-  name, a library or a protocol in the sentence is the tell.
+  why-comment beside that code.
+- An entry that would need rewriting when a library, a protocol or a
+  number changes holds mechanism, not convention, and the mechanism is a
+  why-comment where it lives. A unit, a count, a field name, a library
+  or a protocol in the sentence is the tell.
 - An entry forbids something a contributor might otherwise reasonably
-  do. One that forbids nothing is describing a habit, and a habit is
-  read off the code.
-- An entry stays while its convention does. A check that enforces it —
-  a type, a test, a lint rule — is how it is kept today, not where it
-  lives: checks are loosened and lost, and only the entry says the
-  check was right.
+  do. One that forbids nothing is describing a habit.
+- An entry stays while its convention does. A check that enforces it
+  never replaces it: checks are loosened and lost, and only the entry
+  says the check was right.
 - Where nothing is written, match the surrounding code.
 - If you had to infer a convention — or just helped establish one —
-  propose recording it as an entry, where it meets the bar above. The
-  collection grows from exactly these moments.
-- This rule names no specific collection — each project declares its
-  own home for one.
-
-Related:
-- [propose-dont-decide](propose-dont-decide.md) — adopting a new convention is the operator's call.
-- [single-source-of-truth](single-source-of-truth.md) — the entry is the convention's one home.
+  propose recording it as an entry, where it meets the bar above.
