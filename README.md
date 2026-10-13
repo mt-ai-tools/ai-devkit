@@ -4,7 +4,8 @@ One tool for agentic development, in seven parts: the rules a coding agent
 works under, the injector that puts them in front of it every turn, the
 reviewer that judges the work against them, the advisor that gives a
 single finding a second, independent reading, the builder that carries
-out one step of a written brief, the organizer that says which briefs
+out one step of a written brief and proves its tests by breaking what they
+guard, the organizer that says which briefs
 are ready, waiting or taken, and writes a new one on the operator's yes,
 and the stand-in that reads what an agent puts to the operator (its
 questions, a finished step's report, a request to start building) and

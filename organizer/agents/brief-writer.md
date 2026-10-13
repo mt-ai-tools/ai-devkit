@@ -182,7 +182,10 @@ decision that changes later replaces the old text; it is never kept
 beside it.
 
 **`## Steps`**: numbered, each a piece that can land alone, each with its
-proof: what is run or watched that shows it done.
+proof: what is run or watched that shows it done. A step once built gains
+one line — built, the date, each repository and its commit — and never a
+log of how it went: history is the repositories' to keep, and every builder
+reads the whole brief.
 
 No paragraph on how to work the brief — the working mode, git habits,
 which session does what. Those live elsewhere and change apart from it.
