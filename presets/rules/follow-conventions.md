@@ -26,4 +26,7 @@ summary: Follow the written conventions, else the surrounding code; propose reco
   says the check was right.
 - Where nothing is written, match the surrounding code.
 - If you had to infer a convention — or just helped establish one —
-  propose recording it as an entry, where it meets the bar above.
+  propose recording it as an entry, where it meets the bar above. The
+  proposal is the entry's exact final text, one demand per line, each line
+  already held to that bar; a line naming how the code does it is struck
+  before it is shown.
