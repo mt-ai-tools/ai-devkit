@@ -40,6 +40,5 @@ and nothing true left out to keep it short — it goes further down.
 - Cut words that carry nothing; never cut a word that carries something.
   Whether a thing is new or already given, finished or still open, is
   information.
-- Include only what changes what the operator does next.
-- One recommendation, not a survey. Reasoning and detail only when asked
-  for.
+- What changes what the operator does next comes first.
+- One recommendation, not a survey.
