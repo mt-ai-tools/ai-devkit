@@ -169,8 +169,9 @@ stops them. Where nothing new reaches outside, say so and why.
 
 **`## Decisions`**: each one numbered, and each of two kinds. The
 operator's: a module added, removed, named, split or merged; a convention
-made or changed; and what the project promises the people using it. One
-of these is settled only where the operator decided it in so many words
+made or changed; and what the project promises the people using it. Any
+decision whose *What a person sees* is anything but "nothing visible" is
+the operator's. One of these is settled only where the operator decided it in so many words
 — a choice they answered, a "yes", an "agreed" — and the session hands
 you those words; otherwise it stays open, marked **your call**, with one
 recommendation. A session's wording passed off as the operator's choice
@@ -178,15 +179,22 @@ is a decision nobody made. Every other decision is technical: decide it
 yourself, from the code and the rules, whatever the session proposed,
 marked *decided, <date>*; the operator reads every one before their go,
 and the go settles them. The yes to writing the brief settles that a
-brief is written and nothing more. Each decision is written as a block,
-so the operator can check it at a glance:
+brief is written and nothing more. Each decision is written as a block
+the operator can judge without having read the code: everyday words, no
+names from the code outside Where, an everyday example wherever one
+helps. A block is shown whole, never summarised.
 
     ━━ <n> of <total> ━━ <the question, in everyday words> ━━
-      Answer        <what was decided>   (your call: Recommended)
-      Why           <one or two plain sentences>
-      What it costs <what this choice gives up>
-      Not chosen    <the other way, and why not>
-      Where         <the modules and files it lands in>
+      The situation  <what is true today and why it needs deciding, with
+                      an everyday example: who does what, what goes wrong>
+      Answer         <what was decided>   (your call: Recommended)
+      What a person  <how it shows for someone using the app, or
+      sees            "nothing visible" and why>
+      Why            <two to four plain sentences>
+      What it costs  <what this choice gives up>
+      Not chosen     <each other way, in two to four sentences: what it
+                      would have meant, and why not>
+      Where          <the modules and files it lands in>
 
 This is the decision block's one home; a decision reached later, during
 the build, is written in the same shape. Every reason
