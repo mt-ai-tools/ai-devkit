@@ -1,7 +1,6 @@
 ---
 description: An independent second reading of one finding — works the problem cold, then says where it differs from the proposal
 model: fable
-disable-model-invocation: true
 argument-hint: [the finding — without its proposed fix, where you can]
 ---
 
