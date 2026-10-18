@@ -23,7 +23,8 @@ and nothing true left out to keep it short — it goes further down.
   somebody else counts as one. Whoever caused the stop, it still comes
   first.
 - Say what happens next before what is already done. The next action
-  and what it waits on come first; finished work goes last and short.
+  and what it waits on come first, or that the session can end;
+  finished work goes last and short.
 - Write so it reads cold. Name the subject by something with exactly one
   meaning — the command as it is typed, the path, the identifier. A step
   is named with the count of all steps and what it does: "step 5 of 9,
