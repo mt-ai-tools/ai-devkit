@@ -28,6 +28,11 @@ picks: it is handed the summary on the first line, then the draft's text,
 opening with its title line. It writes only where no brief or draft of that
 name stands in any level, and never makes a level folder.
 
+A draft is built straight from its own text, in a batch, when it needs no
+decision that is the operator's and its work lands as one change. A draft
+that needs the operator's decision, or pieces that must land in a set
+order, is written out as a brief first.
+
 It changes only its own marks; when a brief is finished, that brief and the
 after lists naming it; and when a wait on another brief is written into a
 brief, that brief's after list; and when a draft is written, that one new

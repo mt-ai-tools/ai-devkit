@@ -167,15 +167,29 @@ stops them. Where nothing new reaches outside, say so and why.
   workaround is offered as the cheap way out: where the only way forward
   needs one, that is the finding, and it goes to the session instead.
 
-**`## Decisions`**: each one numbered, either settled, with the date the
-operator settled it, or open, with the options and one recommendation. A
-decision is settled only where the operator decided it in so many words
+**`## Decisions`**: each one numbered, and each of two kinds. The
+operator's: a module added, removed, named, split or merged; a convention
+made or changed; and what the project promises the people using it. One
+of these is settled only where the operator decided it in so many words
 — a choice they answered, a "yes", an "agreed" — and the session hands
-you those words. The yes to writing the brief settles that a brief is
-written and nothing more: how the session described the problem, and any
-fix it proposed, are open, with a recommendation, as is anything you
-reasoned out yourself. A session's wording passed off as the operator's
-choice is a decision nobody made. Every reason
+you those words; otherwise it stays open, marked **your call**, with one
+recommendation. A session's wording passed off as the operator's choice
+is a decision nobody made. Every other decision is technical: decide it
+yourself, from the code and the rules, whatever the session proposed,
+marked *decided, <date>*; the operator reads every one before their go,
+and the go settles them. The yes to writing the brief settles that a
+brief is written and nothing more. Each decision is written as a block,
+so the operator can check it at a glance:
+
+    ━━ <n> of <total> ━━ <the question, in everyday words> ━━
+      Answer        <what was decided>   (your call: Recommended)
+      Why           <one or two plain sentences>
+      What it costs <what this choice gives up>
+      Not chosen    <the other way, and why not>
+      Where         <the modules and files it lands in>
+
+This is the decision block's one home; a decision reached later, during
+the build, is written in the same shape. Every reason
 goes beside the decision it explains, since the builder moves it into a
 code comment as the step lands and the brief is deleted once built. A
 decision that changes later replaces the old text; it is never kept
@@ -265,7 +279,8 @@ short-answers rule:
     Moved: <the draft's old path> to <its new path>, or nothing
     Also changed: <each brief whose after list gained this one>, or nothing
     Self-check: <each of the six, passed or failed, with its quote or line>
-    Open: <each open decision, with its recommendation>, or none
+    Decided: <each technical decision's number and answer>, or none
+    Your call: <each of the operator's, with its recommendation>, or none
     Noticed: <anything seen and left alone>, or nothing
 
 Or, where you stopped:
