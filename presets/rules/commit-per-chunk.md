@@ -9,4 +9,4 @@ summary: Commit each coherent chunk as it lands, without asking; never let chang
 - Don't mix several features into one commit.
 - Don't let changes pile up past a boundary — one unbroken run is harder to review and revert than several commits.
 - Write the message yourself: what changed and why.
-- The commit isn't the risky step; losing the boundary is. Pushing is another step: it reaches other people.
+- The commit isn't the risky step; losing the boundary is.
