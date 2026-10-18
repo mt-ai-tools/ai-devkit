@@ -84,6 +84,8 @@ Answer one claim about the code.
 
        Proposal: agrees | differs | true claim, wrong fix — <what separates them>
 
+       Result:  <the whole fix as it now stands>
+
        Back:    <the answer as one message, addressed to whoever raised the claim>
 
    Terse. No praise, no hedging, no summary of what you read to get there.
