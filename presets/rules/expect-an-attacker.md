@@ -17,6 +17,9 @@ what it guards.
 - Before shaping a change that touches who may do what, money, personal
   data, or a boundary with the outside, open the proposal with what an
   attacker gains if this is wrong and the check that stops them.
+- Weigh a gap by what an attacker gains against how rare it is, and
+  let the operator choose: accepted in a comment beside the check, or
+  a draft at a level.
 - The check that stops them is named where it is enforced, not only in
   the proposal it opened: whoever edits that line never reads the
   proposal.
