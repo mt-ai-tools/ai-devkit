@@ -35,7 +35,7 @@ check() {
 }
 
 file_untouched() {
-  cmp -s "$target" "$BATS_TEST_TMPDIR/before" && [ "$(stat -c %a "$target")" = 640 ]
+  cmp -s "$target" "$BATS_TEST_TMPDIR/before" && [ -n "$(find "$target" -perm 640)" ]
 }
 
 @test "a break the named test catches is red, and the file is put back" {
