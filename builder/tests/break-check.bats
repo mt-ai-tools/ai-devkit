@@ -103,6 +103,20 @@ file_untouched() {
   file_untouched
 }
 
+@test "the file is put back newer than a build made while the break stood" {
+  touch -t 200001010000 "$target"
+  cp -p "$target" "$BATS_TEST_TMPDIR/before"
+  built="$BATS_TEST_TMPDIR/built"
+  # Fixed dates, the build's after the file's: the clock ticks coarser than a
+  # run, so a build stamped now could share the restore's time and -nt flake.
+  printf '#!/usr/bin/env bash\ncp "%s" "%s"\ntouch -t 200101010000 "%s"\nexit 0\n' "$target" "$built" "$built" >"$BATS_TEST_TMPDIR/test-command"
+  chmod +x "$BATS_TEST_TMPDIR/test-command"
+  check "the answer is kept"
+  grep -q "answer = 0" "$built"
+  [ "$target" -nt "$built" ]
+  file_untouched
+}
+
 @test "the old and new text are taken as plain text, newlines and replacement marks included" {
   printf 'a & b/c\nend\n\n' >"$target"
   cp -p "$target" "$BATS_TEST_TMPDIR/before"

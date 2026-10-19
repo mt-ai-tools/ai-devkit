@@ -65,6 +65,10 @@ cp -p -- "$file" "$copy"
 # kill cannot be caught; the copy then stays in the temporary folder.
 restore() {
   cp -p -- "$copy" "$file"
+  # Written now, as an undo by hand leaves it: a build tool sees write times,
+  # not bytes, and the time the copy carried back would make a build made
+  # during the break look fresh, so what links it would test the break.
+  touch -- "$file"
   if cmp -s -- "$copy" "$file"; then
     rm -rf -- "$work"
   else
