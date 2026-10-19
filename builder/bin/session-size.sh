@@ -26,11 +26,11 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$here/../lib/words.sh"
 
 # The size past which a session is worth compacting at its next clean point.
-# A quarter of a million: every reply re-reads the whole context, and in the
-# kit's first project the turns past this size held most of a long session's
-# tokens; well short of it, a compaction would buy little for the detail it
-# drops.
-SESSION_COMPACT_AT=250000
+# Every reply re-reads the whole context, so a long session's late turns
+# cost the most; well short of this size, a compaction would buy little for
+# the detail it drops. Lowered from a quarter of a million on trial, to see
+# what earlier compaction saves.
+SESSION_COMPACT_AT=200000
 
 # Where Claude Code names the session to every command it starts, and where
 # it keeps transcripts, one folder per project. Its own names, not ours.

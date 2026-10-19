@@ -33,10 +33,10 @@ subagent_reply() {
 }
 
 @test "a session short of the line is fine, with its size" {
-  reply 180000
+  reply 150000
   run "$script" "$transcript"
   [ "$status" -eq 0 ]
-  [ "$output" = "$(session_size_fine_note 180000)" ]
+  [ "$output" = "$(session_size_fine_note 150000)" ]
 }
 
 @test "the last reply decides, so a compacted session is fine again" {
@@ -47,9 +47,15 @@ subagent_reply() {
 }
 
 @test "a session exactly at the line is fine" {
-  reply 250000
+  reply 200000
   run "$script" "$transcript"
-  [ "$output" = "$(session_size_fine_note 250000)" ]
+  [ "$output" = "$(session_size_fine_note 200000)" ]
+}
+
+@test "a session one past the line is worth compacting" {
+  reply 200001
+  run "$script" "$transcript"
+  [ "$output" = "$(session_size_compact_note 200001)" ]
 }
 
 @test "a subagent's turn is left out" {
