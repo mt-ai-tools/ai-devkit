@@ -48,7 +48,7 @@ $(drafts_line aa-someday p4-optional "Someday.")"
 # Every level is spelled with its meaning: the refusal is where the operator
 # reads what the levels mean.
 @test "a level that is not one of the four is refused, naming each level with its meaning" {
-  meanings="p1-critical (broken or blocking work today); p2-required (must land before the next release); p3-conditional (waits on a named trigger, which the brief or draft writes down); p4-optional (nice to have)"
+  meanings="p1-critical (broken or blocking work today); p2-required (must land before the next release); p3-conditional (waits on a named trigger, which the brief or draft writes down); p4-optional (nice to have, or a gap the operator chose to leave)"
   for level in p2-requried ../p1-critical "" P1-CRITICAL; do
     run --separate-stderr organizer drafts "$level"
     [ "$status" -eq 1 ]

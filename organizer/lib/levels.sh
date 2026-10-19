@@ -14,7 +14,7 @@ BRIEF_LEVELS=(
   "p1-critical=broken or blocking work today"
   "p2-required=must land before the next release"
   "p3-conditional=waits on a named trigger, which the brief or draft writes down"
-  "p4-optional=nice to have"
+  "p4-optional=nice to have, or a gap the operator chose to leave"
 )
 
 # The levels' names alone, in the same order, read off the list above.
