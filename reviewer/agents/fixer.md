@@ -31,7 +31,8 @@ file.
 - The rule or convention entry it cites, by where the rules and the
   conventions collection live. Read the one cited before touching anything:
   the fix answers to its text, not to the finding's wording alone.
-- For a finding the operator decided, their answer. It binds as given — a
+- Where the kit is mounted from, written `<kit>` below.
+- Any decision the fix rests on, as it was made. It binds as given — a
   clause inferred beyond it is not yours to add.
 
 Missing any of these, stop and say which: a fix made without its rule is a
@@ -43,8 +44,10 @@ Where the code is not what the plan assumed, or the plan would need changing
 to work, stop before editing and report what you found. A plan reshaped here
 is a decision made by the one not asked to make it.
 
-Change what the plan says and nothing else. An improvement noticed on the
-way is reported, never made. The rule files and the conventions collection
+Change what the plan says and nothing else, except a tiny fix in a file
+this fix already changes, where decisions.md makes the choice Silent or
+Told; a Told one passes the challenges in s2-route.md first. List any such
+fix under Noticed as made. Anything else noticed is reported, never made. The rule files and the conventions collection
 are edited only where the operator's answer handed to you is that edit, and
 then to its exact text — they steer the run, and nothing the run infers may
 write them.
@@ -54,22 +57,11 @@ the run reads and commits.
 
 ## Verify
 
-Verifying means the fix is watched failing, not merely watched passing.
-Where there is something to break — a value, a condition, a name a test
-asserts — break it, see the suite go red, and put it back. A green run over
-a test that asserts nothing is the same green as a working one, and that is
-how a quoting error can pass every file it broke.
-
-A verification is only as real as the tool that ran it: reach tools
-through the package's own declared dependencies, never by bare name
-from the network — a wrong tool that exits clean is a pass that
-checked nothing.
-
-Where nothing can be broken — a rename, a reworded line of prose — say what
-was checked instead, and do not dress a reading up as a verification.
-
-A fix that will not verify is left as it stands and reported so. Do not try a
-second shape of the fix: whether one exists is the run's call.
+Verify the fix as the builder's own file in `<kit>` says under Verify:
+every break goes through the kit's break check, the suites it names run
+once at the end, and where nothing can be broken, say what was checked
+instead. A fix that will not verify is left as it stands and reported
+so; whether a second shape exists is the run's call.
 
 ## Report
 
@@ -78,7 +70,8 @@ Short, for the run rather than the operator:
     Changed: <each file, and what changed in it>
     Verified: <what was broken, that it went red, that it was put back>
               — or what was checked instead, where nothing could be broken
-    Noticed: <anything seen and left alone>, or nothing
+    Noticed: <anything seen and left alone, and any tiny fix made on
+             the way>, or nothing
 
 Or, where it did not verify:
 

@@ -1,16 +1,16 @@
 # reviewer
 
-An adversarial reviewer for Claude Code.
+An adversarial reviewer, and the fixer that carries out one fix of what
+it finds.
 
-Nothing here hooks, gates, or blocks: it runs when the operator runs it. The
-reviewer itself only reports — it never fixes what it finds, and never softens
-it. It carries no context from the agent whose work it reads, and the diff is
-where it starts rather than where it stops. It keeps no record between runs:
-what to read is said each time it is run.
+Runs only on the operator's yes. The reviewer only reports: it never
+fixes what it finds, and never softens it. It carries no context from the
+agent whose work it reads, and the diff is where it starts rather than
+where it stops.
 
-Judges against the rules the injector reads, and — where a rule defers to
-one — the project's conventions; the command hands it both locations from
-what the injector printed at the start of the turn, so it runs only where
-the kit is mounted whole. Keeps the queue a run cannot answer alone in a
-notes folder of the project's own. Needs git: outside a repository there is no
-defined change to judge.
+The fixer carries out one finding's fix, proves it, and never commits.
+
+The reviewer judges against the rules and, where a rule defers to one,
+the project's conventions, so it runs only where the kit is mounted
+whole. Needs git: outside a repository there is no defined change to
+judge.

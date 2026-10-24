@@ -1,17 +1,14 @@
 ---
-description: Adversarial review — over the repository, an area, or everything since a revision, fixing what it may and queueing the rest
-argument-hint: [--scope :all|<path>|<revision>]
+description: Adversarial review — over the repository, an area, or everything since a revision; fixes what it may, asks the rest
+argument-hint: [--scope :all|<path>|<revision>|<commits>]
 ---
 
 Run a review.
 
 1. Look first for a run that never finished. A run records the finding it is
-   about to fix — in the reviewer's notes folder: the one `AIDK_REVIEW`
-   names in the project's `aidk-config.env`, or, where the file sets none,
-   the default the kit's README declares, under the project root you run
-   from — and clears that record when the fix is
-   committed; a record still standing means the last run died between those
-   two moments.
+   about to fix in the reviewer's notes folder, which the kit's config reader
+   names, and clears that record when the fix is committed; a record still
+   standing means the last run died between those two moments.
 
    Do not clean up after it. What sits in the working tree may be that fix, or
    may be work done since by someone else — and nothing on disk tells the two
@@ -25,174 +22,123 @@ Run a review.
        --scope <path>       that area as it stands
        --scope <revision>   everything committed since that revision, plus
                             uncommitted and untracked work
+       --scope <commits>    exactly those commits, each named with its
+                            repository, and nothing else
 
-3. Launch the `reviewer` agent with the scope, and with the two locations
-   the turn-start digest names: the rules directory, and the conventions
+3. Size the review. A revision or commits scope gets one reviewer for each 1,500
+   changed lines, at least one and at most four, each over a part of about
+   equal size, split along modules where it can be. A scope with no
+   revision gets one reviewer. Where the operator's yes named a number, use
+   theirs.
+
+4. Launch the `reviewer` agents at once, each with its part, the decisions
+   the work was built under where there are any, and the two locations the
+   turn-start digest names: the rules directory, and the conventions
    collection where one was named. The reviewer has no other way to learn
    them — it starts empty, and that is the point. No digest in view means
    the kit is not mounted whole for this project: stop and say so.
 
-   On a re-review add the findings the operator declined, and nothing else:
-   it finds the diff and the context itself.
+   On a confirming review add the findings already declined, and nothing
+   else: it finds the diff and the context itself.
 
    Every launch is a new reviewer. Never continue one that has already run: the
-   empty context is the reason it is a separate agent at all, and one reading
-   this range for the fifth time is remembering rather than reading. A round
-   that costs far less than the one before it is the sign this went wrong.
+   empty context is the reason it is a separate agent at all.
 
-4. Relay its report to the operator verbatim. Do not summarize it, soften it,
+5. Relay each report to the operator verbatim. Do not summarize it, soften it,
    or argue with it — the report is the reviewer's, not yours.
 
-5. Then take the `BLOCK` findings in the report's order and settle which the
-   run may answer itself. A finding is taken only where the rule or entry it
-   cites says — in its frontmatter, under its autonomy key — that a
-   fix of that kind may be made without asking, and where the fix in hand is
-   of that kind. Everything else is held for the operator.
+6. Then sort the `BLOCK` findings, in the reports' order, by the workflow's
+   decisions.md: its Fixes table says who decides each kind of fix, and a
+   kind it does not name falls to its first table.
+
+   - Silent and Told: taken by the run.
+   - Advisor: one advisor for each such finding, all started together; its
+     answer is taken as the decision.
+   - Operator: held for the operator.
+   - Too big to fix here, however it is decided: held, to be written down
+     as the workflow's s2-route.md says, never fixed by this run.
 
    Then say the count, on one line, before anything moves: how many rules were
-   judged, how many blocked, how many are being taken and how many held. The
+   judged, how many blocked, how many are taken and how many held. The
    report is a wall of lines and the number is what tells the operator how
-   much of their evening this is. The reviewer cannot say it — it knows
-   nothing of what may be taken unasked, and must not.
+   much of their evening this is.
 
-6. One thing is never taken alone, whatever a rule permits: a fix that would
-   create a folder, a module or a repository, or move anything between
-   modules. Those reshape the project rather than tidy inside it, and the
-   shape is the operator's. Held, however small the edit looks.
+7. The run's own laws stand above every level: the rule files and the
+   conventions collection are never edited by the run, because the run is
+   steered by them — an enforcer that writes its mandate is the one loop
+   nothing later catches. A law change is a held finding carrying the exact
+   text proposed, lands only on the operator's answer, in its own commit,
+   and carries nothing the conversation did not cover: a clause inferred
+   beyond the answer — however reasonable — is the next proposal, not part
+   of the edit.
 
-   A rename is not among them where a rule grants it. Nothing published
-   reaches anyone unattended, since releasing is its own deliberate act — so
-   a rename staged here is a break the operator still meets before it ships,
-   with the note that has to accompany it already written.
-
-   Above all of these stand the run's own laws: the rule files and the
-   conventions collection are never edited by the run on any grant, because
-   the run is steered by them — an enforcer that writes its mandate is the
-   one loop nothing later catches. A law change is a held finding carrying
-   the exact text proposed, lands only on the operator's answer, in its own
-   commit, and carries nothing the conversation did not cover: a clause
-   inferred beyond the answer — however reasonable — is the next proposal,
-   not part of the edit. An amendment the operator ratifies then owes a
-   sweep of everything it newly reaches, in the same round, since an entry
-   binds however old the code is.
-
-7. Write each held finding down as it is held — the rule, the paths, the
+8. Write each held finding down as it is held — the rule, the paths, the
    lines, and what the fix would have been — in the notes folder step 1
-   names. Never ask mid-run. A run that
-   stops for an answer stalls until somebody comes back to it, and the whole
-   point of one that fixes what it may is that it does not need anybody
-   there. The queue waits; the run does not.
+   names. Never ask mid-run: the queue waits; the run does not.
 
    Key each held finding by its rule and where it sits, and look for that key
-   before writing. A later round re-finds what it could not fix, since the
-   code still breaks the rule — a re-find updates the entry it matches.
-   Written blind, the queue fills with the same question asked five times.
+   before writing: a re-find updates the entry it matches. Keep the notes
+   rather than memory as the queue's one home: a queue held in a
+   conversation ends the moment the conversation is compacted.
 
-   Keep the notes rather than memory as the queue's one home even where the
-   operator is sitting right there. A pass long enough to be worth starting is
-   long enough to be compressed before it ends, and a queue held in a
-   conversation is a queue that ends the moment the conversation does.
-
-8. Then do the work, in the report's order, one finding at a time. Never two
+9. Then do the work, in the reports' order, one finding at a time. Never two
    at once: a fix landing on ground another is still moving is the one
    failure this ordering exists to prevent. For each — plan the fix, hand it
    to a fixer, judge what came back, and commit it on its own before starting
    the next.
 
    The plan is the run's: what changes, where, and what will be broken to
-   watch it fail. A taken finding was already pictured when step 5 judged
-   it of a kind its rule grants, and a held one carries the fix the
-   operator approved — write that down, rather than leave the shape of the
-   fix to whoever types it.
+   watch it fail. Write it down, rather than leave the shape of the fix to
+   whoever types it.
 
    The fix is made by the `fixer` agent. Launch it with the finding, the
-   plan, the two locations step 3 passed on, and — for a finding the
-   operator decided — their answer. It starts empty as the reviewer does,
-   so what it is not handed it does not know. Every finding gets a new
-   fixer: one carrying the last fix in its context reads this site through
-   it.
+   plan, the two locations step 4 passed on, where the kit is mounted from,
+   and the decision the fix rests
+   on. Every finding gets a new fixer: one carrying the last fix in its
+   context reads this site through it.
 
    It returns what it changed and how it watched the change fail. Read that
    beside the diff: a report of red that does not say what was broken is a
    claim, not a verification. A fixer that could not verify is a failure under
-   step 9. One that found the plan did not fit the code comes back with
-   nothing changed: plan again from what it saw, or hold the finding under
-   step 10 where the new plan is no longer what was granted or approved.
-   What it noticed and left alone is the next round's to find, not this
-   fix's to widen into.
+   step 10. One that found the plan did not fit the code comes back with
+   nothing changed: plan again from what it saw, or hold the finding where
+   the new plan is no longer what was decided.
 
    A finding annotated `IN MOTION` gets one step before anything else:
    re-read the site as it stands now. Still violating — fix it as any other.
    Gone — concurrent work overtook it: record it in the notes as overtaken,
-   with what the site reads now, and move on to the next. Overtaken is a
-   visible outcome, never a silent skip, and it is not a settled one — the
-   closing re-review reads the same ground fresh and re-finds anything that
-   only looked gone.
+   with what the site reads now, and move on. Overtaken is a visible outcome,
+   never a silent skip.
 
    Before starting a fix, write it to the notes as the one in hand, and clear
    that line when its commit lands. Between those two writes the run is the
    only thing that should have touched the tree; outside them nothing is
-   half-done. That is what lets a later run tell an interrupted fix from
-   ordinary uncommitted work.
+   half-done.
 
    Read the fix against the rules before committing it, the ones a fix breaks
-   most: duplication, placement, naming. Nearly everything a run finds in its
-   own earlier work was avoidable here, and the alternative is discovering it
-   a full re-read later.
+   most: duplication, placement, naming.
 
-   A fix taken unasked says so in a trailer — `Taken-Under: <rule>` — and
-   differs in nothing else: the subject and body say what changed and why, as
-   any commit does. The closing report is built by reading those trailers
-   rather than by remembering, and a later reader sees which changes went in
-   unwatched. Nothing else carries the trailer: a fix the operator asked for
-   is not one taken unasked, and a placeholder in that field is counted like
-   any other value by whatever reads it next.
+   A fix the run took without asking says so in a trailer —
+   `Taken-Under: <rule>` — and differs in nothing else. The closing report
+   is built by reading those trailers rather than by remembering. A fix the
+   operator decided carries no trailer.
 
-9. Stop on the first failure. If a fix will not verify, halt the run and say
-   which finding stopped it and what broke. Continuing would stack the rest
-   of the work on a state nobody has checked, and that is a batch to throw
-   away rather than progress.
+10. Stop on the first failure. If a fix will not verify, halt the run and say
+    which finding stopped it and what broke. Continuing would stack the rest
+    of the work on a state nobody has checked.
 
-10. Hold a finding again when an answer stops fitting. If an earlier fix
+11. Hold a finding again when an answer stops fitting. If an earlier fix
     changed what a later one should be, put it back in the queue with what
     changed rather than acting on a picture that has since moved.
 
-11. Then begin again from the top, and keep going until a round surfaces
-    nothing that is not already held, or the operator says stop. Not until the
-    report is empty: a held finding is never fixed, so it comes back every
-    round, and a run waiting for an empty report spins until somebody stops
-    it. A round that turns up nothing new has said all it has to say.
+12. Once the taken fixes are in, show the operator, before anything else,
+    each Told or Advisor fix taken without asking, laid out as the
+    workflow's decisions.md says, with its commit. Silent fixes are not
+    shown.
 
-    Each round re-reads this file before it starts: hours of output sit
-    between a run and the instructions it began with, and a loop that drifts
-    from them is worse than one that never ran.
-
-    Told to stop, finish the fix in hand and start no new round. Told to stop
-    in the middle of one, leave it and account for the run as it stands —
-    an interruption is the operator arriving, and the next thing they should
-    read is what happened while they were away.
-
-12. However it ends — stopped, out of anything new to find, or interrupted
-    mid-work — say what was taken unasked before anything else is said. This
-    comes first because it is the part the operator did not watch, and the
-    moment they are back is the moment to account for it. One line each,
-    grouped by the rule or entry that raised it, and each line concrete
-    enough to picture without opening the diff: the module, and what changed
-    — the literal that moved and what it moved to, the name before and after,
-    the path renamed from what to what. Then the commit, so any one of them
-    can be read whole.
-
-    A summary that says a constant was centralized has told the operator
-    nothing they did not already know from the rule's name.
-
-    Then the held findings go to them, one at a time, in the order they were
-    raised, read back from the notes rather than from memory. Collect
-    decisions only; change nothing until the last is answered.
-
-    Everything needed to decide goes in the question itself, because that is
-    the one thing the operator is looking at: above it lies however much
-    machine output the run has produced since. Each question carries, in this
-    order —
+    Then put the held findings to the operator, as many in one message as
+    s2-route.md allows, in the order they were raised, read back from the
+    notes. Each carries:
 
         Finding 3 of 7, §R13.52 — <what is wrong> (<the rule, or the entry
         where a convention was broken>)
@@ -205,69 +151,26 @@ Run a review.
 
         Proposed fix: <one or two sentences>. Fix it?
 
-    — and the choices under it carry nothing but which way it goes.
+    The plain block is for a reader who has not read the law: one or two
+    sentences, no rule names, no identifiers, no vocabulary from the tools.
+    Every block stands apart, with a blank line between it and the next. The
+    key from the notes always; the rule and the paths always; where a
+    convention was broken, the entry rather than the rule that defers to it.
+    The offending lines only where a few of them say it plainly. Quote what
+    is there; do not draft what would replace it.
 
-    The plain block is for a reader who has not read the law and should not
-    have to. One or two sentences, in the words someone would use who does
-    not know the rule: what is actually wrong, and what it costs. No rule
-    names, no identifiers, no vocabulary from the tools. It never restates
-    the heading — the heading is the technical name for the thing, and this
-    is what the thing means.
+    A held finding too big to fix here is not put as "fix it?": it is
+    routed as s2-route.md says.
 
-    Every block stands apart, with a blank line between it and the next: the
-    heading, the sites, the lines quoted, the fix, and whatever else one
-    finding needs. The arrangement above is the usual one, not the only one —
-    a finding carrying a standing answer from an earlier run, a count across
-    modules, or a second rule it was raised under gets each of those as its
-    own block, spaced the same way. A question is read once, in a terminal
-    already holding whatever the run printed before it, and blocks that run
-    together are read as one.
+    Answer each in the notes as it is settled, fixed or declined and why.
+    Then do the answered fixes as step 9 describes.
 
-    The key from the notes always, beside the count: the count is this
-    run's, and an operator holding two sessions has two counts, while the
-    key is the one name a finding keeps across runs and windows. The rule
-    and the paths always: the rule because a finding is a claim made
-    under something, the paths so the operator can look for themselves. Where
-    a convention was broken, name the entry rather than the rule that defers
-    to it — one rule stands in for a whole collection, and its name says
-    nothing about what was broken. The offending lines only where a few of
-    them say it plainly; skip them without remark where the finding is
-    structural or spread, since a fragment standing in for a change it cannot
-    show is worse than no fragment. Where one finding repeats across files,
-    quote one site and count the others.
+13. Where a fix of this run changed behaviour or security, run one confirming
+    reviewer over the fixes alone. What it finds is sorted once more as step
+    6 says, and never reviewed again.
 
-    Quote what is there; do not draft what would replace it. Reading the
-    existing lines is nearly free, and writing the replacement is the work
-    this step exists to defer.
-
-    Never batch findings into one question — they are decided one by one, but
-    in a single unbroken stretch of the operator's attention, so waiting on
-    work never interrupts deciding.
-
-    After the last of them, one more question: start another round once
-    these fixes land? It is asked here and only here — it rides on a
-    stretch of attention the operator is already giving, and a round with
-    nothing held rolls on without stopping to ask.
-    A no is the operator stopping the run: the answered fixes are still
-    made, the close is written, and no reviewer runs again.
-
-    Answer each in the notes as it is settled, fixed or declined and why, so
-    the file ends as a record of the run rather than a queue nobody emptied.
-    Then do the work as step 8 describes. The run is over when the last held
-    finding is answered, and not before.
-
-13. Close with what happened: fixed, taken without asking, held, declined,
-    overtaken, and where it stopped if it stopped. Group it by the rule or entry that raised
-    each, so a reader sees which kinds of thing this pass was made of, and
-    name each fix's commit so any one of them can be read on its own. Write
-    the close into the run's notes beside the queue: a report only spoken is a
-    report gone by morning.
-
-14. Then, unless the operator stopped the run — told to, or by answering
-    no in step 12 — run the reviewer again, naming any findings they
-    declined: re-review is cheap, and the run is not done until the report
-    closes `PASS`. A stop is an answer about what happens
-    next, and it outranks this.
-
-15. A finding the operator declines is allowed — record the decline and its
-    reason in the notes, so skipping is a visible choice, never a silent one.
+14. Close with what happened: fixed, taken without asking, decided by an
+    advisor, held, declined, written down, overtaken, and where it stopped if
+    it stopped. Group it by the rule or entry that raised each, and name each
+    fix's commit. Write the close into the run's notes beside the queue: a
+    report only spoken is a report gone by morning.

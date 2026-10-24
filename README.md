@@ -1,107 +1,67 @@
 # ai-devkit
 
-One tool for agentic development, in seven parts: the rules a coding agent
-works under, the injector that puts them in front of it every turn, the
-reviewer that judges the work against them, the advisor that gives a
-single finding a second, independent reading, the builder that carries
-out one step of a written brief and proves its tests by breaking what they
-guard, the organizer that says which briefs
-are ready, waiting or taken, and writes a new one on the operator's yes,
-and the stand-in that reads what an agent puts to the operator (its
-questions, a finished step's report, a request to start building) and
-weighs it against the operator's own judgement.
+One tool for agentic development, in seven parts:
 
-The parts ship, version and mount as one. What the kit needs from a
+- The rules a coding agent works under.
+- The injector, which puts the rules in front of the agent every turn.
+- The workflow, which says how work moves and who decides what.
+- The reviewer, which judges the work against the rules.
+- The advisor, which gives a choice a cold second reading.
+- The builder, which builds one step of a brief, or a small fix.
+- The organizer, which keeps the briefs and drafts.
+
+The kit mounts into Claude Code. The parts ship, version and mount as one. What the kit needs from a
 project is stated here and nowhere else in it.
 
-## What a project keeps, and where
+The stand-in is not in use: nothing mounts it, and its tests do not run.
 
-The kit finds a project's own material under the project root, each at a
-default place the config file can move, and this is where the operator
-learns their names.
+## What a project keeps
 
-- `aidk-conventions` holds the project's written conventions. One convention
-  per file, named for the convention; what an entry holds is the
-  follow-conventions rule's to say. An entry may declare, in its
-  frontmatter, what an unattended run is allowed to put right without
-  asking; silence there means nothing is taken unasked. A README in that
-  folder is not an entry. The folder may be absent: a project without a
-  collection has nothing to point at.
-- `aidk-config.env` says where the kit finds what it reads, where that is
-  not the default: the rules among them, so a project may bring its own in
-  place of the set the kit ships. To start one, copy the example at the
-  kit's root, which lists every setting with its default. Absent, every
-  default holds. A file the kit cannot read, or a path set in it that does
-  not exist, stops every turn until it is fixed.
-- `aidk-review` holds the reviewer's own working notes, read by
-  nothing else: worth ignoring from version control, and safe to
-  delete. The config file can move it, as it can the collection.
-- `aidk-organizer` is the organizer's working folder: which briefs
-  sessions are working on, on this machine only. Worth ignoring from
-  version control. The config file can move it.
-- `aidk-stand-in` is the stand-in's working folder. Its `answers` holds
-  real past cases, written by the stand-in's case-writer as each brief is
-  finished and read for secrets before each is saved, worth keeping in
-  version control. Its `on` (which
-  sessions the stand-in is switched on for), `sessions` (where the gate
-  stands with each), `woken` (the mark a session's wait leaves when it
-  ends, until the gate reads it), `owed` (which sessions edited what the
-  stand-in judges by and owe its exam), `exam` (which cases passed the
-  last passing exam) and `log` (every question, step report and request to
-  build it let go, with the operator's answer) are this machine's alone
-  and worth ignoring; `sessions` and `log` may hold raw agent text. The config
-  file can move it.
+The kit's config file, at the project root, says where the kit finds
+each of the things below. To start one, copy the config example the kit
+ships, which lists every setting with its default. Absent, every default
+holds. A file the kit cannot read, or a path set in it that does not
+exist, stops every turn until it is fixed.
+
+- The rules: the kit ships a set, and a project may bring its own.
+- The conventions: the project's written conventions, one per file, named
+  for the convention. What an entry holds is the rules' to say. A README
+  there is not an entry. A project may have none.
+- The plans: the briefs and drafts the organizer keeps, in one folder
+  per level of the kit's, made by hand. Worth keeping in version
+  control.
+- The review notes: the reviewer's own working notes, read by nothing
+  else. Worth ignoring from version control, and safe to delete.
+- The organizer's working folder: which briefs sessions are working on,
+  on this machine only. Worth ignoring from version control.
 
 ## Mounting
 
-A project mounts the kit whole. It registers the injector's hook script
-for the turn-start event, and exposes the agent and command files the
-reviewer, the advisor, the builder and the organizer ship, where Claude Code looks for a
-project's agents and commands, and the skill the organizer ships, where it
-looks for a project's skills. Without the hook the reviewer cannot run,
-the advisor cannot say whether a finding matters, and the builder is not
-told where the rules it builds under live. Beside the skill, the project
-registers the organizer's hook script for the after-tool event of the
-Skill tool: the hook is what shows the list, and the skill alone only
-says that it could not. For the briefs sessions take, it registers the
-organizer's turn reminder for the turn-start event, beside the injector's
-hook, and its end hook for the session-end event: without the one a
-session holding a brief is not told so each turn, and without the other
-a brief stays taken after its session has ended. For the stand-in, it
-registers the stand-in's gate for the end-of-reply event, with a time
-limit no shorter than the one the gate declares: without the gate no
-question is caught, and a gate stopped by its time limit lets a reply
-pass unjudged and unsaid. Beside it, the project registers the
-stand-in's answer hook for the turn-start event, without which the log
-never learns what the operator answered, and exposes the stand-in's two
-skills where Claude Code looks for a project's skills, with its skill
-hook registered for the after-tool event of the Skill tool: as with the
-organizer's, the hook is what shows the settled questions and a
-reopened one, and the skills alone only say that they could not. It
-exposes the stand-in's entry skill there too, with the stand-in's start
-hook registered for the turn-start event and its end hook for the
-session-end event: the skill offers the command that switches the
-stand-in on, the start hook is what carries it out, and without the end
-hook a session's switch outlives it. It registers the stand-in's
-question hook for the before-tool event of Claude Code's question tool:
-without it, a question asked in the question box passes the gate unseen.
-Last, it registers the stand-in's edit hook for the after-tool event of
-Claude Code's file-editing tools (Edit, Write, MultiEdit and NotebookEdit),
-and its reminder hook for the turn-start event: without the one an edit of
-the stand-in's preset, prompts or models owes no exam, and without the other
-a session the stand-in is off for is never told it owes one.
-The machine installs the stand-in's secret scanner through mise, at the
-release the stand-in pins: the case-writer never fetches it, and without
-it holds every case back, naming the command that installs it.
-GNU parallel is optional: where the machine has it, the kit's tests, the
-stand-in's exam and its case-writer run several at a time; without it,
-one at a time, to the same result.
+A project mounts the kit whole:
+
+- Each part's agent and command files are linked from the kit to where
+  the host looks for a project's agents and commands.
+- The organizer's skill is linked the same way, to where the host looks
+  for a project's skills.
+- The injector's hook runs at the turn-start event. Without it the rules
+  never reach the agent, and the reviewer cannot run.
+- The organizer's hook runs after the host's skill tool. The hook is
+  what shows the list of briefs; the skill alone only says that it could
+  not.
+- The organizer's turn reminder runs at the turn-start event. Without it
+  a session holding a brief is not told so each turn.
+- The organizer's end hook runs at the session-end event. Without it a
+  brief stays taken after its session has ended.
+- The builder's size hook runs after every tool. Without it a builder
+  that has grown long is never told to stop.
+- The workflow's hooks run at the subagent-end event and before the
+  host's tool for messaging an agent. Without them a session can send
+  more work to an agent that has already reported.
+
+GNU parallel is optional: where the machine has it, the kit's tests run
+several at a time; without it, one at a time, to the same result.
 
 ## Develop
 
-```sh
-pnpm install
-pnpm test
-```
-
-The test command takes test files or folders to run only those.
+The kit's package file names its test command. The test
+command takes test files or folders to run only those.

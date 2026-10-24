@@ -16,7 +16,7 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 bats="$here/node_modules/.bin/bats"
 
 if [ "$#" -eq 0 ]; then
-  set -- "$here/builder/tests" "$here/injector/tests" "$here/lib/tests" "$here/organizer/tests" "$here/stand-in/tests"
+  set -- "$here/builder/tests" "$here/injector/tests" "$here/lib/tests" "$here/organizer/tests" "$here/workflow/tests"
 fi
 
 program="$(find_side_by_side_program)"
