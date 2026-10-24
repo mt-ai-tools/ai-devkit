@@ -22,6 +22,10 @@ problem_unknown_level_folder_note() {
   printf 'folder %s: not a level, so nothing in it is read; the levels are %s.\n' "$1" "$2"
 }
 
+problem_draft_level_note() {
+  printf '%s: a draft in %s, where no draft may lie; move it to %s, build it, or write it out as a brief.\n' "$1" "$2" "$3"
+}
+
 problem_bad_draft_value_note() {
   printf '%s: draft holds "%s"; a draft says true, and a brief has no draft line.\n' "$1" "$2"
 }
@@ -173,6 +177,10 @@ refuse_header_unreadable_note() {
 }
 
 # --- Refusals of a new draft: nothing is written.
+
+refuse_draft_level_note() {
+  printf 'No draft may lie in %s: a draft lies only in %s, and work needed sooner is written out as a brief, so no draft was written.\n' "$1" "$2"
+}
 
 refuse_no_level_folder_note() {
   printf 'There is no %s folder in the briefs folder %s; the level folders are made by hand, so no draft was written.\n' "$1" "$2"

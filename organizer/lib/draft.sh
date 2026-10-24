@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Writing a new draft: an item decided on but not yet written out as a brief,
-# put in the level its caller picks. Written here rather than by hand, so the
+# put in the draft level its caller picks. Written here rather than by hand, so the
 # draft's shape has one home, in the kit, and its level and name are judged
 # before any path is built from them, as taking and finishing judge theirs.
 # Sourced, never executed.
@@ -67,7 +67,8 @@ format_draft() {
 # Write a new draft by that name into that level, from what stdin hands in,
 # and print the path written.
 #
-# Refused, writing nothing, where the level is none of the kit's, the name is
+# Refused, writing nothing, where the level is none of the kit's or one no
+# draft may lie in, for the reason DRAFT_LEVEL_NAMES gives, the name is
 # no brief's name, the level folder is missing, the name already stands in any
 # level or directly in the briefs folder, or what was handed in has no summary
 # the header can hold or no title. The level and the name are judged first,
@@ -80,6 +81,7 @@ format_draft() {
 write_draft() {
   local plans="$1" level="$2" name="$3" levels input summary text file
   is_level_name "$level" || { refuse_bad_level_note "$level" "$(format_level_meanings)" >&2; return 1; }
+  is_draft_level_name "$level" || { refuse_draft_level_note "$level" "$(format_level_names "${DRAFT_LEVEL_NAMES[@]}")" >&2; return 1; }
   is_brief_name "$name" || { refuse_bad_name_note "$name" >&2; return 1; }
   [ -d "$plans/$level" ] || { refuse_no_level_folder_note "$level" "$plans" >&2; return 1; }
   levels="$(list_brief_levels "$plans" "$name")"

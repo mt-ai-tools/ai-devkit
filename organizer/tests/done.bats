@@ -60,7 +60,7 @@ setup() {
 @test "a waiter in no level is rewritten where it lies, and a draft is never a waiter" {
   printf -- '---\nsummary: Flat.\nafter: [media-bucket]\ntouches: [aidk-plans]\ncreates: []\n---\n' >"$plans/flat.md"
   printf -- '---\nsummary: Item.\ndraft: true\nafter: [media-bucket]\n---\n' >"$plans/p4-optional/item.md"
-  draft p2-required bare-item "Bare."
+  draft p3-conditional bare-item "Bare."
   cp "$plans/p4-optional/item.md" "$BATS_TEST_TMPDIR/item-before"
   run organizer done media-bucket
   [ "$status" -eq 0 ]

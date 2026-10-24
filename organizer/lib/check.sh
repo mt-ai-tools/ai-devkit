@@ -25,10 +25,10 @@ problem_row() {
   printf '%s%s%s\n' "$1" "$HEADER_US" "$2"
 }
 
-# The level names, as one line for the operator to read.
+# Level names handed in, as one line for the operator to read.
 format_level_names() {
   local joined
-  printf -v joined '%s, ' "${BRIEF_LEVEL_NAMES[@]}"
+  printf -v joined '%s, ' "$@"
   printf '%s' "${joined%, }"
 }
 
@@ -52,8 +52,10 @@ format_level_meanings() {
 # A file in no level is a problem rather than a brief allowed beside the
 # levels: a folder holds files or folders, never a mix, and a pile let lie
 # there grows back into the unsorted list the levels replace. A draft is held
-# to its summary alone: it is an item not yet written out, which has no after,
-# touches or creates to judge until the operator's yes makes it a brief.
+# to its summary and its level alone: it is an item not yet written out, which
+# has no after, touches or creates to judge until the operator's yes makes it
+# a brief. One lying where no draft may lie is a problem, for the reason
+# DRAFT_LEVEL_NAMES gives; one in no level is a problem already.
 derive_brief_problems() {
   local name summary after touches creates draft level field value items item list
   IFS="$HEADER_US" read -r name summary after touches creates draft level <<<"$1"
@@ -64,7 +66,11 @@ derive_brief_problems() {
   elif is_folded_marker "$summary"; then
     problem_row "$name" "$(problem_folded_summary_note "$name")"
   fi
-  ! is_draft_value "$draft" || return 0
+  if is_draft_value "$draft"; then
+    [ -z "$level" ] || is_draft_level_name "$level" ||
+      problem_row "$name" "$(problem_draft_level_note "$name" "$level" "$(format_level_names "${DRAFT_LEVEL_NAMES[@]}")")"
+    return 0
+  fi
   # Any other value fails closed: whether `draft: yes` meant a draft or a brief
   # cannot be told, and read as a brief it would be offered as work. Its other
   # fields are not judged here: a missing after or touches would assume the
@@ -236,7 +242,7 @@ list_problems() {
   folders="$(list_unknown_level_folders "$plans")"
   while IFS= read -r folder; do
     [ -n "$folder" ] || continue
-    problem_row "" "$(problem_unknown_level_folder_note "$folder" "$(format_level_names)")"
+    problem_row "" "$(problem_unknown_level_folder_note "$folder" "$(format_level_names "${BRIEF_LEVEL_NAMES[@]}")")"
   done <<<"$folders"
   {
     while IFS= read -r row; do

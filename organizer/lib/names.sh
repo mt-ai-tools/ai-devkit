@@ -28,6 +28,15 @@ is_level_name() {
   return 1
 }
 
+# True if the value is a level a draft may lie in, exactly.
+is_draft_level_name() {
+  local level
+  for level in "${DRAFT_LEVEL_NAMES[@]}"; do
+    [ "$level" = "$1" ] && return 0
+  done
+  return 1
+}
+
 # True if the value is a session id as the agent's host hands it out: letters,
 # digits and hyphens. Nothing else may land in a mark's session line, since
 # the mark is read back line by line.

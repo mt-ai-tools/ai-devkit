@@ -15,12 +15,12 @@ setup() {
 
 @test "every row carries its level and its draft mark, in name order" {
   brief p3-conditional when-ready "When." "[]" "[aidk-plans]" "[]"
-  draft p1-critical broken-now "Broken."
+  draft p3-conditional an-item "Item."
   printf -- '---\nsummary: Flat.\n---\n' >"$plans/flat.md"
   printf '# About the briefs\n' >"$plans/p2-required/README.md"
   run list_brief_rows "$plans"
   [ "$status" -eq 0 ]
-  expected="broken-now${us}Broken.${us}${us}${us}${us}true${us}p1-critical
+  expected="an-item${us}Item.${us}${us}${us}${us}true${us}p3-conditional
 flat${us}Flat.${us}${us}${us}${us}${us}
 when-ready${us}When.${us}[]${us}[aidk-plans]${us}[]${us}${us}p3-conditional"
   [ "$output" = "$expected" ]
@@ -45,7 +45,7 @@ when-ready${us}When.${us}[]${us}[aidk-plans]${us}[]${us}${us}p3-conditional"
 @test "a name in no level, or in two, is found nowhere" {
   printf -- '---\nsummary: Flat.\n---\n' >"$plans/flat.md"
   brief p1-critical twice "Once." "[]" "[aidk-plans]" "[]"
-  draft p2-required twice "Twice."
+  draft p3-conditional twice "Twice."
   run find_brief_file "$plans" flat
   [ "$status" -eq 0 ]
   [ -z "$output" ]

@@ -4,7 +4,7 @@
 # needs now, and hands each subcommand to the concern that holds it.
 #
 #   list                      the check's problems, then ready, waiting, taken,
-#                             and how many drafts each level holds
+#                             and how many drafts each draft level holds
 #   check                     the check's problems alone
 #   drafts [<level>]          every draft, or one level's, one line each
 #   draft <level> <name>      write a new draft into a level, printing the

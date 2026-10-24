@@ -126,7 +126,7 @@ $(problem_path_outside_note out creates a/../b)"
 }
 
 @test "a draft is checked for its summary alone" {
-  draft p1-critical bare-item "Bare."
+  draft p3-conditional bare-item "Bare."
   printf -- '---\nsummary: Loose.\ndraft: true\nafter: [nowhere, loose-item]\ntouches: [/etc, no-such-folder]\n---\n' >"$plans/p3-conditional/loose-item.md"
   run organizer check
   [ "$status" -eq 0 ]
@@ -139,6 +139,17 @@ $(problem_path_outside_note out creates a/../b)"
 
 # regression: a draft line saying anything but true made the file an ordinary
 # brief without a word, offered as ready where its header passed.
+@test "a draft in a level no draft may lie in is a problem naming where it may" {
+  draft p1-critical urgent-item "Urgent."
+  draft p2-required soon-item "Soon."
+  draft p4-optional someday "Someday."
+  run organizer check
+  [ "$status" -eq 1 ]
+  expected="$(problem_draft_level_note soon-item p2-required "p3-conditional, p4-optional")
+$(problem_draft_level_note urgent-item p1-critical "p3-conditional, p4-optional")"
+  [ "$output" = "$expected" ]
+}
+
 @test "a draft line saying anything but true is a problem, and the file is never offered" {
   printf -- '---\nsummary: Unsure.\ndraft: yes\nafter: []\ntouches: [aidk-plans]\ncreates: []\n---\n' >"$plans/p2-required/unsure.md"
   printf -- '---\nsummary: Bare.\ndraft: false\n---\n' >"$plans/p4-optional/bare-item.md"

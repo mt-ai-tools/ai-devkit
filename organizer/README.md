@@ -20,11 +20,13 @@ Only a ready brief can be taken: one still waiting is refused, naming what it
 waits on.
 
 A draft is an item decided on but not yet written out as a brief, marked so
-in its header and held to a summary. It is never offered or taken. The list
-counts the drafts in each level and names those in the most urgent one; the
-organizer lists every draft in full, or one level's, on request. A new draft
-is written through the organizer, never by hand, into the level its caller
-picks: it is handed the summary on the first line, then the draft's text,
+in its header and held to a summary. It lies only in `p3-conditional` or
+`p4-optional`: small things are fixed on the spot, and big work needed soon
+is written out as a brief at once, so a draft is big work that can wait. It
+is never offered or taken. The list counts the drafts in each of those two
+levels and names those in the more urgent one; the organizer lists every
+draft in full, or one level's, on request. A new draft is written through the
+organizer, never by hand, into the level its caller picks: it is handed the summary on the first line, then the draft's text,
 opening with its title line. It writes only where no brief or draft of that
 name stands in any level, and never makes a level folder.
 

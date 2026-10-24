@@ -19,3 +19,8 @@ BRIEF_LEVELS=(
 
 # The levels' names alone, in the same order, read off the list above.
 BRIEF_LEVEL_NAMES=("${BRIEF_LEVELS[@]%%=*}")
+
+# The levels a draft may lie in, each one of the levels above, in their order.
+# Small things are fixed on the spot, and big work needed soon is written out
+# as a brief at once; a draft is for big work that can wait.
+DRAFT_LEVEL_NAMES=(p3-conditional p4-optional)

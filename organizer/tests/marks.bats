@@ -172,7 +172,7 @@ setup() {
 }
 
 @test "a draft is refused, and nothing is marked" {
-  draft p1-critical bare-item "Bare."
+  draft p3-conditional bare-item "Bare."
   run --separate-stderr organizer take bare-item session-1
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_draft_note bare-item)" ]

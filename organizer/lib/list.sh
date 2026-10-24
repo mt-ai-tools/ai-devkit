@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The organizer's list: the check's problems first, so they are seen, then the
 # briefs ready now, those waiting and on what, those taken and for how long,
-# and how many drafts each level holds. Sourced, never executed.
+# and how many drafts each draft level holds. Sourced, never executed.
 #
 # The order is the operator's, read off the levels: every section below the
 # problems is in level order and by name within a level, and every line says
@@ -111,12 +111,14 @@ format_list() {
   fi
 }
 
-# One line per level with how many drafts it holds, from the rows
-# derive_draft_rows picked; the first level's drafts are named too. Named
-# because an unwritten critical item is work the operator must see; only
-# counted elsewhere because the list is shown whole whenever the next work is
-# asked for, and every draft named would bury what can be started now. The
-# drafts command lists them all.
+# One line per level a draft may lie in with how many drafts it holds, from
+# the rows derive_draft_rows picked; the first such level's drafts are named
+# too. Only those levels are counted: a draft anywhere else is a problem the
+# check shows, never a draft derive_draft_rows picks. Named because the most
+# urgent unwritten items are work the operator must see; only counted
+# elsewhere because the list is shown whole whenever the next work is asked
+# for, and every draft named would bury what can be started now. The drafts
+# command lists them all.
 format_unwritten() {
   local rows="$1" level name summary after touches creates draft at names
   local -A count_of names_of
@@ -125,9 +127,9 @@ format_unwritten() {
     count_of[$at]="$((${count_of[$at]:-0} + 1))"
     names_of[$at]+="${names_of[$at]:+, }$name"
   done <<<"$rows"
-  for level in "${BRIEF_LEVEL_NAMES[@]}"; do
+  for level in "${DRAFT_LEVEL_NAMES[@]}"; do
     names="${names_of[$level]:-}"
-    if [ "$level" = "${BRIEF_LEVEL_NAMES[0]}" ] && [ -n "$names" ]; then
+    if [ "$level" = "${DRAFT_LEVEL_NAMES[0]}" ] && [ -n "$names" ]; then
       list_unwritten_named_line "$level" "${count_of[$level]}" "$names"
     else
       list_unwritten_count_line "$level" "${count_of[$level]:-0}"

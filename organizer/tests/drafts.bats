@@ -12,18 +12,16 @@ setup() {
   place aidk-plans
   brief p1-critical a-brief "A brief." "[]" "[aidk-plans]" "[]"
   draft p4-optional aa-someday "Someday."
-  draft p1-critical zz-broken-now "Broken now."
-  draft p2-required before-release "Before release."
-  draft p1-critical aa-blocking "Blocking."
+  draft p3-conditional zz-on-trigger "On trigger."
+  draft p3-conditional aa-when-asked "When asked."
 }
 
 @test "every draft is listed in full, in level order and then name order, and no brief is" {
   run --separate-stderr organizer drafts
   [ "$status" -eq 0 ]
   [ -z "$stderr" ]
-  expected="$(drafts_line aa-blocking p1-critical "Blocking.")
-$(drafts_line zz-broken-now p1-critical "Broken now.")
-$(drafts_line before-release p2-required "Before release.")
+  expected="$(drafts_line aa-when-asked p3-conditional "When asked.")
+$(drafts_line zz-on-trigger p3-conditional "On trigger.")
 $(drafts_line aa-someday p4-optional "Someday.")"
   [ "$output" = "$expected" ]
 }
@@ -31,16 +29,16 @@ $(drafts_line aa-someday p4-optional "Someday.")"
 # The form is the list's own line form, spelled here as the list's test
 # spells it.
 @test "a draft's line names it, then its level in brackets, then its summary" {
-  run organizer drafts p2-required
+  run organizer drafts p4-optional
   [ "$status" -eq 0 ]
-  [ "$output" = "- before-release [p2-required] — Before release." ]
+  [ "$output" = "- aa-someday [p4-optional] — Someday." ]
 }
 
 @test "given a level, only that level's drafts are listed" {
-  run --separate-stderr organizer drafts p1-critical
-  [ "$status" -eq 0 ]
-  [ "$output" = "$(drafts_line aa-blocking p1-critical "Blocking.")"$'\n'"$(drafts_line zz-broken-now p1-critical "Broken now.")" ]
   run --separate-stderr organizer drafts p3-conditional
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(drafts_line aa-when-asked p3-conditional "When asked.")"$'\n'"$(drafts_line zz-on-trigger p3-conditional "On trigger.")" ]
+  run --separate-stderr organizer drafts p2-required
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
@@ -58,13 +56,12 @@ $(drafts_line aa-someday p4-optional "Someday.")"
 }
 
 @test "a draft the check finds a problem with is left out, and stderr and the status say so" {
-  printf -- '---\ndraft: true\n---\n' >"$plans/p2-required/no-summary.md"
-  draft p3-conditional before-release "Twice."
+  printf -- '---\ndraft: true\n---\n' >"$plans/p4-optional/no-summary.md"
+  draft p4-optional zz-on-trigger "Twice."
   run --separate-stderr organizer drafts
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(drafts_problems_note)" ]
-  expected="$(drafts_line aa-blocking p1-critical "Blocking.")
-$(drafts_line zz-broken-now p1-critical "Broken now.")
+  expected="$(drafts_line aa-when-asked p3-conditional "When asked.")
 $(drafts_line aa-someday p4-optional "Someday.")"
   [ "$output" = "$expected" ]
 }
