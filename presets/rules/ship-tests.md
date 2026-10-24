@@ -1,10 +1,6 @@
 ---
 enforce: [before-finishing]
 summary: Ship the tests with the change, not after it.
-autonomy: >
-  A test may be added for behavior the finding names, asserting what the code
-  promises rather than how it does it. Where the behavior is written down
-  nowhere, it goes to the operator with what would have to be assumed.
 ---
 
 # Ship tests

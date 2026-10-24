@@ -1,11 +1,6 @@
 ---
 enforce: [before-acting, before-finishing]
 summary: Comments explain why, not what — constraints, trade-offs, and risks a future reader would wonder about.
-autonomy: >
-  A missing or restating comment may be fixed where the reason is evident from
-  the code, its tests, or the commit that introduced it. Where the why would
-  have to be guessed, it goes to the operator with the line and what could not
-  be established about it.
 ---
 
 # Comment the why

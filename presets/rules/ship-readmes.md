@@ -1,10 +1,6 @@
 ---
 enforce: [before-finishing]
 summary: Every block that ships on its own ships a README saying what it is and where it stops.
-autonomy: >
-  A README may be written or reshaped in full, since every line it may carry is
-  read off the code. A claim the code does not show is left out rather than
-  guessed. The last-copy exception below binds here too.
 ---
 
 # Ship READMEs
@@ -15,6 +11,7 @@ autonomy: >
   what you would defend — a boundary the block should fail review for
   breaking, never a fact about today's contents. Why it stops there stays
   out.
+- A claim the code does not show is left out rather than guessed.
 - Where a block does nothing until something is supplied, the same line says
   what it needs — the kind of thing, never where to find it.
 - `## Develop` closes with the commands the project is run by, written exactly

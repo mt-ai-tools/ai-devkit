@@ -1,9 +1,6 @@
 ---
 enforce: [before-finishing]
 summary: A breaking change ships its migration note in the same commit.
-autonomy: >
-  A note may be written for a break the finding establishes. Whether something
-  is a break is not this fix's to decide.
 ---
 
 # Ship migration notes

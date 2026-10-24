@@ -1,10 +1,6 @@
 ---
 enforce: [before-acting, before-finishing]
 summary: Prose describes in roles — it never restates an identifier, path, or dependency that code already holds.
-autonomy: >
-  An identifier may be reworded out of prose. Where the sentence has nothing
-  left once the name is gone, it goes to the operator with that sentence and
-  what it was carrying.
 ---
 
 # Describe, don't name

@@ -1,12 +1,6 @@
 ---
 enforce: [before-thinking, before-acting, before-finishing]
 summary: The outside is hostile: name what an attacker gains, refuse what cannot be decided, keep secrets where only the deployment reads them.
-autonomy: >
-  A refusal that names which check failed may be reworded to the generic
-  refusal the code already answers elsewhere. A secret found anywhere is
-  reported and never removed by the run: rotating it is the operator's. A
-  path that fails open is the operator's too — closing it changes what
-  callers get.
 ---
 
 # Expect an attacker

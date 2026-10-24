@@ -1,11 +1,6 @@
 ---
 enforce: [before-acting, before-finishing]
 summary: Split at real concern boundaries, and name a file so its contents are predictable.
-autonomy: >
-  A file may be split along a seam the finding names, into siblings named for
-  what they hold, leaving what the package publishes unchanged. Where the seam
-  is arguable, it goes to the operator with the candidates it would have chosen
-  between.
 ---
 
 # Split at seams

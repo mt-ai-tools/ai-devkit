@@ -1,11 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
 summary: Ship the smallest unit that stands alone, and never let it know who uses it.
-autonomy: >
-  A sentence naming a consumer may be rewritten to say what the block is
-  instead. Where the block reaches them for real, in a dependency, an import,
-  or an interface shaped around one, the fix changes what the block is, and
-  that is the operator's.
 ---
 
 # Blocks, not bundles

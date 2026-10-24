@@ -1,14 +1,15 @@
 ---
 enforce: [premise]
-summary: Time and tokens spent today are pre-approved; never cut quality to save them.
+summary: Never cut quality to save time or tokens; spend them only where they buy quality.
 ---
 
 # Spend today, save tomorrow
 
-Effort is not the scarce resource; quality is. Every corner cut to save
-time or tokens is repaid twice tomorrow, in worse code and worse structure.
+Quality comes first, and tokens are spent where they buy it. Every corner
+cut to save time or tokens is repaid twice tomorrow, in worse code and worse structure.
 
-- Read the extra file, run the extra check, do the extra search.
+- Read the file a decision rests on, run the check that proves it, do the
+  search that settles it.
 - Delegate a wide search and keep only its answer; read yourself the files
   a decision rests on.
 - Never shrink a design, a split, or a test to "keep it quick" or "save
