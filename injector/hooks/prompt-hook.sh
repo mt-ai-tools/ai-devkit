@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Claude Code UserPromptSubmit hook — the thin orchestrator for turn-start.
 #
-# It wires three concerns and holds none of their logic:
+# It wires four concerns and holds none of their logic:
 #   1. digest      — put the approach rules in front of the model before it plans.
 #   2. conventions — name where the written ones live, so they are followed
 #                    rather than rediscovered.
-#   3. question    — close with the rule for a question turn, so it is the last
+#   3. workflow    — index the kit's workflow, so the stage at hand is read.
+#   4. question    — close with the rule for a question turn, so it is the last
 #                    thing read before the prompt.
 #
-# All three are advice. Nothing here blocks on what the prompt says, and that
+# All four are advice. Nothing here blocks on what the prompt says, and that
 # is deliberate: a stage that acted on a guess about what the operator meant
 # would block work they asked for. The one refusal below is about this hook's
 # own job, never about the prompt.
@@ -23,7 +24,8 @@
 #
 # Fail closed: the rules are the point of this hook, so a turn they did not
 # reach must not run. Any step failing — a crash, a config file the kit
-# refuses, or a rules directory with nothing in it — refuses the turn with
+# refuses, a rules directory with nothing in it, or a workflow it cannot
+# index — refuses the turn with
 # exit 2, which Claude Code honours by withholding the prompt and showing the
 # operator what went to stderr. The operator fixes the cause and sends the
 # prompt again; until then the session does nothing, and that is the intent.
@@ -65,10 +67,13 @@ tool_root="$(cd "$here/.." && pwd)"
 # assignment does end it, and the refusal above takes over.
 rules_from="$(rules_dir)"
 conventions_from="$(conventions_dir)"
+workflow_from="$(cd "$tool_root/.." && pwd)/workflow"
 
 "$tool_root/steps/rules-digest.sh" "$rules_from"
 
 "$tool_root/steps/conventions-pointer.sh" "$conventions_from"
+
+"$tool_root/steps/workflow-index.sh" "$workflow_from"
 
 "$tool_root/steps/question-rule.sh" "$rules_from"
 exit 0

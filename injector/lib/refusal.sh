@@ -12,3 +12,13 @@ no_rules_note() {
 turn_refused_note() {
   printf 'Rules hook failed: the rules were not put in front of the agent. Nothing runs until this is fixed.\n'
 }
+
+# Why a turn was refused: the kit's workflow folder is not where the kit keeps it.
+no_workflow_note() {
+  printf 'No workflow folder at: %s\n' "$1"
+}
+
+# Why a turn was refused: a workflow file has no description to index it by.
+workflow_file_undescribed_note() {
+  printf 'Workflow file with no description in its header: %s\n' "$1"
+}

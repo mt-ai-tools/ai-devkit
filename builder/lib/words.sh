@@ -58,3 +58,12 @@ session_size_no_transcript_note() {
 session_size_usage_note() {
   printf 'usage: session-size.sh [<transcript>]\n'
 }
+
+# Handed to a builder past its size line, after every tool until it stops.
+size_hook_long_note() {
+  printf 'Size note: you have grown long, at %s tokens of context.\n' "$1"
+}
+
+size_hook_no_transcript_note() {
+  printf "Builder size hook: no builder transcript at %s, so this builder is not measured\n" "$1"
+}

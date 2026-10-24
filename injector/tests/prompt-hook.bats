@@ -16,12 +16,13 @@ setup() {
 
 # A private copy of the kit, so a test can break a part of it without touching
 # the real one. The rules folder comes along only when asked for; the kit's
-# shared readers always do, since the injector reads through them.
+# shared readers and its workflow always do, since the injector reads both.
 copy_kit() {
   kit="$BATS_TEST_TMPDIR/kit"
   mkdir -p "$kit"
   cp -r "$BATS_TEST_DIRNAME/.." "$kit/injector"
   cp -r "$BATS_TEST_DIRNAME/../../lib" "$kit/lib"
+  cp -r "$BATS_TEST_DIRNAME/../../workflow" "$kit/workflow"
   if [ "${1:-}" = "with-rules" ]; then
     mkdir -p "$kit/presets"
     cp -r "$BATS_TEST_DIRNAME/../../presets/rules" "$kit/presets/rules"
@@ -35,6 +36,21 @@ copy_kit() {
   [[ "$output" == *"## Rules in force"* ]]
   [[ "$output" == *"If this prompt is a question"* ]]
   [[ "$output" == *"- answer-dont-implement — "* ]]
+}
+
+@test "the workflow is indexed, before the question rule" {
+  run bash -c "printf '{}' | '$hook'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"How work moves, and who decides what, lives in: "* ]]
+  [[ "${output#*Read the file for the stage you are in}" == *"If this prompt is a question"* ]]
+}
+
+@test "a workflow that cannot be indexed refuses the turn" {
+  copy_kit with-rules
+  rm -r "$kit/workflow"
+  run --separate-stderr bash -c "printf '{}' | '$copied_hook'"
+  [ "$status" -eq 2 ]
+  [[ "$stderr" == *"$(turn_refused_note)"* ]]
 }
 
 @test "the project's conventions folder is named when it holds entries" {

@@ -24,6 +24,7 @@ shopt -s inherit_errexit
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$here/../lib/words.sh"
+. "$here/../lib/transcript.sh"
 
 # The size past which a session is worth compacting at its next clean point.
 # Every reply re-reads the whole context, so a long session's late turns
@@ -50,23 +51,13 @@ find_transcript() {
   printf '%s' "$found"
 }
 
-# The context the main conversation's last reply carried; nothing before its
-# first reply. A line that is not whole JSON — one being written as this
-# reads — is passed over rather than failing the answer.
-last_size() {
-  jq -R -r 'fromjson? | select(.type == "assistant" and (.isSidechain | not))
-    | .message.usage // empty
-    | (.input_tokens // 0) + (.cache_read_input_tokens // 0) + (.cache_creation_input_tokens // 0)' "$1" |
-    tail -n 1
-}
-
 case "$#" in
   0) transcript="$(find_transcript)" ;;
   1) transcript="$1" ;;
   *) refuse "$(session_size_usage_note)"$'\n' ;;
 esac
 
-size="$(last_size "$transcript")"
+size="$(last_reply_size "$transcript" false)"
 size="${size:-0}"
 if [ "$size" -gt "$SESSION_COMPACT_AT" ]; then
   session_size_compact_note "$size"
