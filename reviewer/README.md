@@ -10,7 +10,6 @@ where it stops.
 
 The fixer carries out one finding's fix, proves it, and never commits.
 
-The reviewer judges against the rules and, where a rule defers to one,
-the project's conventions, so it runs only where the kit is mounted
-whole. Needs git: outside a repository there is no defined change to
-judge.
+What it needs: the kit mounted whole, for the rules and, where a rule
+defers to them, the project's conventions it judges against; and a git
+repository, for the change it judges.
