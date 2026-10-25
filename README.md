@@ -1,27 +1,15 @@
 # ai-devkit
 
-One tool for agentic development, in seven parts:
-
-- The rules a coding agent works under.
-- The injector, which puts the rules in front of the agent every turn.
-- The workflow, which says how work moves and who decides what.
-- The reviewer, which judges the work against the rules.
-- The advisor, which gives a choice a cold second reading.
-- The builder, which builds one step of a brief, or a small fix.
-- The organizer, which keeps the briefs and drafts.
-
-The kit mounts into Claude Code. The parts ship, version and mount as one. What the kit needs from a
-project is stated here and nowhere else in it.
-
-The stand-in is not in use: nothing mounts it, and its tests do not run.
+One tool for agentic development, mounted into Claude Code. Its parts
+ship, version and mount as one. What the kit needs from a project is
+stated here and nowhere else in it.
 
 ## What a project keeps
 
 The kit's config file, at the project root, says where the kit finds
 each of the things below. To start one, copy the config example the kit
 ships, which lists every setting with its default. Absent, every default
-holds. A file the kit cannot read, or a path set in it that does not
-exist, stops every turn until it is fixed.
+holds.
 
 - The rules: the kit ships a set, and a project may bring its own.
 - The conventions: the project's written conventions, one per file, named
@@ -45,9 +33,8 @@ A project mounts the kit whole:
   for a project's skills.
 - The injector's hook runs at the turn-start event. Without it the rules
   never reach the agent, and the reviewer cannot run.
-- The organizer's hook runs after the host's skill tool. The hook is
-  what shows the list of briefs; the skill alone only says that it could
-  not.
+- The organizer's hook runs after the host's skill tool. Without it the
+  skill cannot show the list of briefs.
 - The organizer's turn reminder runs at the turn-start event. Without it
   a session holding a brief is not told so each turn.
 - The organizer's end hook runs at the session-end event. Without it a
@@ -58,8 +45,8 @@ A project mounts the kit whole:
   host's tool for messaging an agent. Without them a session can send
   more work to an agent that has already reported.
 
-GNU parallel is optional: where the machine has it, the kit's tests run
-several at a time; without it, one at a time, to the same result.
+GNU parallel is optional: the kit's tests reach the same result
+without it.
 
 ## Develop
 

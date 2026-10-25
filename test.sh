@@ -16,6 +16,8 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 bats="$here/node_modules/.bin/bats"
 
 if [ "$#" -eq 0 ]; then
+  # The stand-in's tests are left out: the stand-in is not in use, and
+  # nothing mounts it.
   set -- "$here/builder/tests" "$here/injector/tests" "$here/lib/tests" "$here/organizer/tests" "$here/workflow/tests"
 fi
 
