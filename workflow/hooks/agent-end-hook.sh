@@ -17,6 +17,12 @@ tool_root="$(cd "$here/.." && pwd)"
 
 event="$(cat)"
 is_one_report_agent "$(agent_event_field "$event" agent_type)" || exit 0
+# The event fires too when an agent only stops to wait for its own background
+# shell command, long before it reports. The event cannot say whose a shell
+# command is, so any one running holds the record back: one that is another
+# agent's leaves this guard skipped and only the written rule holding, while
+# a false record would refuse a working agent the message that resumes it.
+! agent_event_shell_running "$event" || exit 0
 
 session="$(agent_event_field "$event" session_id)"
 list="$(finished_list "$session")" || { bad_session_note "$session" >&2; exit 1; }

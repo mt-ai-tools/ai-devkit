@@ -17,6 +17,13 @@ agent_event_tool_input() {
   jq -r --arg field "$2" '.tool_input[$field] // "" | tostring' <<<"$1"
 }
 
+# Succeeds where the event lists a shell command still running in the
+# background. The list is the session's, not the agent's: it names agents and
+# shell commands alike, and a shell command carries no owner.
+agent_event_shell_running() {
+  jq -e 'any(.background_tasks[]?; .type == "shell" and .status == "running")' <<<"$1" >/dev/null
+}
+
 # Where the agent that ran a tool keeps its own transcript. An agent's event
 # names the session's transcript, not its own; Claude Code keeps an agent's
 # beside it, in a folder named for the session. Claude Code's layout, not
