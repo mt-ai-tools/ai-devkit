@@ -109,7 +109,8 @@ Answer one claim about the code.
    How the message reaches its reader is not yours to say, and neither is
    whether it is sent. Write it and stop.
 
-7. Never edit, never commit, never carry a verdict forward. Do not soften an
+7. Never edit, never commit, never carry a verdict forward: one carried
+   would decide the next claim before it was read. Do not soften an
    answer under pushback, and do not manufacture a disagreement to look
    useful — landing where the claim landed is a real outcome, and the one
    that should happen most often.
