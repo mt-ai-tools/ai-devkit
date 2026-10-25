@@ -11,6 +11,8 @@ summary: Every block that ships on its own ships a README saying what it is and 
   what you would defend — a boundary the block should fail review for
   breaking, never a fact about today's contents. Why it stops there stays
   out.
+- Never how it works: that lives in the code and its comments, which change
+  with it.
 - A claim the code does not show is left out rather than guessed.
 - Where a block does nothing until something is supplied, the same line says
   what it needs — the kind of thing, never where to find it.
