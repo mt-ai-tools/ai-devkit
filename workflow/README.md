@@ -5,7 +5,7 @@ description: The words the workflow uses.
 # Workflow
 
 How work moves from a new idea to a closed brief, and who decides what
-along the way. One file per stage, plus one board of who decides.
+along the way.
 
 Each section opens with when it applies, then what to do, and, where it
 adds a limit, what not to do.
