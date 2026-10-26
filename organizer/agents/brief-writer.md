@@ -134,11 +134,8 @@ into a code comment. A decision reached during the build is written
 the same way. A decision that changes later replaces the old text.
 Another brief is named, never given as a path.
 
-A full question for the operator holds: the question; the situation
-with an everyday example; the recommended answer; what a person
-using the app sees; why; what it costs; each option not chosen and
-why not; where it lands. It uses everyday words, with no names from
-the code outside where it lands. Once answered, it shrinks to the
+A full question for the operator is written as the workflow's asking
+section says, with where it lands. Once answered, it shrinks to the
 answer, its reason, and each option not chosen with why not.
 
 Where the only way forward needs a workaround, that is a finding:

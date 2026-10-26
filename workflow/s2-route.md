@@ -17,7 +17,12 @@ Do, check that:
 When: decisions.md gives a choice to the operator.
 Do:
 - Send up to 3 questions per message.
-- Give each its options and one recommendation.
+- Put each question whole in the message, every time it is asked, a
+  repeat included: the question; the situation, with an everyday
+  example; each option in plain words, with what it costs and what
+  could go wrong; the recommended one, and why. Never point back to a
+  brief, a decision number or an earlier message: the operator reads
+  only this message.
 - Give the full reasoning when the operator asks "why?".
 Don't:
 - Don't ask the operator about a choice decisions.md leaves to the
