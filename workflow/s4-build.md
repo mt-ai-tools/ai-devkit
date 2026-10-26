@@ -32,6 +32,19 @@ Do:
 - The builder stops and reports as its own file says.
 - A fresh builder carries on with what is left.
 
+## A red no step explains
+When: a builder reports a red its step does not explain.
+Do:
+- Once the step is committed and pushed, the session takes a clean
+  copy of the pushed work through the copy command the kit's settings
+  name, runs that suite in it, and gives the copy back.
+- Green there: someone else's unfinished work caused it; the session
+  says so to the operator.
+- Red there: the session runs it once more in the copy as it stood
+  before the step. Green before: the step broke it, and a fresh
+  builder fixes it. Red before too: it is not the step's; the session
+  says so to the operator.
+
 ## Building steps side by side
 When: two or more steps need nothing from each other and change
   different files.

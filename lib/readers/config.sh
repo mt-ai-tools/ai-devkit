@@ -26,6 +26,7 @@ CONFIG_DEFAULTS=(
   "AIDK_PLANS=aidk-plans"
   "AIDK_REVIEW=aidk-review"
   "AIDK_ORGANIZER=aidk-organizer"
+  "AIDK_CLEAN_COPY=aidk-clean-copy"
 )
 
 # The separator between the parts of a row this reader hands back: the ASCII
