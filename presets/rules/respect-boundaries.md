@@ -8,7 +8,7 @@ summary: Dependencies run one way, features meet at published interfaces, nothin
 Keep layers and features separate. No reaching across.
 
 - A module uses what sits below it, never what sits above. Which is below
-  is evident from what each module is for — it needs no declaring.
+  is declared once, where a tool refuses an import that points upward.
 - No cross-layer imports.
 - No cross-feature imports — features talk through shared, declared interfaces, not each other's internals.
 - A cycle says something sits in the wrong module.
