@@ -9,6 +9,8 @@ A module that binds an outside library is where that library ends.
 
 - Its names, types and error shapes stay inside. Everything else talks to the
   module's own contract.
+- A project may let a library's own descriptions cross where wrapping them
+  would only restate them; its conventions say which kinds.
 - The module is the fence, and it is the only one. Nothing inside needs a
   second wrapper around the library.
 - Two modules may each bind the same library for different concerns. That is

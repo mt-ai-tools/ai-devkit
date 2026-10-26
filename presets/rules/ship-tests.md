@@ -18,8 +18,9 @@ summary: Ship the tests with the change, not after it.
 How much is enough:
 
 - Every public function gets two tests: one good input showing what it
-  promises, one bad input showing how it refuses. That is the floor, and for
-  most code it is also the ceiling.
+  promises, one bad input showing how it refuses. That is the floor. Above
+  it, one test per distinct answer the function can give, never one per way
+  it gives it.
 - A bug fix's test carries a one-line comment beginning `// regression:` that
   names the bug it guards. No other test carries a category label.
 - More is owed only where a failure would be invisible in use — an

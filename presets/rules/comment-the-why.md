@@ -14,3 +14,5 @@ summary: Comments explain why, not what — constraints, trade-offs, and risks a
   or whether it's *safe to delete or change*.
 - A comment sits directly above what it explains.
 - One line is almost always enough. No code-restating docblocks.
+- One sentence above an export may say what it is for, on one line: no
+  parameter restated, no usage example.

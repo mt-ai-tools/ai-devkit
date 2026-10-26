@@ -30,6 +30,8 @@ Exempt:
   cannot rot.
 - A why-comment may name the specific library, tool, or version that caused
   what it explains.
+- One sentence above an export may say what it is for, on one line: no
+  parameter restated, no usage example.
 - A placeholder form may show a shape a convention prescribes, when the shape
   is the point. Use it sparingly: a form shown in one entry and withheld in
   the next reads as a distinction that isn't there.
