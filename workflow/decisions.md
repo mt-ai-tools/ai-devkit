@@ -51,7 +51,7 @@ description: Who decides each kind of choice and fix, and what the operator sees
 |----------|------------------------------------------------------------------------------------------------------------------------|------------------------|
 | Silent   | The working agent                                                                                                      | Nothing                |
 | Told     | The working agent, after challenging it (s2-route.md)                                                                  | The decision, laid out |
-| Advisor  | One advisor per choice, started by the session with the choice, the brief where there is one, and where the rules live | The decision, laid out |
+| Advisor  | One fresh advisor per choice, started by the session with the choice, the brief where there is one, and where the rules live; it is sent the proposal only after it has answered | The decision, laid out |
 | Operator | The operator, asked by the session (s2-route.md); no agent, even when the answer looks obvious                         | The question           |
 
 A decision is laid out as: the question, the options, the one chosen,

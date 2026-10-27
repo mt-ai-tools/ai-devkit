@@ -9,11 +9,9 @@
 # reply. A reading that saw what the agent chose would be anchored to it, and
 # an agreement it then reached would be worth less than one it reached alone.
 #
-# The prompt tells it so in words. The advisor's command warns of an anchored
-# reading whenever a proposal is in front of it, and handed bare options it
-# took them for one: measured 2026-10-06, every reading opened "Anchored"
-# though no pick had reached it. The command stays as it is, since sessions
-# hand it their own proposals and the warning is right there.
+# The prompt tells it so in words. Handed bare options, the advisor once took
+# them for a proposal: measured 2026-10-06, every reading opened "Anchored"
+# though no pick had reached it.
 
 # Loaded once, however many of the stand-in's parts source it, as words.sh is.
 [ -z "${STAND_IN_LOADED_READING:-}" ] || return 0
@@ -25,11 +23,11 @@ STAND_IN_LOADED_READING=1
 . "$(dirname "${BASH_SOURCE[0]}")/ask-model.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/check-form.sh"
 
-# The advisor's command, inside the kit. Read whole each time, never copied
+# The advisor's instructions, inside the kit. Read whole each time, never copied
 # into a prompt: the reading is the operator's own last rung only while it is
 # the advisor as the advisor stands. Its header goes with it, as it says what
 # the command is for and what it is handed.
-ADVISOR_COMMAND_FILE="advisor/commands/advise.md"
+ADVISOR_COMMAND_FILE="advisor/agents/advisor.md"
 
 # --- Transforms.
 
