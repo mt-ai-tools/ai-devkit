@@ -161,25 +161,20 @@ refuse_unknown_brief() {
   [[ "$levels" != *$'\n'* ]] || { refuse_name_in_levels_note "$name" "${levels//$'\n'/, }" >&2; return 1; }
 }
 
-# Nothing where the brief is no draft; a refusal on stderr and a non-zero
-# status otherwise. A draft is work not yet written out, so nobody can start
-# it; the operator's yes turns it into a brief first. The name must already
-# have passed refuse_unknown_brief.
-refuse_draft_brief() {
-  local plans="$1" name="$2" draft
-  draft="$(read_header_fields "$(find_brief_file "$plans" "$name")" "$DRAFT_FIELD")"
-  ! is_draft_value "$draft" || { refuse_draft_note "$name" >&2; return 1; }
-}
-
 # Nothing where the brief waits on no other; a refusal naming what it waits on
 # on stderr and a non-zero status otherwise. A brief taken early builds on
 # ground that is not there yet, or will still change under it; starting one
 # early is a deliberate edit of its header, never a take. An after list that
 # cannot be read is refused too, since a half-written list must not make a
-# brief look ready. The name must already have passed refuse_unknown_brief.
+# brief look ready. A draft passes whatever its after list holds: a draft's
+# after list is never judged, not by the check nor by done, so refusing on it
+# here alone would block a draft taken to be built as small work on a list
+# nothing else keeps true. The name must already have passed
+# refuse_unknown_brief.
 refuse_waiting_brief() {
-  local plans="$1" name="$2" after items
-  after="$(read_header_fields "$(find_brief_file "$plans" "$name")" after)"
+  local plans="$1" name="$2" after draft items
+  IFS="$HEADER_US" read -r after draft <<<"$(read_header_fields "$(find_brief_file "$plans" "$name")" after "$DRAFT_FIELD")"
+  ! is_draft_value "$draft" || return 0
   if ! items="$(parse_flow_list "$after")"; then
     refuse_header_unreadable_note "$name" >&2
     return 1

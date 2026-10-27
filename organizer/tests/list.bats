@@ -2,7 +2,8 @@ bats_require_minimum_version 1.5.0
 
 # Behavior tests for the list: ready, waiting and taken briefs each in their
 # section, in level order and then name order, each line saying its level;
-# drafts counted per level and never offered; ages from the mark's since, a
+# drafts counted per level and never offered, a taken one shown as taken
+# instead; ages from the mark's since, a
 # ready brief in a taken brief's place marked, and a broken brief shown among
 # the problems and nowhere else.
 
@@ -234,6 +235,21 @@ $(list_waiting_line aaa-waits p4-optional zeta)
 $(list_taken_heading)
 $(list_taken_line z-held p2-required "0 min" s2)
 $(list_taken_line a-held p4-optional "0 min" s1)"
+  [ "$output" = "$expected" ]
+}
+
+@test "a taken draft is shown among the taken and left out of the count; an untaken one stays counted" {
+  draft p3-conditional held-item "Held."
+  draft p3-conditional free-item "Free."
+  mark held-item s1 "$now"
+  run organizer list
+  [ "$status" -eq 0 ]
+  expected="$(list_taken_heading)
+$(list_taken_line held-item p3-conditional "0 min" s1)
+
+$(list_unwritten_heading)
+$(list_unwritten_named_line p3-conditional 1 free-item)
+$(list_unwritten_count_line p4-optional 0)"
   [ "$output" = "$expected" ]
 }
 

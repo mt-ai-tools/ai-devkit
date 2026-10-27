@@ -171,12 +171,15 @@ setup() {
   [ -z "$(ls -A "$marks")" ]
 }
 
-@test "a draft is refused, and nothing is marked" {
+@test "a draft is taken, whatever its after list holds, since a draft's after list is never judged" {
   draft p3-conditional bare-item "Bare."
-  run --separate-stderr organizer take bare-item session-1
-  [ "$status" -eq 1 ]
-  [ "$stderr" = "$(refuse_draft_note bare-item)" ]
-  [ ! -e "$marks/bare-item" ]
+  run organizer take bare-item session-1
+  [ "$status" -eq 0 ]
+  [ "$(cat "$marks/bare-item")" = $'session: session-1\nsince: 2026-10-04T21:30:00Z' ]
+  printf -- '---\nsummary: Waits.\nafter: [file-trash]\ndraft: true\n---\n\n# waits-item\n' >"$plans/p3-conditional/waits-item.md"
+  run organizer take waits-item session-1
+  [ "$status" -eq 0 ]
+  [ -f "$marks/waits-item" ]
 }
 
 @test "a brief is taken in whichever level it lies, never in none or in two" {

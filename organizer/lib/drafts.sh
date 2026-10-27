@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # The drafts: items not yet written out as briefs, each in its level. The list
 # counts them and the drafts command lists them in full, both from the rows
-# picked here, so a count and the listing beside it never disagree. Sourced,
-# never executed.
+# picked here, so a count and the listing beside it never disagree but where
+# the list leaves out a draft it shows as taken. Sourced, never executed.
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/header.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/names.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/flow-list.sh"
@@ -15,15 +15,18 @@
 # The drafts among the rows, in level order and by name within a level,
 # leaving out every one the check found a problem with, as the list leaves out
 # every broken brief: what the check cannot vouch for is shown among the
-# problems and nowhere else. A draft in no level is one of those.
+# problems and nowhere else. A draft in no level is one of those. A third
+# argument, comma-joined names, leaves those drafts out too: the list shows a
+# taken draft among the taken, and counting it as well would say it twice.
 derive_draft_rows() {
-  local problems="$1" rows="$2" broken row name summary after touches creates draft level
+  local problems="$1" rows="$2" left_out="${3:-}" broken row name summary after touches creates draft level
   broken="$(cut -d "$HEADER_US" -f 1 <<<"$problems" | paste -sd, -)"
   while IFS= read -r row; do
     [ -n "$row" ] || continue
     IFS="$HEADER_US" read -r name summary after touches creates draft level <<<"$row"
     is_draft_value "$draft" || continue
     has_list_item "$broken" "$name" && continue
+    has_list_item "$left_out" "$name" && continue
     printf '%s\n' "$row"
   done <<<"$(with_level_order "$rows")"
 }

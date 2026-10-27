@@ -11,7 +11,7 @@
 #                             path it wrote; stdin hands in the summary on its
 #                             first line, then the draft's text, opening with
 #                             its "# " title line
-#   take <brief> <session>    mark a ready brief, never a draft, taken by a
+#   take <brief> <session>    mark a ready brief, or a draft, taken by a
 #                             session
 #   free <session>            free every brief a session holds
 #   held <session>            the briefs a session holds and for how long,
@@ -99,7 +99,6 @@ case "$command" in
   take)
     [ "$#" -eq 2 ] || usage
     refuse_unknown_brief "$plans" "$1" || exit 1
-    refuse_draft_brief "$plans" "$1" || exit 1
     refuse_waiting_brief "$plans" "$1" || exit 1
     now="$(get_now)"
     take_brief "$marks" "$1" "$2" "$now"

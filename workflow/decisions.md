@@ -9,6 +9,7 @@ description: Who decides each kind of choice and fix, and what the operator sees
 | A name inside the code, the shape of a test, how a step is built            | Silent              |
 | An approach, a data shape, where code sits inside a module                  | Told                |
 | Now or later, the order of steps                                            | Told (default: now) |
+| Whether a draft is built as small work or proposed as a brief               | Told                |
 | A Told choice the agent is unsure of                                        | Advisor             |
 | What a person using the app sees: wording, defaults, promises               | Operator            |
 | Accepting a security risk or a known limit                                  | Operator            |

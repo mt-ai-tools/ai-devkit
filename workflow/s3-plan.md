@@ -38,9 +38,29 @@ Do, in this order:
 Don't:
 - No step is built before the go.
 
+## Taking a draft as small work
+When: a draft's trigger happens, or the operator wants a draft
+  built, and the session finds it small.
+Do, in this order:
+1. The session takes the draft with the organizer's take command,
+   so no other session starts it.
+2. The session reads the draft against the code as it stands now,
+   challenges it as s2-route.md says, and writes the fix down from
+   what holds; a choice this raises is sorted as s1-intake.md says.
+3. The session fixes it as small work (s2-route.md); where nothing
+   is left to fix, it says why instead.
+4. The session finishes the draft with the organizer's done
+   command, and commits what it changed.
+
+## A small draft proves bigger
+When: building a draft taken as small work shows it is bigger.
+Do:
+- The session stops, frees the draft, and proposes a brief for it
+  by "Turning a draft into a brief".
+
 ## Turning a draft into a brief
 When: a draft's trigger happens, or the operator wants a
-  draft built.
+  draft built, and the session finds it bigger.
 Do:
 - The session proposes a brief for it to the operator, with a
   level.

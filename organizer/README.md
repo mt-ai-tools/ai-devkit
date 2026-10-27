@@ -5,8 +5,9 @@ waiting or taken, and the one writer of a new brief.
 
 It keeps no order of the work and ranks nothing itself. A brief it
 cannot vouch for is shown as a problem, never offered as work. Only a
-ready brief can be taken. A draft, big work that can wait, is never
-offered or taken, and is written through the organizer, never by hand.
+ready brief or a draft can be taken. A draft, big work that can wait,
+is never offered; it may be taken to be built as small work, and is
+written through the organizer, never by hand.
 
 It changes only its own marks and the briefs and drafts a command
 names. It never runs version control. The brief writer adds only the

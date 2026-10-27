@@ -152,10 +152,6 @@ refuse_name_in_levels_note() {
   printf '%s is found in more than one level (%s), so which is meant cannot be told.\n' "$1" "$2"
 }
 
-refuse_draft_note() {
-  printf '%s is a draft, not yet written as a brief, so it cannot be taken.\n' "$1"
-}
-
 refuse_waiting_note() {
   printf '%s waits on: %s; it cannot be taken until those are done.\n' "$1" "$2"
 }

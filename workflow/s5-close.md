@@ -33,9 +33,11 @@ Do:
   it allows.
 
 ## Ending a session
-When: a brief is closed.
+When: a brief is closed, or a draft taken as small work is
+  finished.
 Do:
-- The session tells the operator it can end.
+- The session tells the operator it can end; after a draft, also
+  that the draft is deleted.
 Don't:
 - The session doesn't start the next brief; the next brief starts
   in a fresh session.

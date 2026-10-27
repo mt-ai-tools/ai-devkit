@@ -8,7 +8,9 @@
 # its level. A broken brief appears among the problems only, never in a
 # section below them, since whatever the check could not vouch for must not be
 # offered as work. Nor is a draft, which is an item not yet written out as a
-# brief; drafts are counted, never offered.
+# brief; drafts are counted, never offered. A draft a session has taken, to
+# build it as small work, is shown as taken instead of counted, so no other
+# session starts it meanwhile.
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/header.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/flow-list.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/places.sh"
@@ -47,8 +49,14 @@ format_list() {
   while IFS="$HEADER_US" read -r name summary after touches creates draft level; do
     [ -n "$name" ] || continue
     has_list_item "$broken" "$name" && continue
-    is_draft_value "$draft" && continue
-    items="$(parse_flow_list "$after")"
+    if is_draft_value "$draft"; then
+      # Only a draft known to be taken goes on, and it can only land among the
+      # taken; its after list is never judged, so it is read as empty.
+      [ -z "$marks_unknown" ] && [ -n "${held_by[$name]+held}" ] || continue
+      items=""
+    else
+      items="$(parse_flow_list "$after")"
+    fi
     level_of[$name]="$level"
     summary_of[$name]="$summary"
     after_of[$name]="$items"
@@ -103,7 +111,7 @@ format_list() {
     done
   fi
 
-  unwritten="$(derive_draft_rows "$problems" "$rows")"
+  unwritten="$(derive_draft_rows "$problems" "$rows" "$(IFS=,; printf '%s' "${taken[*]}")")"
   if [ -n "$unwritten" ]; then
     [ -n "$opened" ] && echo
     list_unwritten_heading
