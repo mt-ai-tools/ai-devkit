@@ -31,6 +31,11 @@ When: the kit's size hook tells a builder it has grown long.
 Do:
 - The builder stops and reports as its own file says.
 - A fresh builder carries on with what is left.
+Don't:
+- Where the builder stopped before changing anything, no fresh
+  builder is started: it would start as large and stop the same way.
+  The session shrinks the brief as the brief-writer's file says, or
+  splits the step, and only then starts one.
 
 ## A red no step explains
 When: a builder reports a red its step does not explain.

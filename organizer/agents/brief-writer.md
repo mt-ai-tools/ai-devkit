@@ -125,13 +125,21 @@ Do, in this order, and nothing else:
    - Operator: the full question for the operator (below), marked
      open for the operator.
 7. `## Steps`: numbered; each lands alone, has its proof, and is sized
-   so one builder finishes well under the kit's builder size line.
+   so one builder, after reading the whole brief, finishes well under
+   the kit's builder size line.
    Pieces that could each land in turn, with tests passing, are that
    many steps.
 
 Every reason stands beside its decision, so the builder can move it
 into a code comment. A decision reached during the build is written
-the same way. A decision that changes later replaces the old text.
+the same way, in Decisions where it binds more than one step, else in
+its step. A decision that changes later replaces the old text.
+
+A built step leaves the brief: its built mark stays, its text goes,
+and any of its decisions a later step still needs moves to Decisions.
+Every builder reads the whole brief, so text kept for steps already
+built is paid again by each one after; the code holds the whys and git
+the old text.
 Another brief is named, never given as a path.
 
 A full question for the operator is written as the workflow's asking
