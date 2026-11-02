@@ -125,8 +125,10 @@ Do, in this order, and nothing else:
    - Operator: the full question for the operator (below), marked
      open for the operator.
 7. `## Steps`: numbered; each lands alone, has its proof, and is sized
-   so one builder, after reading the whole brief, finishes well under
-   the kit's builder size line.
+   so one builder, after reading the whole brief and the code the step
+   needs, finishes well under the kit's builder size line. A long
+   brief, or a step over code long to read, leaves less room to build,
+   so its steps are smaller.
    Pieces that could each land in turn, with tests passing, are that
    many steps.
 
