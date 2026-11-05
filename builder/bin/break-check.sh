@@ -3,12 +3,15 @@
 # command, and says whether the named test failed — then always puts the file
 # back as it was, however the run ended.
 #
-#   break-check.sh <file> <old text> <new text> <test name> -- <test command> [<argument>...]
+#   break-check.sh <file> <old text> <new text> <test> -- <test command> [<argument>...]
 #
 # The old text must stand in the file exactly once, and is replaced as plain
-# text, never as a pattern. Red means a line the test runner prints for a
-# failed test names the test: a command that failed only to build proves
-# nothing about the test, and is reported as not red with its last lines.
+# text, never as a pattern. The test is named by its name, or, for a
+# type-level test, by its TypeScript file and line as <test file>:<line>. Red
+# means a line the test runner prints for a failed test names the test, or for
+# a test named by its place, a type error at that file's line: a command that
+# failed only to build, or with a type error elsewhere, proves nothing about
+# the test, and is reported as not red with its last lines.
 #
 # Status: 0 when the named test went red; 1 for anything else — passed,
 # failed some other way, or refused. One non-zero status throughout, so
@@ -83,7 +86,7 @@ output="$work/output"
 status=0
 "$@" >"$output" 2>&1 || status=$?
 
-if [ "$status" -ne 0 ] && names_failed_test "$name" <"$output"; then
+if [ "$status" -ne 0 ] && shows_test_failing "$name" <"$output"; then
   break_check_red_note "$name" "$file"
   exit 0
 fi

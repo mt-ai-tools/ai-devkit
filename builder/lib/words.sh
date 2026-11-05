@@ -3,7 +3,7 @@
 # asserts the wiring rather than the wording. Sourced, never executed.
 
 break_check_usage_note() {
-  printf 'usage: break-check.sh <file> <old text> <new text> <test name> -- <test command> [<argument>...]\n'
+  printf 'usage: break-check.sh <file> <old text> <new text> <test name | test file:line> -- <test command> [<argument>...]\n'
 }
 
 # The proof held: the break made the named test fail.
@@ -16,10 +16,11 @@ break_check_green_note() {
   printf 'not red: the command passed with %s broken, so "%s" does not catch this break\n' "$1" "$2"
 }
 
-# The command failed, but not by the named test failing: a build or type error,
-# or another test, which proves nothing about the one named.
+# The command failed, but not by the named test failing: a build error, a type
+# error away from the named place, or another test, which proves nothing about
+# the one named.
 break_check_other_failure_note() {
-  printf 'not red: the command failed with %s broken, but no failing test line names "%s" — a build or type error, or another test, proves nothing about it; its last lines:\n' "$1" "$2"
+  printf 'not red: the command failed with %s broken, but nothing it printed shows "%s" failing — a build error, a type error elsewhere, or another test, proves nothing about it; its last lines:\n' "$1" "$2"
 }
 
 break_check_missing_file_note() {

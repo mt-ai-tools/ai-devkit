@@ -88,6 +88,8 @@ Every break goes through the kit's break check,
 file back however the run ends, and counts a break as red only where the
 test runner names that test as failed — a break that stops the code
 building fails every test and proves nothing about the one it was aimed at.
+A type-level test, whose break shows only as a type error, is named by its
+file and line instead, and is red only on a type error there.
 Several breaks may go out in one turn, one call each.
 
 While working, run only the test files the change touches. At the end,

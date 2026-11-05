@@ -94,6 +94,48 @@ file_untouched() {
   [ "$status" -eq 1 ]
 }
 
+@test "a test named by its file and line is red on a type error at that line" {
+  command_saying 1 "src/commands/contract.test.ts(31,54): error TS2344: Type 'x' does not satisfy the constraint"
+  check "commands/contract.test.ts:31"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(break_check_red_note "commands/contract.test.ts:31" "$target")" ]
+  file_untouched
+}
+
+@test "a leading ./ on the test file or the error's path is no difference" {
+  command_saying 1 "./src/code.test.tsx(7,1): error TS2322: no"
+  check "./src/code.test.tsx:7"
+  [ "$status" -eq 0 ]
+  command_saying 1 "src/code.test.mts(7,1): error TS2322: no"
+  check "./src/code.test.mts:7"
+  [ "$status" -eq 0 ]
+}
+
+@test "a type error at another line of the test file is not red" {
+  command_saying 1 "src/commands/contract.test.ts(30,54): error TS2344: no"
+  check "src/commands/contract.test.ts:31"
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = "$(break_check_other_failure_note "$target" "src/commands/contract.test.ts:31")" ]
+}
+
+@test "a type error in a file whose name only ends in the test file's name is not red" {
+  command_saying 1 "src/commands/mycontract.test.ts(31,54): error TS2344: no"
+  check "contract.test.ts:31"
+  [ "$status" -eq 1 ]
+}
+
+@test "the test file is read as plain text, never as a pattern" {
+  command_saying 1 "src/codeXtest.ts(31,1): error TS2344: no"
+  check "src/code.test.ts:31"
+  [ "$status" -eq 1 ]
+}
+
+@test "a plain name is not read as a place, even where a type error stands in a file of that name" {
+  command_saying 1 "src/contract.test.ts(31,54): error TS2344: no"
+  check "contract.test.ts"
+  [ "$status" -eq 1 ]
+}
+
 @test "the file is put back when the run is interrupted" {
   printf '#!/usr/bin/env bash\ngrep -q "answer = 0" "%s" && touch "%s"\nkill -TERM "$PPID"\nsleep 1\n' "$target" "$ran" >"$BATS_TEST_TMPDIR/test-command"
   chmod +x "$BATS_TEST_TMPDIR/test-command"
