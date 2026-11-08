@@ -30,8 +30,10 @@ and nothing true left out to keep it short — it goes further down.
   is named with the count of all steps and what it does: "step 5 of 9,
   the sign-in form", never "step 5" alone.
 - Never point back at what the reader is not holding: not "it", not
-  "that approach", not "as said above", and not a numbered question or a
-  position in a list that lives somewhere else.
+  "that approach", not "as said above", not a numbered question or a
+  position in a list that lives somewhere else, and not "the other
+  session" — name the brief it holds, or where none is known, the
+  repository and files its work sits in.
 - Say it in words and give the path. Code is the last thing to reach
   for. Where the subject is words — a comment, a document, a message, a
   failing line of output — showing them is showing the subject itself.
