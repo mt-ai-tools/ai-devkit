@@ -13,6 +13,8 @@ summary: Comments explain why, not what — constraints, trade-offs, and risks a
 - Use them freely: wherever a future reader would wonder *why* this was done,
   or whether it's *safe to delete or change*.
 - A comment sits directly above what it explains.
+- A comment or doc says only what holds where it sits; how another place
+  works is that place's to say, and it points there by role.
 - One line is almost always enough. No code-restating docblocks.
 - One sentence above an export may say what it is for, on one line: no
   parameter restated, no usage example.
