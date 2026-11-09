@@ -22,5 +22,5 @@ adds a limit, what not to do.
 - Finding: something wrong, found in the code or in the work.
 - Brief: big work written as steps, with its decisions. Nothing in it
   is built before the operator's go.
-- Draft: big work written down to wait, until its trigger happens or
-  the operator wants it built.
+- Draft: work written short: the plan of big work, to become a brief,
+  or small or mid-sized work built on its own.

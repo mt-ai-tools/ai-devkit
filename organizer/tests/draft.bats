@@ -39,6 +39,8 @@ level_entries() {
   run --separate-stderr organizer list
   [ "$status" -eq 0 ]
   [[ "$output" == *"$(list_unwritten_heading)
+$(list_unwritten_count_line p1-critical 0)
+$(list_unwritten_count_line p2-required 0)
 $(list_unwritten_named_line p3-conditional 1 an-item)
 $(list_unwritten_count_line p4-optional 1)" ]]
   run --separate-stderr organizer drafts
@@ -63,14 +65,12 @@ $(list_unwritten_count_line p4-optional 1)" ]]
   [ -z "$(find "$project" -name 'new-item*')" ]
 }
 
-@test "a level no draft may lie in is refused, naming where one may, and nothing is written" {
-  for level in p1-critical p2-required; do
-    run --separate-stderr organizer draft "$level" new-item <<<$'S.\n# T'
-    [ "$status" -eq 1 ]
-    [ -z "$output" ]
-    [ "$stderr" = "$(refuse_draft_level_note "$level" "p3-conditional, p4-optional")" ]
+@test "a draft may be written into any level" {
+  for level in p1-critical p2-required p3-conditional; do
+    run --separate-stderr organizer draft "$level" "new-$level" <<<$'S.\n# T'
+    [ "$status" -eq 0 ]
+    [ -f "$plans/$level/new-$level.md" ]
   done
-  [ -z "$(find "$project" -name 'new-item*')" ]
 }
 
 @test "a name that is no brief's name is refused, and nothing is written" {

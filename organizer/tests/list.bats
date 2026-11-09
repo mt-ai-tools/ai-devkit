@@ -196,6 +196,8 @@ $(list_waiting_heading)
 $(list_waiting_line later p4-optional urgent)
 
 $(list_unwritten_heading)
+$(list_unwritten_count_line p1-critical 0)
+$(list_unwritten_count_line p2-required 0)
 $(list_unwritten_named_line p3-conditional 1 item)
 $(list_unwritten_count_line p4-optional 0)"
   [ "$output" = "$expected" ]
@@ -248,6 +250,8 @@ $(list_taken_line a-held p4-optional "0 min" s1)"
 $(list_taken_line held-item p3-conditional "0 min" s1)
 
 $(list_unwritten_heading)
+$(list_unwritten_count_line p1-critical 0)
+$(list_unwritten_count_line p2-required 0)
 $(list_unwritten_named_line p3-conditional 1 free-item)
 $(list_unwritten_count_line p4-optional 0)"
   [ "$output" = "$expected" ]
@@ -266,12 +270,14 @@ $(list_unwritten_count_line p4-optional 0)"
 $(list_ready_line ready-one p2-required "Ready.")
 
 $(list_unwritten_heading)
+$(list_unwritten_count_line p1-critical 0)
+$(list_unwritten_count_line p2-required 0)
 $(list_unwritten_named_line p3-conditional 2 "aa-when-asked, zz-on-trigger")
 $(list_unwritten_count_line p4-optional 3)"
   [ "$output" = "$expected" ]
 }
 
-@test "with no draft in the first draft level its line is a count alone, and a broken draft is not counted" {
+@test "the most urgent level holding drafts is named, every other is a count alone, and a broken draft is not counted" {
   draft p4-optional when-asked "When asked."
   printf -- '---\ndraft: true\n---\n' >"$plans/p3-conditional/no-summary.md"
   run organizer list
@@ -280,22 +286,22 @@ $(list_unwritten_count_line p4-optional 3)"
 $(list_problem_line "$(problem_missing_field_note no-summary summary)")
 
 $(list_unwritten_heading)
+$(list_unwritten_count_line p1-critical 0)
+$(list_unwritten_count_line p2-required 0)
 $(list_unwritten_count_line p3-conditional 0)
-$(list_unwritten_count_line p4-optional 1)"
+$(list_unwritten_named_line p4-optional 1 when-asked)"
   [ "$output" = "$expected" ]
 }
 
-@test "only p3-conditional and p4-optional are counted; a draft in p1 or p2 is a problem only" {
+@test "drafts are counted in every level, and those of the most urgent one holding any are named" {
   draft p1-critical urgent-item "Urgent."
   draft p2-required soon-item "Soon."
   draft p4-optional someday "Someday."
   run organizer list
-  [ "$status" -eq 1 ]
-  expected="$(list_problems_heading)
-$(list_problem_line "$(problem_draft_level_note soon-item p2-required "p3-conditional, p4-optional")")
-$(list_problem_line "$(problem_draft_level_note urgent-item p1-critical "p3-conditional, p4-optional")")
-
-$(list_unwritten_heading)
+  [ "$status" -eq 0 ]
+  expected="$(list_unwritten_heading)
+$(list_unwritten_named_line p1-critical 1 urgent-item)
+$(list_unwritten_count_line p2-required 1)
 $(list_unwritten_count_line p3-conditional 0)
 $(list_unwritten_count_line p4-optional 1)"
   [ "$output" = "$expected" ]

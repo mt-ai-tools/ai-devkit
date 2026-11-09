@@ -5,7 +5,7 @@ description: Writing drafts and briefs, and approving a brief before it is built
 # Plan
 
 ## Writing a draft
-When: big work can wait (s2-route.md).
+When: s2-route.md sends work to a draft.
 Do:
 - The session writes it with the organizer's draft command, at a
   level the command takes, with the work as s1-intake.md records it.

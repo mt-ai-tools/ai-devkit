@@ -139,15 +139,13 @@ $(problem_path_outside_note out creates a/../b)"
 
 # regression: a draft line saying anything but true made the file an ordinary
 # brief without a word, offered as ready where its header passed.
-@test "a draft in a level no draft may lie in is a problem naming where it may" {
+@test "a draft may lie in any level" {
   draft p1-critical urgent-item "Urgent."
   draft p2-required soon-item "Soon."
   draft p4-optional someday "Someday."
   run organizer check
-  [ "$status" -eq 1 ]
-  expected="$(problem_draft_level_note soon-item p2-required "p3-conditional, p4-optional")
-$(problem_draft_level_note urgent-item p1-critical "p3-conditional, p4-optional")"
-  [ "$output" = "$expected" ]
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
 }
 
 @test "a draft line saying anything but true is a problem, and the file is never offered" {

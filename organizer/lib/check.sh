@@ -54,8 +54,9 @@ format_level_meanings() {
 # there grows back into the unsorted list the levels replace. A draft is held
 # to its summary and its level alone: it is an item not yet written out, which
 # has no after, touches or creates to judge until the operator's yes makes it
-# a brief. One lying where no draft may lie is a problem, for the reason
-# DRAFT_LEVEL_NAMES gives; one in no level is a problem already.
+# a brief. A draft may lie in any level: it is work written short, the plan of
+# big work or small work on its own, and either can be wanted at any priority.
+# One in no level is a problem already.
 derive_brief_problems() {
   local name summary after touches creates draft level field value items item list
   IFS="$HEADER_US" read -r name summary after touches creates draft level <<<"$1"
@@ -67,8 +68,6 @@ derive_brief_problems() {
     problem_row "$name" "$(problem_folded_summary_note "$name")"
   fi
   if is_draft_value "$draft"; then
-    [ -z "$level" ] || is_draft_level_name "$level" ||
-      problem_row "$name" "$(problem_draft_level_note "$name" "$level" "$(format_level_names "${DRAFT_LEVEL_NAMES[@]}")")"
     return 0
   fi
   # Any other value fails closed: whether `draft: yes` meant a draft or a brief

@@ -119,26 +119,25 @@ format_list() {
   fi
 }
 
-# One line per level a draft may lie in with how many drafts it holds, from
-# the rows derive_draft_rows picked; the first such level's drafts are named
-# too. Only those levels are counted: a draft anywhere else is a problem the
-# check shows, never a draft derive_draft_rows picks. Named because the most
-# urgent unwritten items are work the operator must see; only counted
-# elsewhere because the list is shown whole whenever the next work is asked
-# for, and every draft named would bury what can be started now. The drafts
-# command lists them all.
+# One line per level with how many drafts it holds, from the rows
+# derive_draft_rows picked; the drafts of the most urgent level holding any
+# are named too. Named because the most urgent unwritten items are work the
+# operator must see; only counted elsewhere because the list is shown whole
+# whenever the next work is asked for, and every draft named would bury what
+# can be started now. The drafts command lists them all.
 format_unwritten() {
-  local rows="$1" level name summary after touches creates draft at names
+  local rows="$1" level name summary after touches creates draft at names named=""
   local -A count_of names_of
   while IFS="$HEADER_US" read -r name summary after touches creates draft at; do
     [ -n "$name" ] || continue
     count_of[$at]="$((${count_of[$at]:-0} + 1))"
     names_of[$at]+="${names_of[$at]:+, }$name"
   done <<<"$rows"
-  for level in "${DRAFT_LEVEL_NAMES[@]}"; do
+  for level in "${BRIEF_LEVEL_NAMES[@]}"; do
     names="${names_of[$level]:-}"
-    if [ "$level" = "${DRAFT_LEVEL_NAMES[0]}" ] && [ -n "$names" ]; then
+    if [ -z "$named" ] && [ -n "$names" ]; then
       list_unwritten_named_line "$level" "${count_of[$level]}" "$names"
+      named=1
     else
       list_unwritten_count_line "$level" "${count_of[$level]:-0}"
     fi

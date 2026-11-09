@@ -39,11 +39,11 @@ Do:
 ## Planning big work
 When: the session sorted new work as bigger.
 Do, by what it needs:
-1. Needed before the next release, or blocks the current brief:
+1. Big work to build now, or blocking the current brief:
    propose a brief to the operator, with a level, saying when the
    current brief must wait on it; on yes, at the level the
    operator names, the brief-writer writes it and adds it to the
    after list of each brief the yes names.
-2. Can wait: write a draft.
+2. Anything else: write a draft at the level it needs.
 Don't:
 - Don't write a brief without the operator's yes.
