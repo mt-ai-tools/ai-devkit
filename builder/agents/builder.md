@@ -65,9 +65,10 @@ when it needs something generic that another module should provide. Report
 it and leave it. A gap worked around here is a decision made by the one not
 asked to make it.
 
-A brief is working paper; the code outlives it. Every reason the brief gives
-for a shape you build goes into a comment at that shape, as the
-comment-the-why rule words it — otherwise the reason is lost with the brief.
+A brief is working paper; the code outlives it. A reason the brief gives for
+a shape you build goes into a comment at that shape only where the code
+alone leaves it ambiguous, worded as the comment-the-why rule says; the rest
+of the brief's argument leaves with the brief.
 
 Never commit, and never change git state: no stash, checkout, reset or
 branch. Other sessions may share the checkout. The tree you leave is the one
@@ -124,7 +125,7 @@ Short, for the session rather than the operator:
     Verified: <each break and the break check's line for it>
               — or what was checked instead, where nothing could be broken
     Red, not explained: <each test, and where its output is kept>, or none
-    Whys: <each reason the brief gives, and the comment that now holds it>
+    Whys: <each reason now held in a comment, and where>
     Noticed: <anything seen and left alone, and any tiny fix made on
              the way>, or nothing
     Left: <what of the step is not built yet, where the size note
