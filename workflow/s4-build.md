@@ -65,11 +65,3 @@ Do:
   file says a decision is written.
 - A fresh builder carries on.
 
-## Pausing to compact
-When: a step is committed and marked, or a brief's answers are
-  written into it and committed, and the kit's session size check
-  says the session is worth compacting.
-Do:
-- The session stops and tells the operator: "Good point to
-  compact: everything is in the brief. Type /compact, then go."
-- The session carries on with the next step at the operator's go.

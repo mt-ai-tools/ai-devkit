@@ -39,27 +39,6 @@ break_check_restore_failed_note() {
   printf 'RESTORE FAILED: %s differs from what it held before the break; its copy is at %s\n' "$1" "$2"
 }
 
-# The session has grown past the size worth compacting at a clean point.
-session_size_compact_note() {
-  printf 'compact: %s tokens\n' "$1"
-}
-
-session_size_fine_note() {
-  printf 'fine: %s tokens\n' "$1"
-}
-
-session_size_no_session_note() {
-  printf 'refused: no session id in %s, so there is no transcript to read\n' "$1"
-}
-
-session_size_no_transcript_note() {
-  printf 'refused: no transcript for session %s under %s\n' "$1" "$2"
-}
-
-session_size_usage_note() {
-  printf 'usage: session-size.sh [<transcript>]\n'
-}
-
 # Handed to a builder past its size line, after every tool until it stops.
 size_hook_long_note() {
   printf 'Size note: you have grown long, at %s tokens of context.\n' "$1"

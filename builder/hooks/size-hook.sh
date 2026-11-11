@@ -24,7 +24,7 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/../lib/readers/header.sh"
 . "$tool_root/../lib/readers/agent-event.sh"
-. "$tool_root/lib/transcript.sh"
+. "$tool_root/../lib/readers/transcript.sh"
 . "$tool_root/lib/words.sh"
 
 # The context past which a builder is told to stop. Builders' cost bends

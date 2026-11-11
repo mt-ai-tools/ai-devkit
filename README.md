@@ -44,6 +44,8 @@ A project mounts the kit whole:
 - The workflow's hooks run at the subagent-end event and before the
   host's tool for messaging an agent. Without them a session can send
   more work to an agent that has already reported.
+- The workflow's compact note runs at the turn-start event. Without it
+  a session that has grown long is never told to compact.
 
 GNU parallel is optional: the kit's tests reach the same result
 without it.

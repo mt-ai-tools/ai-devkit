@@ -1,5 +1,5 @@
 ---
-description: Reviewing and closing a brief, and ending the session.
+description: Reviewing and closing a brief, and pausing or ending the session.
 ---
 
 # Close
@@ -31,6 +31,23 @@ Do:
   command, and commits what it changed.
 - The session tells the operator what the brief built, as short as
   it allows.
+
+## Pausing to compact
+When: the kit's size note says the session is worth compacting, at
+  any stage, and the session is at a clean point: nothing is
+  mid-change and no subagent is running.
+Do:
+- The session ends its reply with: "Good point to compact:
+  everything is written down. Type /compact, then go."
+- Where a settled answer is not written yet, the session names it in
+  the same reply and asks where it goes.
+- The session carries on at the operator's go.
+Don't:
+- The session doesn't say it again until the note's size is a
+  hundred thousand tokens past where it last said it: the note comes
+  every turn, and the operator may choose to go on.
+- The session doesn't write answers away on its own to make a clean
+  point.
 
 ## Ending a session
 When: a brief is closed, or a draft taken as small work is
