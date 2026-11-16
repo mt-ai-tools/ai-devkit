@@ -66,3 +66,12 @@ Do:
   level.
 - On yes, the draft becomes a brief by "Writing a brief", in the
   same file under the same name.
+
+## Rewriting a brief
+When: the code has outgrown a standing brief, and the operator says
+  yes to rewriting it.
+Do:
+- The session starts the brief-writer as for writing a brief, naming
+  the brief to rewrite.
+- The brief-writer rewrites it in the same file under the same name.
+- Approving runs from there, as for a new brief.

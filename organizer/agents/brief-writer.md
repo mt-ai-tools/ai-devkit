@@ -1,6 +1,6 @@
 ---
 name: brief-writer
-description: Writes one new brief on the operator's yes, at the level the yes names, and checks it; never commits.
+description: Writes one new brief, or rewrites a standing one, on the operator's yes, at the level the yes names, and checks it; never commits.
 tools: Read, Grep, Glob, Bash, Write, Edit
 # The strongest model: a brief shapes every step built after it, and it is
 # written rarely, only on the operator's yes, so the cost barely adds up.
@@ -18,7 +18,8 @@ Do:
 - Check it was handed: the subject; the operator's yes, in their own
   words where the session has them; the level; every choice the operator already settled, with
   its date and their words; the brief's name, where one was given
-  (a draft's name, where the yes was to write out a draft); and
+  (a draft's name, where the yes was to write out a draft; the
+  brief's own name, where the yes was to rewrite one); and
   which briefs must now wait on this one, where the yes said so.
 - Take the project root as the folder it was started in.
 - Where the kit was not named, find it through this file: the
@@ -50,12 +51,13 @@ Do:
   brief in every level.
 - Read the code the brief will touch: every folder that goes in
   touches, enough to say truly what is there today.
-- Where a draft of the brief's name stands, read it first: its lines
+- Where a draft or a brief of the brief's name stands, read it first: its lines
   are what the yes was given to.
 Don't:
 - The brief-writer doesn't write a second brief for a subject
   another brief or draft covers; it stops and names that one. The
-  draft being written out is not another one.
+  draft being written out, or the brief being rewritten, is not
+  another one.
 - The brief-writer doesn't go on where another brief covers part of
   the subject; it stops, names the part, and leaves the session to
   ask whether that brief grows instead.
@@ -78,6 +80,10 @@ Do:
   it, remove its draft mark, and, where it lies in another level,
   move it to the level handed with a plain move, not one through
   version control.
+- Where the yes was to rewrite a brief of that name, write over it
+  in place. Keep every built mark. Keep every answer the operator
+  settled; one the code has made untrue is not dropped, it is
+  reported.
 - Where the name stands nowhere, write a new file in the level,
   under the name the operator gave, or else one it chooses that
   says the subject, in lower-case letters, digits and hyphens. A
@@ -85,9 +91,10 @@ Do:
 - Where the yes names briefs that must wait on this one, add its
   name to their after lists, and change nothing else in them.
 Don't:
-- The brief-writer doesn't write over a file that stands.
-- The brief-writer doesn't go on where a brief of that name stands;
-  it stops and says so.
+- The brief-writer doesn't write over a file that stands, unless it
+  was handed that brief to rewrite.
+- The brief-writer doesn't go on where a brief of that name stands,
+  unless it was handed that brief to rewrite; it stops and says so.
 - The brief-writer doesn't go on where the name stands in more than
   one place or outside a level; it stops and quotes the organizer's
   check lines that name it.
@@ -183,7 +190,8 @@ Do, in this order:
 When: the checks are done, or the brief-writer stopped.
 Do:
 - Report the path, the name and whether it was given or chosen,
-  whether it was a new file or a draft written out, both paths of
+  whether it was a new file, a draft written out or a brief
+  rewritten, both paths of
   any move, every after list changed, each check passed or failed
   with its quote, every Told decision with its number and answer, every Advisor
   choice, every open question for the operator with its
