@@ -1,6 +1,6 @@
 ---
-description: Adversarial review — over the repository, an area, or everything since a revision; fixes what it may, asks the rest
-argument-hint: [--scope :all|<path>|<revision>|<commits>]
+description: Adversarial review — over the repository, some areas, or everything since a revision, against every rule or one; fixes what it may, asks the rest
+argument-hint: [--scope :all|<path>…|<revision>|<commits>] [--rule <name>]
 ---
 
 Run a review.
@@ -19,24 +19,34 @@ Run a review.
 2. Read the invocation.
 
        --scope :all         the whole repository as it stands — the default
-       --scope <path>       that area as it stands
+       --scope <path>…      those areas as they stand, one or several,
+                            read together
        --scope <revision>   everything committed since that revision, plus
                             uncommitted and untracked work
        --scope <commits>    exactly those commits, each named with its
                             repository, and nothing else
 
+       --rule <name>        judge only the rule whose file bears that
+                            name; without it, every rule the reviewer
+                            judges
+
+   A named rule with no file in the rules directory, or one the reviewer
+   does not judge, stops the run before anything is launched: a narrowing
+   to nothing would report a pass.
+
 3. Size the review. A revision or commits scope gets one reviewer for each 1,500
    changed lines, at least one and at most four, each over a part of about
    equal size, split along modules where it can be. A scope with no
-   revision gets one reviewer. Where the operator's yes named a number, use
-   theirs.
+   revision gets one reviewer, however many areas it names. Where the
+   operator's yes named a number, use theirs.
 
 4. Launch the `reviewer` agents at once, each with its part, the decisions
-   the work was built under where there are any, and the two locations the
-   turn-start digest names: the rules directory, and the conventions
-   collection where one was named. The reviewer has no other way to learn
-   them — it starts empty, and that is the point. No digest in view means
-   the kit is not mounted whole for this project: stop and say so.
+   the work was built under where there are any, the one rule where the run
+   is narrowed to it, and the two locations the turn-start digest names: the
+   rules directory, and the conventions collection where one was named. The
+   reviewer has no other way to learn them — it starts empty, and that is
+   the point. No digest in view means the kit is not mounted whole for this
+   project: stop and say so.
 
    On a confirming review add the findings already declined, and nothing
    else: it finds the diff and the context itself.
@@ -59,9 +69,9 @@ Run a review.
      as the workflow's s2-route.md says, never fixed by this run.
 
    Then say the count, on one line, before anything moves: how many rules were
-   judged, how many blocked, how many are taken and how many held. The
-   report is a wall of lines and the number is what tells the operator how
-   much of their evening this is.
+   judged — one, and which, where the run was narrowed — how many blocked,
+   how many are taken and how many held. The report is a wall of lines and
+   the number is what tells the operator how much of their evening this is.
 
 7. The run's own laws stand above every level: the rule files and the
    conventions collection are never edited by the run, because the run is
@@ -166,8 +176,10 @@ Run a review.
     Then do the answered fixes as step 9 describes.
 
 13. Where a fix of this run changed behaviour or security, run one confirming
-    reviewer over the fixes alone. What it finds is sorted once more as step
-    6 says, and never reviewed again.
+    reviewer over the fixes alone. It judges every rule, even where the run
+    was narrowed to one: a fix made for one rule can break another, and the
+    check a fix dropped is seldom the narrowed rule's to see. What it finds
+    is sorted once more as step 6 says, and never reviewed again.
 
 14. Close with what happened: fixed, taken without asking, decided by an
     advisor, held, declined, written down, overtaken, and where it stopped if

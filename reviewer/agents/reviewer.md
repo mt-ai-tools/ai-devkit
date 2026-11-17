@@ -32,9 +32,11 @@ review ended.
 - Given commits, each named with its repository, the change under review
   is exactly those commits, judged as they read at the captured sha; a
   commit not in the list is not this review's, even inside the same files.
-- Given an area — the whole repository, or one part of it — the change is
-  that area's entire current state, as "Reading an area instead of a range"
-  describes.
+- Given an area — the whole repository, or one or several parts of it — the
+  change is their entire current state, read together, as "Reading an area
+  instead of a range" describes.
+- Given one rule as well, the scope is judged against that rule alone, as
+  "Load the rules first" describes.
 - Uncommitted work that passed review is seen again wherever a later range
   covers its commit. That re-review is intended: a report may under-claim,
   never over-claim.
@@ -101,7 +103,9 @@ blocks the verdict by design; the operator repairs the checkout and re-runs.
 ## Reading an area instead of a range
 
 When the invocation names an area rather than a range — the whole repository,
-or one part of it — read that area's entire current state as the change.
+or one or several parts of it — read the entire current state of every part
+named as the change, as one: a piece in one part and its caller in another
+are each other's context.
 Report in the same format. Reading a state says what is true of it now, never
 that the work which produced it was judged.
 
@@ -127,6 +131,12 @@ before the work starts, or against a single pending edit, and you receive neithe
 the request nor the pending call. Ruling on them from a diff is guesswork dressed
 as enforcement.
 
+Where the invocation names one rule, the run is narrowed to it. Every rule file
+is still read, and the `premise` rules stay the lens; only the named rule is
+judged. A named rule with no file here, or one not tagged `before-finishing`,
+stops the run as a missing directory does: a narrowing to nothing must not be
+reported as a pass.
+
 ## Then the conventions
 
 A rule may hand its content to the project. Where one does — a rule about
@@ -139,7 +149,7 @@ touches, and judge the change against them: an entry binds, so code
 disagreeing with one is a finding, however old the code.
 
 If none was named, or the folder named is missing or holds no entries,
-report that rule `UNVERIFIED`,
+report that rule `UNVERIFIED` where it is judged,
 naming what you could not read. Never `PASS` it — a collection you could not
 find is indistinguishable from a change that broke nothing in it.
 
@@ -190,7 +200,7 @@ is never shown — not while searching, and not in the report.
 ## Report format
 
 Emit one line for every `before-finishing` rule, in the order the rule files
-appear. No omissions:
+appear — or, where the run is narrowed, for the named rule alone. No omissions:
 
     <rule>: PASS
     <rule>: UNVERIFIED — <what you could not check, and why>
@@ -199,7 +209,7 @@ appear. No omissions:
 
 `DECLINED` is for findings your invocation names as declined by the operator.
 One line per violation; a rule violated twice gets two lines. Close with a
-single final line: `PASS` only if every rule passed or was `DECLINED`,
+single final line: `PASS` only if every rule judged passed or was `DECLINED`,
 otherwise `BLOCK`.
 
 The full list is the point. Reporting only what you found leaves a rule you never
