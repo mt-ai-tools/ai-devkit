@@ -30,9 +30,14 @@ Do:
   brief, a decision number or an earlier message: the operator reads
   only this message.
 - Give the full reasoning when the operator asks "why?".
+- Once every answer is written down, no question is open and every
+  check is green, carry on and say so in one line: a go asked for
+  then only keeps the session waiting.
 Don't:
 - Don't ask the operator about a choice decisions.md leaves to the
   agents.
+- Don't carry on into a brief's first step: approving a brief waits
+  for the operator's go (s3-plan.md).
 
 ## Fixing small work
 When: the session sorted new work as small.
