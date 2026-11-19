@@ -12,6 +12,12 @@ Do, check that:
 - Lasting: it is not a cheap way that costs more later.
 - Checked: every claim is verified in the code.
 - Rules: it keeps every rule and convention.
+- Standard: it is the industry's established way, and the way the code already solves the like elsewhere.
+
+A recommendation that shapes a mechanism ends with one line, the standard:
+the industry's way and the frame's own way for the like, and whether this
+follows both. Where either can't be told without a search, the line says
+"not sure" and why.
 
 ## Asking the operator
 When: decisions.md gives a choice to the operator.
