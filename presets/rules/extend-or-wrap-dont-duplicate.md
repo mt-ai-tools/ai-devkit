@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
+work: [shape, write]
 summary: When a shared abstraction almost fits, extend it or wrap it; never fork or copy it.
 ---
 

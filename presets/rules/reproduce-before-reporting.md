@@ -1,5 +1,6 @@
 ---
 enforce: [before-finishing]
+work: [report]
 summary: A failure seen once is a symptom, not a finding. Reproduce it alone before naming a cause.
 ---
 

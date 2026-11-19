@@ -1,5 +1,6 @@
 ---
 enforce: [before-finishing]
+work: [shape, write]
 summary: Keep each concern in its own file, combined by a thin orchestrator that holds no concern's logic.
 ---
 

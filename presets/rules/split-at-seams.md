@@ -1,5 +1,6 @@
 ---
 enforce: [before-acting, before-finishing]
+work: [write]
 summary: Split at real concern boundaries, and name a file so its contents are predictable.
 ---
 

@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking, before-acting, before-finishing]
+work: [shape, write, report]
 summary: A shape that needs excusing is a design not yet found; say what you would have had to accept, and stop.
 ---
 

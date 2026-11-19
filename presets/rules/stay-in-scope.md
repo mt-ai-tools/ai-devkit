@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking]
+work: [shape, write]
 summary: Build exactly what was asked; propose improvements in text, never commit them.
 ---
 

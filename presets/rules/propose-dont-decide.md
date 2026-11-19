@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking]
+work: [talk]
 summary: The operator's choices are proposed, never decided; recommend one option concretely, then wait.
 ---
 

@@ -1,5 +1,6 @@
 ---
 enforce: [before-acting, before-finishing]
+work: [write]
 summary: Prose describes in roles — it never restates an identifier, path, or dependency that code already holds.
 ---
 

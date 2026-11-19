@@ -1,5 +1,6 @@
 ---
 enforce: [before-acting, before-finishing]
+work: [write]
 summary: Write for the next human — small single-purpose functions, flat control flow, names that show intent.
 ---
 

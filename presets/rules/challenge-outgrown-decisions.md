@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
+work: [shape, talk]
 summary: Flag an old decision that new work strains; never silently follow or replace it.
 ---
 

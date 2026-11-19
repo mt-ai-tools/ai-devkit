@@ -1,5 +1,6 @@
 ---
 enforce: [before-acting, before-finishing]
+work: [write]
 summary: A function transforms values, reads the world, or changes it — never two at once; a factory constructs and hands back ones that do.
 ---
 

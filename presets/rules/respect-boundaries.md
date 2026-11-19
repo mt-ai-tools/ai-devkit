@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
+work: [shape, write]
 summary: Dependencies run one way, features meet at published interfaces, nothing forms a cycle.
 ---
 

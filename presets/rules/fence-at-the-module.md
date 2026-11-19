@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
+work: [shape, write]
 summary: An outside library stops at the module that binds it; no module is named after one.
 ---
 

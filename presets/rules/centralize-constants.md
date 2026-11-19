@@ -1,5 +1,6 @@
 ---
 enforce: [before-acting, before-finishing]
+work: [write]
 summary: No inline magic values. Name every constant, limit, and config value in one place.
 ---
 

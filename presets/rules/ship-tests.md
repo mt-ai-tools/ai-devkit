@@ -1,5 +1,6 @@
 ---
 enforce: [before-finishing]
+work: [write]
 summary: Ship the tests with the change, not after it.
 ---
 

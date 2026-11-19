@@ -28,9 +28,11 @@ steps, so the pin is the reason this agent exists.
 - Where the kit is mounted from, written `<kit>` below.
 - The packages that use the one the step changes, or that none do.
 
-Missing any, stop and say which. Then, before touching anything, read
-every rule file in full, the brief in full where there is one, and the
-conventions entry that covers what the step shapes.
+Missing any, stop and say which. Then, before touching anything, read in
+full every rule file whose `work:` header names shape, write or report, or
+names no kind; the brief in full where there is one; and the conventions
+entry that covers what the step shapes. A builder never talks to the
+operator or commits, so the rules of those kinds alone are not its own.
 You start cold: nothing the session knows reaches you except through
 these, and the rules are not put in front of you each turn as they are
 in front of the session. Read the rule files

@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking, before-acting]
+work: [talk]
 summary: A question gets a text answer, not code; change nothing until explicitly told to.
 ---
 

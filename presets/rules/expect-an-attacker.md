@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking, before-acting, before-finishing]
+work: [shape, write, talk]
 summary: The outside is hostile: name what an attacker gains, refuse what cannot be decided, keep secrets where only the deployment reads them.
 ---
 

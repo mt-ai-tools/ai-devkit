@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
+work: [shape]
 summary: Ship the smallest unit that stands alone, and never let it know who uses it.
 ---
 

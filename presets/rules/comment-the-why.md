@@ -1,5 +1,6 @@
 ---
 enforce: [before-acting, before-finishing]
+work: [write]
 summary: Comments explain why, not what — constraints, trade-offs, and risks a future reader would wonder about.
 ---
 

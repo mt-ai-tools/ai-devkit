@@ -1,5 +1,6 @@
 ---
 enforce: [before-finishing]
+work: [write]
 summary: Every block that ships on its own ships a README saying what it is and where it stops.
 ---
 

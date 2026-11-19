@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# The rule-file format, in one place: a rule's header holds `enforce:` and
-# `summary:`, read by the kit's shared header reader. Sourced, never executed.
+# The rule-file format, in one place: a rule's header holds `enforce:`,
+# `work:` and `summary:`; the digest reads `enforce:` and `summary:` through
+# the kit's shared header reader. Sourced, never executed.
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/readers/header.sh"
 
 # The field separator for rule rows. It is the header reader's own, not one of

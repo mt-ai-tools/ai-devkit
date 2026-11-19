@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking]
+work: [commit]
 summary: Commit each coherent chunk as it lands, without asking; never let changes pile up.
 ---
 

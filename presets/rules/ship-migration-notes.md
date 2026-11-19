@@ -1,5 +1,6 @@
 ---
 enforce: [before-finishing]
+work: [write]
 summary: A breaking change ships its migration note in the same commit.
 ---
 

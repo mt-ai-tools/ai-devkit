@@ -1,5 +1,6 @@
 ---
 enforce: [before-acting, before-finishing]
+work: [write]
 summary: A folder holds files or subfolders, never a mix — and once one sibling is worth grouping, group them all.
 ---
 

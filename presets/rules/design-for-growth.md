@@ -1,5 +1,6 @@
 ---
 enforce: [premise]
+work: [shape, write]
 summary: Assume everything grows and gets reused; set the right shape now, while it is cheap.
 ---
 

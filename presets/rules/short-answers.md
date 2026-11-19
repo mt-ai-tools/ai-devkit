@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
+work: [talk]
 summary: Answer short and plainly: the point first in everyday words, next steps before finished work, readable cold.
 ---
 

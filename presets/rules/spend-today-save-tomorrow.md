@@ -1,5 +1,6 @@
 ---
 enforce: [premise]
+work: [shape, write, report, talk]
 summary: Never cut quality to save time or tokens; spend them only where they buy quality.
 ---
 

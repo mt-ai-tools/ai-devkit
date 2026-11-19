@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
+work: [shape, write, talk]
 summary: Fix a problem in the module that owns it; never reach into another to hide a symptom.
 ---
 

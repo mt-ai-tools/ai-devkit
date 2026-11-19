@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
+work: [shape, talk]
 summary: Find the industry's standard way and any maintained library before shaping anything; justify departing from either in writing.
 ---
 

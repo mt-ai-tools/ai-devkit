@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
+work: [shape, report]
 summary: Compose what the shared modules provide; anything generic you had to invent is a gap to report, not to build.
 ---
 

@@ -1,5 +1,6 @@
 ---
 enforce: [premise, before-finishing]
+work: [shape, write]
 summary: Every fact lives in one place; reference it, never copy it.
 ---
 

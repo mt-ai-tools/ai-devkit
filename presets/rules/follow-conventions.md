@@ -1,5 +1,6 @@
 ---
 enforce: [before-thinking, before-finishing]
+work: [shape, write, talk]
 summary: Follow the written conventions, else the surrounding code; propose recording what you had to infer.
 ---
 
