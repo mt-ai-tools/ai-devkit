@@ -35,7 +35,7 @@ Run a review.
    to nothing would report a pass.
 
 3. Size the review. A revision or commits scope gets one reviewer for each 1,500
-   changed lines, at least one and at most four, each over a part of about
+   changed lines, at least one and with no upper limit, each over a part of about
    equal size, split along modules where it can be. A scope with no
    revision gets one reviewer, however many areas it names. Where the
    operator's yes named a number, use theirs.
