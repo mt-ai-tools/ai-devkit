@@ -55,15 +55,15 @@ turn() {
 }
 
 @test "a session exactly at the line is told nothing" {
-  reply 200000
+  reply 160000
   turn "$transcript"
   [ -z "$output" ]
 }
 
 @test "a session one past the line is told" {
-  reply 200001
+  reply 160001
   turn "$transcript"
-  [ "$output" = "$(compact_hook_note 200001)" ]
+  [ "$output" = "$(compact_hook_note 160001)" ]
 }
 
 @test "a subagent's turn is left out" {

@@ -29,8 +29,9 @@ tool_root="$(cd "$here/.." && pwd)"
 # Every reply re-reads the whole context, so a long session's late turns
 # cost the most; well short of this size, a compaction would buy little for
 # the detail it drops. Lowered from a quarter of a million on trial, to see
-# what earlier compaction saves.
-SESSION_COMPACT_AT=200000
+# what earlier compaction saves; lowered again to 160k by the operator after
+# history showed a compaction pays back within about 8 calls (2026-11-19).
+SESSION_COMPACT_AT=160000
 
 event="$(cat)"
 transcript="$(agent_event_field "$event" transcript_path)"
