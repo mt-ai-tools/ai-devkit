@@ -199,7 +199,8 @@ $(list_unwritten_heading)
 $(list_unwritten_count_line p1-critical 0)
 $(list_unwritten_count_line p2-required 0)
 $(list_unwritten_named_line p3-conditional 1 item)
-$(list_unwritten_count_line p4-optional 0)"
+$(list_unwritten_count_line p4-optional 0)
+$(list_unwritten_count_line p5-delayed 0)"
   [ "$output" = "$expected" ]
 }
 
@@ -253,7 +254,8 @@ $(list_unwritten_heading)
 $(list_unwritten_count_line p1-critical 0)
 $(list_unwritten_count_line p2-required 0)
 $(list_unwritten_named_line p3-conditional 1 free-item)
-$(list_unwritten_count_line p4-optional 0)"
+$(list_unwritten_count_line p4-optional 0)
+$(list_unwritten_count_line p5-delayed 0)"
   [ "$output" = "$expected" ]
 }
 
@@ -273,7 +275,8 @@ $(list_unwritten_heading)
 $(list_unwritten_count_line p1-critical 0)
 $(list_unwritten_count_line p2-required 0)
 $(list_unwritten_named_line p3-conditional 2 "aa-when-asked, zz-on-trigger")
-$(list_unwritten_count_line p4-optional 3)"
+$(list_unwritten_count_line p4-optional 3)
+$(list_unwritten_count_line p5-delayed 0)"
   [ "$output" = "$expected" ]
 }
 
@@ -289,7 +292,8 @@ $(list_unwritten_heading)
 $(list_unwritten_count_line p1-critical 0)
 $(list_unwritten_count_line p2-required 0)
 $(list_unwritten_count_line p3-conditional 0)
-$(list_unwritten_named_line p4-optional 1 when-asked)"
+$(list_unwritten_named_line p4-optional 1 when-asked)
+$(list_unwritten_count_line p5-delayed 0)"
   [ "$output" = "$expected" ]
 }
 
@@ -303,6 +307,7 @@ $(list_unwritten_named_line p4-optional 1 when-asked)"
 $(list_unwritten_named_line p1-critical 1 urgent-item)
 $(list_unwritten_count_line p2-required 1)
 $(list_unwritten_count_line p3-conditional 0)
-$(list_unwritten_count_line p4-optional 1)"
+$(list_unwritten_count_line p4-optional 1)
+$(list_unwritten_count_line p5-delayed 0)"
   [ "$output" = "$expected" ]
 }

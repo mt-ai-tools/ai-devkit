@@ -31,7 +31,7 @@ setup() {
   done
 }
 
-@test "a level's name is one of the four levels" {
+@test "a level's name is one of the levels" {
   for level in p1-critical p2-required p3-conditional p4-optional; do
     run is_level_name "$level"
     [ "$status" -eq 0 ]

@@ -42,7 +42,8 @@ level_entries() {
 $(list_unwritten_count_line p1-critical 0)
 $(list_unwritten_count_line p2-required 0)
 $(list_unwritten_named_line p3-conditional 1 an-item)
-$(list_unwritten_count_line p4-optional 1)" ]]
+$(list_unwritten_count_line p4-optional 1)
+$(list_unwritten_count_line p5-delayed 0)" ]]
   run --separate-stderr organizer drafts
   [ "$status" -eq 0 ]
   [ "$output" = "$(drafts_line an-item p3-conditional "An item.")"$'\n'"$(drafts_line new-item p4-optional "Something broke.")" ]
@@ -54,8 +55,8 @@ $(list_unwritten_count_line p4-optional 1)" ]]
   [ "$(cat "$plans/p4-optional/bare.md")" = $'---\nsummary: Bare.\ndraft: true\n---\n\n# Bare' ]
 }
 
-@test "a level that is not one of the four is refused, and nothing is written" {
-  meanings="p1-critical (broken or blocking work today); p2-required (must land before the next release); p3-conditional (waits on a named trigger, which the brief or draft writes down); p4-optional (nice to have, or a gap the operator chose to leave)"
+@test "a level that is not one of the levels is refused, and nothing is written" {
+  meanings="p1-critical (broken or blocking work today); p2-required (must land before the next release); p3-conditional (waits on a named trigger, which the brief or draft writes down); p4-optional (nice to have, may never be built, or a gap the operator chose to leave); p5-delayed (will be built, but other work comes first)"
   for level in p2-requried ../p1-critical "" P1-CRITICAL; do
     run --separate-stderr organizer draft "$level" new-item <<<$'S.\n# T'
     [ "$status" -eq 1 ]
