@@ -12,7 +12,7 @@ setup_project() {
   project="$BATS_TEST_TMPDIR/project"
   plans="$project/aidk-plans"
   marks="$project/aidk-organizer/taken"
-  mkdir -p "$plans"/{p1-critical,p2-required,p3-conditional,p4-optional} "$BATS_TEST_TMPDIR/elsewhere"
+  mkdir -p "$plans"/{p1-critical,p2-required,p3-conditional,p4-optional,p5-delayed} "$BATS_TEST_TMPDIR/elsewhere"
   export CLAUDE_PROJECT_DIR="$project"
   cd "$BATS_TEST_TMPDIR/elsewhere"
   # The organizer asks the clock through `date` alone, so a `date` of the

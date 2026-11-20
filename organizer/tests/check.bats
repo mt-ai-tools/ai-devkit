@@ -165,7 +165,7 @@ $(problem_path_outside_note out creates a/../b)"
   printf '# No header at all\n' >"$plans/p2-requried/lost.md"
   run organizer check
   [ "$status" -eq 1 ]
-  [ "$output" = "$(problem_unknown_level_folder_note p2-requried "p1-critical, p2-required, p3-conditional, p4-optional")" ]
+  [ "$output" = "$(problem_unknown_level_folder_note p2-requried "p1-critical, p2-required, p3-conditional, p4-optional, p5-delayed")" ]
 }
 
 @test "a file lying directly in the briefs folder is in no level, and still checked" {
