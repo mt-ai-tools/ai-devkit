@@ -12,10 +12,12 @@ summary: Follow the written conventions, else the surrounding code; propose reco
   the other way around. Code that disagrees with one is wrong, however
   old — point it out, never copy it as the house style. A comment in the
   code describes the code; it is never an entry or a rule.
-- An entry holds a convention the project settled, nothing more: one
-  that many modules could break, stated as what must hold rather than
-  how the code does it today. A fact about one module's workings is a
-  why-comment beside that code.
+- An entry holds a convention the project settled, nothing more: the
+  most general shape that holds across the project, stated as what must
+  hold rather than how the code does it today. One case of that shape is
+  not an entry of its own: it is the shape itself, or a line in the
+  README of the block it is about. A fact about one block's workings is
+  a why-comment beside its code.
 - An entry that would need rewriting when a library, a protocol or a
   number changes holds mechanism, not convention, and the mechanism is a
   why-comment where it lives. A unit, a count, a field name, a library

@@ -22,6 +22,7 @@ CONFIG_KIT_TOKEN="{ai-devkit}"
 # the operator to copy, and a test keeps the two equal.
 CONFIG_DEFAULTS=(
   "AIDK_RULES={ai-devkit}/presets/rules"
+  "AIDK_SHAPES={ai-devkit}/presets/shapes"
   "AIDK_CONVENTIONS=aidk-conventions"
   "AIDK_PLANS=aidk-plans"
   "AIDK_REVIEW=aidk-review"

@@ -18,9 +18,9 @@ claim alone, then, once you have answered it, the proposal made about it.
    being the first one again.
 
 2. Read the law it was raised under, and only that one. The first message
-   names the rules directory and the conventions collection; a claim raised
-   under a convention is judged against that entry, not against the rule
-   that defers to it. Reading the whole collection for one claim is the
+   names the rules and shapes directories and the conventions collection; a
+   claim raised under a convention is judged against that entry, not
+   against the rule that defers to it. Reading the whole collection for one claim is the
    sweeping this is not.
 
    Neither named means the laws are not in reach. Say so, answer what the

@@ -2,7 +2,8 @@
 # Claude Code UserPromptSubmit hook — the thin orchestrator for turn-start.
 #
 # It wires four concerns and holds none of their logic:
-#   1. digest      — put the approach rules in front of the model before it plans.
+#   1. digest      — put the approach rules and shapes in front of the model
+#                    before it plans.
 #   2. conventions — name where the written ones live, so they are followed
 #                    rather than rediscovered.
 #   3. workflow    — index the kit's workflow, so the stage at hand is read.
@@ -22,11 +23,10 @@
 # event is drained anyway, so the writer never meets a closed pipe — skipped
 # on a terminal, where there is nothing to drain and waiting would hang.
 #
-# Fail closed: the rules are the point of this hook, so a turn they did not
-# reach must not run. Any step failing — a crash, a config file the kit
-# refuses, a rules directory with nothing in it, or a workflow it cannot
-# index — refuses the turn with
-# exit 2, which Claude Code honours by withholding the prompt and showing the
+# Fail closed: the rules and shapes are the point of this hook, so a turn they
+# did not reach must not run. Any step failing — a crash, a config file the
+# kit refuses, a rules or shapes directory with nothing in it, or a workflow
+# it cannot index — refuses the turn with exit 2, which Claude Code honours by withholding the prompt and showing the
 # operator what went to stderr. The operator fixes the cause and sends the
 # prompt again; until then the session does nothing, and that is the intent.
 # Advice that silently went missing is worse than a session that stops and
@@ -66,14 +66,15 @@ tool_root="$(cd "$here/.." && pwd)"
 # be reported as missing rules, hiding the config reader's own reason. A plain
 # assignment does end it, and the refusal above takes over.
 rules_from="$(rules_dir)"
+shapes_from="$(shapes_dir)"
 conventions_from="$(conventions_dir)"
 workflow_from="$(cd "$tool_root/.." && pwd)/workflow"
 
-"$tool_root/steps/rules-digest.sh" "$rules_from"
+"$tool_root/steps/rules-digest.sh" "$rules_from" "$shapes_from"
 
 "$tool_root/steps/conventions-pointer.sh" "$conventions_from"
 
 "$tool_root/steps/workflow-index.sh" "$workflow_from"
 
-"$tool_root/steps/question-rule.sh" "$rules_from"
+"$tool_root/steps/question-rule.sh" "$rules_from" "$shapes_from"
 exit 0

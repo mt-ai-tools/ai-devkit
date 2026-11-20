@@ -61,31 +61,39 @@ derive_checker_sendback() {
   gate_checker_sendback_note "$lines"
 }
 
+# One JSON row per entry path given, one per line, each in the collection
+# given.
+to_check_rows() {
+  local found="$1" collection="$2" entry
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    jq -cn --arg name "$(basename "$entry")" --arg path "$entry" --arg collection "$collection" \
+      '{name: $name, path: $path, collection: $collection}' || return 1
+  done <<<"$found"
+}
+
 # --- Reads.
 
 # The entries the checker reads, as a JSON array of {name, path, collection}:
-# every rule, then every convention, given the two collections' folders; a
-# refusal on stderr and a non-zero status where there is no rule. A project
-# may keep no conventions, and is checked against its rules alone; a check
-# with no rule to read would pass every question unread.
+# every rule, then every shape, then every convention, given the rules', the
+# shapes' and the conventions' folders; a refusal on stderr and a non-zero
+# status where there is no rule. Shapes are laws as rules are, so they join
+# the rules' collection. A project may keep no conventions, and is checked
+# against its rules alone; a check with no rule to read would pass every
+# question unread.
 list_check_entries() {
-  local rules="$1" conventions="$2" collection dir entry rows="" entries found
-  for collection in "$CHECK_RULES" "$CHECK_CONVENTIONS"; do
-    dir="$rules"
-    [ "$collection" = "$CHECK_RULES" ] || dir="$conventions"
-    found="$(list_collection_entries "$dir")" || return 1
-    while IFS= read -r entry; do
-      [ -n "$entry" ] || continue
-      rows+="$(jq -cn --arg name "$(basename "$entry")" --arg path "$entry" --arg collection "$collection" \
-        '{name: $name, path: $path, collection: $collection}')"$'\n' || return 1
-    done <<<"$found"
-  done
-  entries="$(printf '%s' "$rows" | jq -cs .)" || return 1
-  if ! jq -e --arg rules "$CHECK_RULES" 'any(.[]; .collection == $rules)' >/dev/null <<<"$entries"; then
+  local rules="$1" shapes="$2" conventions="$3" rows="" found
+  found="$(list_collection_entries "$rules")" || return 1
+  if [ -z "$found" ]; then
     refuse_no_rules_note "$rules" >&2
     return 1
   fi
-  printf '%s\n' "$entries"
+  rows+="$(to_check_rows "$found" "$CHECK_RULES")" || return 1
+  found="$(list_collection_entries "$shapes")" || return 1
+  rows+="$(to_check_rows "$found" "$CHECK_RULES")" || return 1
+  found="$(list_collection_entries "$conventions")" || return 1
+  rows+="$(to_check_rows "$found" "$CHECK_CONVENTIONS")" || return 1
+  printf '%s' "$rows" | jq -cs .
 }
 
 # One collection's entries, each whole under a line naming its file, read

@@ -30,9 +30,9 @@ Run a review.
                             name; without it, every rule the reviewer
                             judges
 
-   A named rule with no file in the rules directory, or one the reviewer
-   does not judge, stops the run before anything is launched: a narrowing
-   to nothing would report a pass.
+   A named rule with no file in the rules or shapes directory, or one the
+   reviewer does not judge, stops the run before anything is launched: a
+   narrowing to nothing would report a pass.
 
 3. Size the review. A revision or commits scope gets one reviewer for each 1,500
    changed lines, at least one and with no upper limit, each over a part of about
@@ -42,10 +42,10 @@ Run a review.
 
 4. Launch the `reviewer` agents at once, each with its part, the decisions
    the work was built under where there are any, the one rule where the run
-   is narrowed to it, and the two locations the turn-start digest names: the
-   rules directory, and the conventions collection where one was named. The
-   reviewer has no other way to learn them — it starts empty, and that is
-   the point. No digest in view means the kit is not mounted whole for this
+   is narrowed to it, and the locations the turn-start digest names: the
+   rules and shapes directories, and the conventions collection where one
+   was named. The reviewer has no other way to learn them — it starts
+   empty, and that is the point. No digest in view means the kit is not mounted whole for this
    project: stop and say so.
 
    On a confirming review add the findings already declined, and nothing
@@ -73,9 +73,9 @@ Run a review.
    how many are taken and how many held. The report is a wall of lines and
    the number is what tells the operator how much of their evening this is.
 
-7. The run's own laws stand above every level: the rule files and the
-   conventions collection are never edited by the run, because the run is
-   steered by them — an enforcer that writes its mandate is the one loop
+7. The run's own laws stand above every level: the rule and shape files
+   and the conventions collection are never edited by the run, because the
+   run is steered by them — an enforcer that writes its mandate is the one loop
    nothing later catches. A law change is a held finding carrying the exact
    text proposed, lands only on the operator's answer, in its own commit,
    and carries nothing the conversation did not cover: a clause inferred
@@ -125,8 +125,8 @@ Run a review.
    only thing that should have touched the tree; outside them nothing is
    half-done.
 
-   Read the fix against the rules before committing it, the ones a fix breaks
-   most: duplication, placement, naming.
+   Read the fix against the rules and shapes before committing it, the ones
+   a fix breaks most: duplication, placement, naming.
 
    A fix the run took without asking says so in a trailer —
    `Taken-Under: <rule>` — and differs in nothing else. The closing report

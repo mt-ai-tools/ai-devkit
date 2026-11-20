@@ -31,6 +31,7 @@ setup() {
 default_paths() {
   printf '%s\n' \
     "AIDK_RULES$us$kit/presets/rules" \
+    "AIDK_SHAPES$us$kit/presets/shapes" \
     "AIDK_CONVENTIONS$us$project/aidk-conventions" \
     "AIDK_PLANS$us$project/aidk-plans" \
     "AIDK_REVIEW$us$project/aidk-review" \
@@ -70,8 +71,8 @@ default_paths() {
   run list_config_paths
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "AIDK_RULES$us$project/docs/agent-rules" ]
-  [ "${lines[1]}" = "AIDK_CONVENTIONS$us$project/aidk-conventions" ]
-  [ "${#lines[@]}" -eq 6 ]
+  [ "${lines[1]}" = "AIDK_SHAPES$us$kit/presets/shapes" ]
+  [ "${#lines[@]}" -eq 7 ]
 }
 
 @test "a path beginning with a slash is taken as written" {

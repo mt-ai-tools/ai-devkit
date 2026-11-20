@@ -1,9 +1,9 @@
 # stand-in
 
 A stand-in for the operator over the questions an agent puts to them,
-judging each against the project's written rules and conventions and a
-preset of the operator's own judgement, in the sessions it is switched
-on for.
+judging each against the project's written rules, shapes and conventions
+and a preset of the operator's own judgement, in the sessions it is
+switched on for.
 
 It is switched on for a session by a command the operator types, and in
 no other way; where it is off it does nothing, and asks no model.
@@ -12,7 +12,7 @@ Models read; code decides. Nothing is ever decided from a model's words,
 only from a form a check in code has passed, and a form that fails is
 refused, never repaired or guessed at. It reads the reply it is handed
 and never a conversation itself. It knows no kind of question, no risk,
-no rule and no convention by name: whatever the preset and the two
+no rule and no convention by name: whatever the preset and the
 collections hold is what it judges by.
 
 It fails toward the operator: whatever it cannot read or judge lets the
@@ -29,8 +29,8 @@ part of the everyday test command.
 
 Needs a preset of the operator's judgement: the kinds of question and
 how each is routed, the risks, and the words it challenges, sweeps and
-opens a session with. Needs the rules, and the conventions where a
-project keeps them, and the kit's advisor, for a second reading. Needs a
+opens a session with. Needs the rules and shapes, and the conventions
+where a project keeps them, and the kit's advisor, for a second reading. Needs a
 working folder of its own, part of which a project commits. Needs the
 kit's work organizer, for the briefs a session takes, waits on and
 finishes. Needs Claude Code to set the session's id in the environment

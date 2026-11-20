@@ -28,8 +28,8 @@ file.
 
 - The finding, as the review reported it.
 - The plan: what changes, where, and what to break to watch it fail.
-- The rule or convention entry it cites, by where the rules and the
-  conventions collection live. Read the one cited before touching anything:
+- The rule, shape or convention entry it cites, by where the rules, the
+  shapes and the conventions collection live. Read the one cited before touching anything:
   the fix answers to its text, not to the finding's wording alone.
 - Where the kit is mounted from, written `<kit>` below.
 - Any decision the fix rests on, as it was made. It binds as given — a
@@ -47,7 +47,7 @@ is a decision made by the one not asked to make it.
 Change what the plan says and nothing else, except a tiny fix in a file
 this fix already changes, where decisions.md makes the choice Silent or
 Told; a Told one passes the challenges in s2-route.md first. List any such
-fix under Noticed as made. Anything else noticed is reported, never made. The rule files and the conventions collection
+fix under Noticed as made. Anything else noticed is reported, never made. The rule and shape files and the conventions collection
 are edited only where the operator's answer handed to you is that edit, and
 then to its exact text — they steer the run, and nothing the run infers may
 write them.

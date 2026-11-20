@@ -2,7 +2,7 @@ bats_require_minimum_version 1.5.0
 
 # Behavior tests for the turn-start hook: the digest and the question rule on
 # every turn whatever the prompt, the declared collection named, and the turn
-# refused whenever the rules did not reach it.
+# refused whenever the rules or the shapes did not reach it.
 
 # Every test runs against an empty project of its own unless it says
 # otherwise: the hook reads the project's config file, and the project a
@@ -15,8 +15,9 @@ setup() {
 }
 
 # A private copy of the kit, so a test can break a part of it without touching
-# the real one. The rules folder comes along only when asked for; the kit's
-# shared readers and its workflow always do, since the injector reads both.
+# the real one. The rules and shapes folders come along only when asked for;
+# the kit's shared readers and its workflow always do, since the injector reads
+# both.
 copy_kit() {
   kit="$BATS_TEST_TMPDIR/kit"
   mkdir -p "$kit"
@@ -26,6 +27,7 @@ copy_kit() {
   if [ "${1:-}" = "with-rules" ]; then
     mkdir -p "$kit/presets"
     cp -r "$BATS_TEST_DIRNAME/../../presets/rules" "$kit/presets/rules"
+    cp -r "$BATS_TEST_DIRNAME/../../presets/shapes" "$kit/presets/shapes"
   fi
   copied_hook="$kit/injector/hooks/prompt-hook.sh"
 }
@@ -102,6 +104,15 @@ copy_kit() {
   [[ "$stderr" == *"$(turn_refused_note)"* ]]
 }
 
+@test "a missing shapes folder refuses the turn" {
+  copy_kit with-rules
+  rm -r "$kit/presets/shapes"
+  run --separate-stderr bash -c "printf '{}' | '$copied_hook'"
+  [ "$status" -eq 2 ]
+  [[ "$stderr" == *"$(no_shapes_note "$kit/presets/shapes")"* ]]
+  [[ "$stderr" == *"$(turn_refused_note)"* ]]
+}
+
 @test "a step that crashes refuses the turn" {
   copy_kit with-rules
   printf '#!/usr/bin/env bash\nexit 1\n' >"$kit/injector/steps/conventions-pointer.sh"
@@ -130,8 +141,9 @@ copy_kit() {
   kit_root="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
   run bash -c "printf '{}' | CLAUDE_PROJECT_DIR='$BATS_TEST_TMPDIR' '$hook'"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Full text: $kit_root/presets/rules"* ]]
+  [[ "$output" == *"Full text: $kit_root/presets/rules and $kit_root/presets/shapes"* ]]
   [[ "$output" == *"- design-for-growth — "* ]]
+  [[ "$output" == *"- blocks-not-bundles — "* ]]
 }
 
 @test "a rules folder set in the project's config file is the one read" {

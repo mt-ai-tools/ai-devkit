@@ -11,7 +11,7 @@ Do, check that:
 - Tested: it passes the test in propose-dont-decide.
 - Lasting: it is not a cheap way that costs more later.
 - Checked: every claim is verified in the code.
-- Rules: it keeps every rule and convention.
+- Rules: it keeps every rule, shape and convention.
 - Standard: it is the industry's established way, and the way the code already solves the like elsewhere.
 
 A recommendation that shapes a mechanism ends with one line, the standard:

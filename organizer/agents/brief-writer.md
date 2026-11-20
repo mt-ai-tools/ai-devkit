@@ -43,8 +43,8 @@ Don't:
 ## Reading first
 When: before writing anything.
 Do:
-- Read the summary of every rule, and in full the rules and
-  conventions the brief touches.
+- Read the summary of every rule and shape, and in full the rules,
+  shapes and conventions the brief touches.
 - Read the workflow's decisions.md and s2-route.md: the levels of
   decisions, and the challenges every recommendation passes.
 - Read the organizer's list and drafts, and the summary of every
@@ -123,8 +123,8 @@ Do, in this order, and nothing else:
    why nothing new reaches outside.
 6. `## Decisions`: numbered, each at its level in decisions.md:
    - Silent: not written.
-   - Told: decided by the brief-writer from the code and the rules,
-     after the challenges in s2-route.md, whatever the session
+   - Told: decided by the brief-writer from the code, the rules and the
+     shapes, after the challenges in s2-route.md, whatever the session
      proposed; the answer and its reason, marked decided with the
      date.
    - Advisor: the question and the options, marked for the advisor;

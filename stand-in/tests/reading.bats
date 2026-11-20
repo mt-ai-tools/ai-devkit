@@ -26,7 +26,7 @@ setup() {
 }
 
 @test "the reading is told its options are nobody's proposal, and the question names no favourite because it was taken out" {
-  run to_reading_prompt "$(read_prompt reading)" "the advisor's command" "How many retries?" '["five","ten"]' /rules /conventions
+  run to_reading_prompt "$(read_prompt reading)" "the advisor's command" "How many retries?" '["five","ten"]' /rules /shapes /conventions
   [ "$status" -eq 0 ]
   [[ "$output" == *"nobody's proposal"* ]]
   [[ "$output" == *"because it was"*"taken out"* ]]

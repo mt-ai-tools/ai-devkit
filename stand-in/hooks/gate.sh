@@ -173,6 +173,7 @@ switch="$(find_switch "$history" "$session")"
 
 preset="$(get_config_path AIDK_STAND_IN)"
 rules="$(get_config_path AIDK_RULES)"
+shapes="$(get_config_path AIDK_SHAPES)"
 conventions="$(get_config_path AIDK_CONVENTIONS)"
 reply="$(to_event_reply "$event")"
 root="$(get_project_root)"
@@ -445,7 +446,7 @@ answer_moved_again() {
   question="$(jq -r '.question' <<<"$ladder")"
   options="$(jq -c '.first.options' <<<"$ladder")"
   why="$(mktemp)"
-  if reading="$(get_cold_reading "$question" "$options" "$rules" "$conventions" "$history" 2>"$why")"; then
+  if reading="$(get_cold_reading "$question" "$options" "$rules" "$shapes" "$conventions" "$history" 2>"$why")"; then
     part="$(gate_reading_note "$reading")"
   else
     reading=""
@@ -1141,7 +1142,7 @@ fi
 question="$(jq -r '.question' <<<"$form")"
 record="$(with_asked "$record" "$form")"
 
-entries="$(list_check_entries "$rules" "$conventions")"
+entries="$(list_check_entries "$rules" "$shapes" "$conventions")"
 checked="$(get_checker_answer "$form" "$reply" "$entries")"
 record="$(with_check "$record" "$checked")"
 sendback="$(derive_checker_sendback "$checked" "$entries")"

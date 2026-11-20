@@ -108,13 +108,13 @@ clear_owed_mark() {
 }
 
 # Run the exam, given the stand-in's working folder, the session it runs in
-# (empty where none is known), the preset's folder and the rules' and
+# (empty where none is known), the preset's folder and the rules', shapes' and
 # conventions' folders. Its status is 0 where it passed, and otherwise 1,
 # with a refusal on stderr where it could not be run at all: nothing to
 # replay, a preset, a collection or the last results that cannot be read, or
 # results that cannot be kept.
 run_exam() {
-  local history="$1" session="$2" preset="$3" rules="$4" conventions="$5"
+  local history="$1" session="$2" preset="$3" rules="$4" shapes="$5" conventions="$6"
   local dir files last before="" entries risks go="" file result names="[]" total=0 passed=0 drops=0
   local case name rows="" scores results case_results
   # Its total time is printed last, so a slow exam is seen (settled
@@ -128,7 +128,7 @@ run_exam() {
   fi
   last="$(read_exam_results "$history")" || return 1
   [ -z "$session" ] || before="$(find_owed_mark "$history" "$session")" || return 1
-  entries="$(list_check_entries "$rules" "$conventions")" || return 1
+  entries="$(list_check_entries "$rules" "$shapes" "$conventions")" || return 1
   risks="$(list_risks "$preset")" || return 1
   go="$(find_go_kind "$preset")" || return 1
   [ -z "$go" ] || go="$(jq -r '.name' <<<"$go")"

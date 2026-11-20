@@ -1,11 +1,12 @@
 ---
 enforce: [before-thinking, before-finishing]
 work: [shape, write]
-summary: When a shared abstraction almost fits, extend it or wrap it; never fork or copy it.
+summary: Each concern is done one way; when it almost fits, extend it or wrap it, never fork, copy or add a second.
 ---
 
 # Extend or wrap, don't duplicate
 
+- A concern is done one way across the whole project. A case that does not fit changes that way for everyone, never adds a second way beside it.
 - Before writing something new, check whether a shared version already exists.
 - Never copy an implementation to tweak one detail: duplicates diverge and multiply maintenance.
 - Where the addition is not the original's concern, wrap it: a new unit that calls the original and adds around it, copying none of it.

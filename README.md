@@ -11,7 +11,10 @@ each of the things below. To start one, copy the config example the kit
 ships, which lists every setting with its default. Absent, every default
 holds.
 
-- The rules: the kit ships a set, and a project may bring its own.
+- The rules: how an agent behaves. The kit ships a set, and a project
+  may bring its own.
+- The shapes: the generic shapes of code and text. The kit ships a set,
+  and a project may bring its own.
 - The conventions: the project's written conventions, one per file, named
   for the convention. What an entry holds is the rules' to say. A README
   there is not an entry. A project may have none.
@@ -32,7 +35,7 @@ A project mounts the kit whole:
 - The organizer's skill is linked the same way, to where the host looks
   for a project's skills.
 - The injector's hook runs at the turn-start event. Without it the rules
-  never reach the agent, and the reviewer cannot run.
+  and shapes never reach the agent, and the reviewer cannot run.
 - The organizer's hook runs after the host's skill tool. Without it the
   skill cannot show the list of briefs.
 - The organizer's turn reminder runs at the turn-start event. Without it

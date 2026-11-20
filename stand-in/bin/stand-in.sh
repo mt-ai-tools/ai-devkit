@@ -85,7 +85,7 @@ run_session_cases() {
 # owed it should clear would then stand unseen. The replay is loaded only
 # here: it brings the model jobs no other command runs.
 run_session_exam() {
-  local session="${!SESSION_ID_VARIABLE:-}" history preset rules conventions
+  local session="${!SESSION_ID_VARIABLE:-}" history preset rules shapes conventions
   if [ -n "$session" ] && ! is_session_id "$session"; then
     refuse_exam_session_note "$SESSION_ID_VARIABLE" >&2
     exit 1
@@ -93,9 +93,10 @@ run_session_exam() {
   history="$(get_config_path AIDK_STAND_IN_HISTORY)"
   preset="$(get_config_path AIDK_STAND_IN)"
   rules="$(get_config_path AIDK_RULES)"
+  shapes="$(get_config_path AIDK_SHAPES)"
   conventions="$(get_config_path AIDK_CONVENTIONS)"
   . "$tool_root/lib/run-exam.sh"
-  run_exam "$history" "$session" "$preset" "$rules" "$conventions"
+  run_exam "$history" "$session" "$preset" "$rules" "$shapes" "$conventions"
 }
 
 command="${1:-}"

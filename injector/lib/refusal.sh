@@ -8,9 +8,14 @@ no_rules_note() {
   printf 'No rule files at: %s\n' "$1"
 }
 
+# Why a turn was refused: the shapes directory holds no shape files.
+no_shapes_note() {
+  printf 'No shape files at: %s\n' "$1"
+}
+
 # What a refusal means for the operator, whatever caused it.
 turn_refused_note() {
-  printf 'Rules hook failed: the rules were not put in front of the agent. Nothing runs until this is fixed.\n'
+  printf 'Rules hook failed: the rules and shapes were not put in front of the agent. Nothing runs until this is fixed.\n'
 }
 
 # Why a turn was refused: the kit's workflow folder is not where the kit keeps it.

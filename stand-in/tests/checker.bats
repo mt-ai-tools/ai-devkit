@@ -11,24 +11,26 @@ setup() {
   . "$lib/checker.sh"
   rules="$project/rules"
   conventions="$project/conventions"
-  mkdir -p "$rules" "$conventions"
+  shapes="$project/shapes"
+  mkdir -p "$rules" "$shapes" "$conventions"
   printf '# A\n' >"$rules/a.md"
+  printf '# C\n' >"$shapes/c.md"
   printf '# Rules\n' >"$rules/README.md"
   printf '# B\n' >"$conventions/b.md"
   names='["a.md","b.md"]'
 }
 
-@test "the entries are every rule, then every convention, and no README" {
-  run list_check_entries "$rules" "$conventions"
+@test "the entries are every rule, then every shape among the rules, then every convention, and no README" {
+  run list_check_entries "$rules" "$shapes" "$conventions"
   [ "$status" -eq 0 ]
-  [ "$output" = "[{\"name\":\"a.md\",\"path\":\"$rules/a.md\",\"collection\":\"rules\"},{\"name\":\"b.md\",\"path\":\"$conventions/b.md\",\"collection\":\"conventions\"}]" ]
+  [ "$output" = "[{\"name\":\"a.md\",\"path\":\"$rules/a.md\",\"collection\":\"rules\"},{\"name\":\"c.md\",\"path\":\"$shapes/c.md\",\"collection\":\"rules\"},{\"name\":\"b.md\",\"path\":\"$conventions/b.md\",\"collection\":\"conventions\"}]" ]
 }
 
 @test "a project with no conventions is checked against its rules alone, and one with no rules is refused" {
-  run list_check_entries "$rules" "$project/nowhere"
+  run list_check_entries "$rules" "$shapes" "$project/nowhere"
   [ "$status" -eq 0 ]
-  [ "$(jq length <<<"$output")" -eq 1 ]
-  run --separate-stderr list_check_entries "$project/nowhere" "$conventions"
+  [ "$(jq length <<<"$output")" -eq 2 ]
+  run --separate-stderr list_check_entries "$project/nowhere" "$shapes" "$conventions"
   [ "$status" -eq 1 ]
   [ "$stderr" = "$(refuse_no_rules_note "$project/nowhere")" ]
 }
@@ -56,14 +58,14 @@ setup() {
 }
 
 @test "an answer that found nothing sends nothing back" {
-  run derive_checker_sendback '{"breaks":[],"miscalled":[],"explains_code":false}' "$(list_check_entries "$rules" "$conventions")"
+  run derive_checker_sendback '{"breaks":[],"miscalled":[],"explains_code":false}' "$(list_check_entries "$rules" "$shapes" "$conventions")"
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
 
 @test "the checker is asked on its own model, and about a question only" {
   export FAKE_ANSWER='{"breaks":[],"miscalled":[],"explains_code":false}'
-  entries="$(list_check_entries "$rules" "$conventions")"
+  entries="$(list_check_entries "$rules" "$shapes" "$conventions")"
   run get_checker_answer "$(whole_form)" "Five or ten? Five." "$entries"
   [ "$status" -eq 0 ]
   grep -qx -- "$CHECKER_MODEL" "$FAKE_ARGS"
@@ -76,7 +78,7 @@ setup() {
 
 @test "every entry is sent ahead of the question, the same for every question, and the question apart" {
   export FAKE_ANSWER='{"breaks":[],"miscalled":[],"explains_code":false}'
-  entries="$(list_check_entries "$rules" "$conventions")"
+  entries="$(list_check_entries "$rules" "$shapes" "$conventions")"
   get_checker_answer "$(whole_form)" "Five or ten? Five." "$entries" >/dev/null
   cp "$FAKE_STANDING.checker" "$BATS_TEST_TMPDIR/first-standing"
   grep -qxF "# A" "$FAKE_STANDING.checker"

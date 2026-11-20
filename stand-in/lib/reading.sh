@@ -53,15 +53,15 @@ to_reading_settings() {
 }
 
 # The reading's prompt, given the prompt's prose, the advisor's command, the
-# question, its options as a JSON array, and the rules' and conventions'
-# folders, which the advisor reads the laws in.
+# question, its options as a JSON array, and the rules', shapes' and
+# conventions' folders, which the advisor reads the laws in.
 to_reading_prompt() {
-  local prose="$1" command="$2" question="$3" options="$4" rules="$5" conventions="$6" listed values
+  local prose="$1" command="$2" question="$3" options="$4" rules="$5" shapes="$6" conventions="$7" listed values
   listed="$(jq -r '.[] | "- \(.)"' <<<"$options")" || return 1
   values="$(jq -cn --arg command "$command" --arg question "$question" \
     --arg options "$listed" \
-    --arg rules "$rules" --arg conventions "$conventions" \
-    '{command: $command, question: $question, options: $options, rules: $rules, conventions: $conventions}')" || return 1
+    --arg rules "$rules" --arg shapes "$shapes" --arg conventions "$conventions" \
+    '{command: $command, question: $question, options: $options, rules: $rules, shapes: $shapes, conventions: $conventions}')" || return 1
   to_filled_prompt "$PROMPTS_DIR/reading.md" "$prose" "$values"
 }
 
@@ -80,18 +80,18 @@ read_advisor_command() {
 }
 
 # The cold second reading of a question, as the model wrote it, given the
-# question, its options as a JSON array, the rules' and conventions' folders,
+# question, its options as a JSON array, the rules', shapes' and conventions' folders,
 # and the stand-in's working folder, which it is kept out of; a refusal naming
 # why on stderr and a non-zero status where the command or the prompt cannot
 # be read, the model could not be asked, or its answer does not pass. Run from
 # the project's root, so the read-only tools it is given reach the project and
 # nothing beyond it.
 get_cold_reading() {
-  local question="$1" options="$2" rules="$3" conventions="$4" history="$5" command prose prompt root schema settings answer
+  local question="$1" options="$2" rules="$3" shapes="$4" conventions="$5" history="$6" command prose prompt root schema settings answer
   settings="$(to_reading_settings "$history")" || return 1
   command="$(read_advisor_command)" || return 1
   prose="$(read_prompt reading)" || return 1
-  prompt="$(to_reading_prompt "$prose" "$command" "$question" "$options" "$rules" "$conventions")" || return 1
+  prompt="$(to_reading_prompt "$prose" "$command" "$question" "$options" "$rules" "$shapes" "$conventions")" || return 1
   root="$(get_project_root)" || return 1
   schema="$(reading_answer_schema)" || return 1
   answer="$(cd "$root" && get_model_answer "$READING_MODEL" "$READING_SECONDS" "$schema" "$READING_TOOLS" \

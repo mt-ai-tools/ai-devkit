@@ -1,7 +1,8 @@
 bats_require_minimum_version 1.5.0
 
-# Behavior tests for the digest: tagged summaries appear, untagged ones don't,
-# and a rule with broken frontmatter is named instead of silently dropped.
+# Behavior tests for the digest: tagged summaries appear from both the rules
+# and the shapes, untagged ones don't, and a file with broken frontmatter is
+# named instead of silently dropped.
 
 setup() {
   digest="$BATS_TEST_DIRNAME/../steps/rules-digest.sh"
@@ -14,6 +15,9 @@ setup() {
   printf -- '---\nenforce: [before-thinking]\n---\n# Broken: no summary\n' >"$rules/no-summary.md"
   printf -- '# Broken: no frontmatter at all\n' >"$rules/no-frontmatter.md"
   printf 'not a rule\n' >"$rules/README.md"
+  shapes="$BATS_TEST_TMPDIR/shapes"
+  mkdir "$shapes"
+  printf -- '---\nenforce: [before-thinking]\nsummary: Shape summary.\n---\n# S\n' >"$shapes/a-shape.md"
 }
 
 # The folder is opened up again whatever a test did, so the run's temporary
@@ -23,26 +27,26 @@ teardown() {
 }
 
 @test "premise and before-thinking rules appear with their summaries" {
-  run "$digest" "$rules"
+  run "$digest" "$rules" "$shapes"
   [ "$status" -eq 0 ]
   [[ "$output" == *"premise-rule — Premise summary."* ]]
   [[ "$output" == *"thinking-rule — Thinking summary."* ]]
 }
 
 @test "before-finishing rules and the README stay out of the digest" {
-  run "$digest" "$rules"
+  run "$digest" "$rules" "$shapes"
   [[ "$output" != *"Finishing summary."* ]]
   [[ "$output" != *"not a rule"* ]]
 }
 
 @test "a rule missing frontmatter is named rather than dropped" {
-  run "$digest" "$rules"
+  run "$digest" "$rules" "$shapes"
   [[ "$output" == *"no-summary — no summary:"* ]]
   [[ "$output" == *"no-frontmatter — no enforce: and summary:"* ]]
 }
 
 @test "a missing rules directory refuses the turn and says where it looked" {
-  run --separate-stderr "$digest" "$BATS_TEST_TMPDIR/nowhere"
+  run --separate-stderr "$digest" "$BATS_TEST_TMPDIR/nowhere" "$shapes"
   [ "$status" -eq 2 ]
   [ -z "$output" ]
   [[ "$stderr" == *"$(no_rules_note "$BATS_TEST_TMPDIR/nowhere")"* ]]
@@ -51,8 +55,22 @@ teardown() {
 @test "a rules directory that cannot be listed refuses the turn with that reason, not as one with no rules" {
   . "$BATS_TEST_DIRNAME/../../lib/readers/collection.sh"
   chmod 000 "$rules"
-  run --separate-stderr "$digest" "$rules"
+  run --separate-stderr "$digest" "$rules" "$shapes"
   [ "$status" -eq 2 ]
   [ -z "$output" ]
   [ "$stderr" = "$(collection_unreadable_note "$rules")" ]
+}
+
+@test "a shape's line is drawn from the shapes folder, in name order among the rules, and the pointer names that folder" {
+  run "$digest" "$rules" "$shapes"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Full text: $rules and $shapes"* ]]
+  [[ "$output" == *"- a-shape — Shape summary."$'\n'"- thinking-rule — Thinking summary."* ]]
+}
+
+@test "a missing shapes directory refuses the turn and says where it looked" {
+  run --separate-stderr "$digest" "$rules" "$BATS_TEST_TMPDIR/nowhere"
+  [ "$status" -eq 2 ]
+  [ -z "$output" ]
+  [[ "$stderr" == *"$(no_shapes_note "$BATS_TEST_TMPDIR/nowhere")"* ]]
 }

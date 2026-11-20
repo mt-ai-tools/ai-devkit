@@ -10,6 +10,6 @@ where it stops.
 
 The fixer carries out one finding's fix, proves it, and never commits.
 
-What it needs: the kit mounted whole, for the rules and, where a rule
-defers to them, the project's conventions it judges against; and a git
+What it needs: the kit mounted whole, for the rules and shapes and, where
+one defers to them, the project's conventions it judges against; and a git
 repository, for the change it judges.

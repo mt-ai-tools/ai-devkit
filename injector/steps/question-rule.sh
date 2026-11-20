@@ -9,7 +9,7 @@
 # prints is. Written out here instead it would be a second copy of policy,
 # free to drift from the rule while reading as it — which is what it had done.
 #
-# Usage: <rules-dir>
+# Usage: <rules-dir> <shapes-dir>
 set -euo pipefail
 shopt -s inherit_errexit
 
@@ -17,12 +17,18 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 tool_root="$(cd "$here/.." && pwd)"
 . "$tool_root/lib/rule-format.sh"
 
-# The rule whose moment a question is. A collection that does not hold it gets
-# no line: the advice is that rule's, and this step has none of its own.
+# The rule whose moment a question is, looked for in each folder given, the
+# first holding it winning. Folders that do not hold it get no line: the advice
+# is that rule's, and this step has none of its own.
 QUESTION_RULE="answer-dont-implement"
 
-rule_file="${1:-}/$QUESTION_RULE.md"
-[ -f "$rule_file" ] || exit 0
+rule_file=""
+for dir in "$@"; do
+  [ -f "$dir/$QUESTION_RULE.md" ] || continue
+  rule_file="$dir/$QUESTION_RULE.md"
+  break
+done
+[ -n "$rule_file" ] || exit 0
 
 IFS="$RULE_US" read -r _ _ summary < <(rule_frontmatter_row "$rule_file")
 [ -n "${summary:-}" ] || exit 0
