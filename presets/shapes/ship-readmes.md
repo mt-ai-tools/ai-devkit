@@ -12,11 +12,10 @@ summary: Every block that ships on its own ships a README saying what it is and 
   what you would defend — a boundary the block should fail review for
   breaking, never a fact about today's contents. Why it stops there stays
   out.
-- Then the block's own design choices, one short line each: what it chose
-  where another way was open, never why or how. A choice the project shares
-  is a convention entry, not a line here.
-- Never how it works: that lives in the code and its comments, which change
-  with it.
+- Then short factual lines too local for a convention: the block's own
+  choices — what it chose where another way was open, never why — and
+  what holds for its parts in general, never a list of them.
+- Never the workings of one piece of code: that is a why-comment beside it.
 - A claim the code does not show is left out rather than guessed.
 - Where a block does nothing until something is supplied, the same line says
   what it needs — the kind of thing, never where to find it.

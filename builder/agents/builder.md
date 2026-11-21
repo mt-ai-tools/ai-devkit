@@ -69,7 +69,7 @@ asked to make it.
 
 A brief is working paper; the code outlives it. A reason the brief gives for
 a shape you build goes into a comment at that shape only where the code
-alone leaves it ambiguous, worded as the comment-the-why rule says; the rest
+alone leaves it ambiguous, worded as the comment-the-why shape says; the rest
 of the brief's argument leaves with the brief.
 
 Never commit, and never change git state: no stash, checkout, reset or
