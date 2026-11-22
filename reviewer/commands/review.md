@@ -65,8 +65,12 @@ Run a review.
    - Advisor: one advisor for each such finding, all started together; its
      answer is taken as the decision.
    - Operator: held for the operator.
-   - Too big to fix here, however it is decided: held, to be written down
-     as the workflow's s2-route.md says, never fixed by this run.
+   - Too big to fix here, however it is decided: needing more than one
+     fixer's piece of work, or changing a module the reviewed work did not
+     touch. Held, to be written down as the workflow's s2-route.md says,
+     never fixed by this run. A Silent, Told or Advisor finding one fixer
+     can carry is fixed here, whatever the run's length; an Operator one is
+     still held for the operator.
 
    Then say the count, on one line, before anything moves: how many rules were
    judged — one, and which, where the run was narrowed — how many blocked,
