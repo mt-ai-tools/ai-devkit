@@ -1,11 +1,25 @@
 ---
-description: Reviewing and closing a brief, and pausing or ending the session.
+description: Sweeping, reviewing and closing a brief, and pausing or ending the session.
 ---
 
 # Close
 
-## Reviewing a brief
+## Sweeping a brief
 When: the last step of a brief is committed.
+Do, in rounds, until a round finds nothing that belongs to the brief:
+1. The cleanup look: what should be moved, changed, deleted or
+   updated now that the work is done.
+2. The use look: every place that should now use what the brief
+   added, meaning code still doing the same job by hand, older copies
+   of it, and workarounds, comments and drafts waiting for it. Only
+   the same job, never "could also use it".
+3. The session sorts each find as s1-intake.md says.
+Don't:
+- After three rounds that still find something in the brief, the
+  session stops and gives the operator the list.
+
+## Reviewing a brief
+When: the sweep comes back empty.
 Do, in this order:
 1. The session asks the operator: "Review before closing? <steps>
    steps, <repositories> repositories, <reviewers> reviewers." The
