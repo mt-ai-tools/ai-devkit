@@ -136,8 +136,11 @@ Do, in this order, and nothing else:
    needs, finishes well under the kit's builder size line. A long
    brief, or a step over code long to read, leaves less room to build,
    so its steps are smaller.
-   Pieces that could each land in turn, with tests passing, are that
-   many steps.
+   Neighbouring pieces in one module that belong in one commit, and
+   that one builder could finish together well under that line, are
+   one step, each piece keeping its own proof. A piece needing the
+   operator's choice once an earlier one is built is a step of its
+   own.
 
 Every reason stands beside its decision, so the builder can move it
 into a code comment. A decision reached during the build is written
