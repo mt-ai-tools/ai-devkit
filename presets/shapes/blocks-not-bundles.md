@@ -21,3 +21,8 @@ itself.
   their names, not where they sit, not the system it is part of.
 - A block may declare what it *needs* — as a contract it accepts, not a place it expects to find one.
 - Where a dependency must be named, name it once, in one place, and let the location be configurable.
+- A consumer holds what makes it itself, and nothing else: its own flows,
+  its rules, the parts nothing else could supply. Everything generic
+  underneath comes from the shared modules.
+- Reaching an outside service directly goes around the shared modules
+  rather than extending them.
