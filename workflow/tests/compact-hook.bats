@@ -2,7 +2,8 @@ bats_require_minimum_version 1.5.0
 
 # Behavior tests for the compact note: the last reply of the main
 # conversation decides, past the line the session is told and short of it
-# nothing is said, a subagent's turn and a half-written line are passed over,
+# nothing is said, a subagent's turn and a half-written line are passed over, a compaction
+# counts until a reply follows it,
 # a reply buried under a large later line is still found, and an event naming
 # no transcript is told to the operator without stopping the turn.
 
@@ -52,6 +53,22 @@ turn() {
   reply 30000
   turn "$transcript"
   [ -z "$output" ]
+}
+
+@test "a compaction with no reply after it yet is told nothing" {
+  reply 205000
+  printf '{"type":"system","subtype":"compact_boundary"}\n' >>"$transcript"
+  turn "$transcript"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "a reply after a compaction decides again" {
+  reply 205000
+  printf '{"type":"system","subtype":"compact_boundary"}\n' >>"$transcript"
+  reply 170000
+  turn "$transcript"
+  [ "$output" = "$(compact_hook_note 170000)" ]
 }
 
 @test "a session exactly at the line is told nothing" {

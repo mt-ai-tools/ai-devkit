@@ -17,7 +17,10 @@ TRANSCRIPT_TAIL_BYTES=2000000
 # its subagents' turns, which carry a context of their own, and a subagent's
 # own transcript holds nothing else. A line that is not whole JSON — one being
 # written as this reads, or the one the end's cut falls inside — is passed
-# over rather than failing the answer.
+# over rather than failing the answer. A compaction counts as a reply of
+# nothing: until the first reply after it is written, the last one before it
+# still sits nearest the end, and read as the size it told of a context the
+# compaction has since dropped.
 last_reply_size() {
   local size
   size="$(tail -c "$TRANSCRIPT_TAIL_BYTES" "$1" | reply_sizes "$2" | tail -n 1)"
@@ -28,7 +31,9 @@ last_reply_size() {
 }
 
 reply_sizes() {
-  jq -R -r --argjson sidechain "$1" 'fromjson? | select(.type == "assistant" and ((.isSidechain // false) == $sidechain))
-    | .message.usage // empty
-    | (.input_tokens // 0) + (.cache_read_input_tokens // 0) + (.cache_creation_input_tokens // 0)'
+  jq -R -r --argjson sidechain "$1" 'fromjson? | select((.isSidechain // false) == $sidechain)
+    | if .type == "system" and .subtype == "compact_boundary" then 0
+      elif .type == "assistant" then .message.usage // empty
+        | (.input_tokens // 0) + (.cache_read_input_tokens // 0) + (.cache_creation_input_tokens // 0)
+      else empty end'
 }
