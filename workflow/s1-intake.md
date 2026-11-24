@@ -10,6 +10,8 @@ When: the operator, the session or a subagent has new work: an idea,
 Do:
 - State what it is. For a finding, also where it is and how it is
   known.
+- Work for another brief or draft is written into it, beside the
+  decision it touches, never handed to the operator to carry.
 
 ## Findings from subagents
 When: a subagent finds something outside its job.

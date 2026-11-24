@@ -29,6 +29,8 @@ Do:
   could go wrong; the recommended one, and why. Never point back to a
   brief, a decision number or an earlier message: the operator reads
   only this message.
+- A change to written text shows its current words beside the
+  proposed, item by item; an approval covers only what was shown.
 - Give the full reasoning when the operator asks "why?".
 - Once every answer is written down, no question is open and every
   check is green, carry on and say so in one line: a go asked for

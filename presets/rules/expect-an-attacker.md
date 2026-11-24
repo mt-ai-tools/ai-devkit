@@ -1,7 +1,7 @@
 ---
 enforce: [before-thinking, before-acting, before-finishing]
 work: [shape, write, talk]
-summary: The outside is hostile: name what an attacker gains, refuse what cannot be decided, keep secrets where only the deployment reads them.
+summary: The outside is hostile: name what an attacker gains, and let the operator weigh the risk.
 ---
 
 # Expect an attacker
@@ -15,15 +15,5 @@ what it guards.
 - Weigh a gap by what an attacker gains against how rare it is, and
   let the operator choose: accepted in a comment beside the check, or
   a draft at a level.
-- The check that stops them is named where it is enforced, not only in
-  the proposal it opened: whoever edits that line never reads the
-  proposal.
-- Fail closed. What cannot be decided is refused: no reasons means no
-  access, unreadable configuration means no boot, an error nobody
-  classified is not retried, and no error path grants what the happy
-  path checks.
-- A secret lives only where the deployment reads it. Never in a commit,
-  a log line, a failure message, a fixture, a URL, or a conversation. A
-  secret that has been seen is rotated, never deleted from history.
-- A refusal tells the caller to stop, never which check failed or
-  whether the thing asked about exists. What went wrong is for the log.
+- A secret is never put into a conversation. A secret that has been
+  seen is rotated, never deleted from history.
