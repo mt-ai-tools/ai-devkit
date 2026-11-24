@@ -11,6 +11,5 @@ summary: Split at real concern boundaries, and name a file so its contents are p
 - Don't withhold a split because there's only one caller today.
 - Splitting is easy to undo. Bias toward more files.
 
-Where a seam exists, split without asking whether it is worthwhile. Whether
-the seam is real is still worth asking — a file over the signal with nothing
-to cut along stays whole.
+A file with a real seam is split, however small the gain; a file over the
+signal with nothing to cut along stays whole.

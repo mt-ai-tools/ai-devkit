@@ -11,8 +11,8 @@ summary: Ship the tests with the change, not after it.
 - Tests assert behavior, not implementation detail.
 - A test pins a value the outside world fixes — an environment key, a status
   code, a header, a filename another tool expects — by spelling it literally.
-  A test that reads the constant it asserts, asserts nothing. The duplicate
-  spelling is not a second copy of a fact; it is the assertion.
+  A test that reads the constant it asserts, asserts nothing. The literal is
+  neither a bare value nor a second copy of a fact; it is the assertion.
 - Values that are yours to change — screen copy, log text — are read from
   their one home: the test binds the wiring, not the words.
 
