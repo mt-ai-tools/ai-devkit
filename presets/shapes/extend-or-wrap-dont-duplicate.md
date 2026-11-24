@@ -7,7 +7,6 @@ summary: Each concern is done one way; when it almost fits, extend it or wrap it
 # Extend or wrap, don't duplicate
 
 - A concern is done one way across the whole project. A case that does not fit changes that way for everyone, never adds a second way beside it.
-- Before writing something new, check whether a shared version already exists.
 - Never copy an implementation to tweak one detail: duplicates diverge and multiply maintenance.
 - Where the addition is not the original's concern, wrap it: a new unit that calls the original and adds around it, copying none of it.
 - The original may be bent to take its wrapper, cleanly. The bend is made for the wrapper but shaped so anything else could use it the same way: an option, a pass-through, a hook. It never names the wrapper, and never fits only it.

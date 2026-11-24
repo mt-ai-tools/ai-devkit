@@ -11,10 +11,7 @@ summary: Prose describes in roles — it never restates an identifier, path, or 
   checks prose.
 - Write in roles: what a piece does, what it must not do, what it needs.
   Not what it is called, or where it sits.
-- This binds every doc; the exemptions below are the whole list. An answer
-  to the operator is not a doc: it is read once and cannot go stale, so
-  there, naming the file, the path or the command is how the reader finds
-  the thing.
+- This binds every doc; the exemptions below are the whole list.
 - No usage examples. Code that needs one is code to fix, and an example
   nothing compiles goes stale at the first rename.
 

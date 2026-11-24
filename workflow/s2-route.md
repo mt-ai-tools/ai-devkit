@@ -22,7 +22,7 @@ follows both. Where either can't be told without a search, the line says
 ## Asking the operator
 When: decisions.md gives a choice to the operator.
 Do:
-- Send up to 3 questions per message.
+- Send up to 4 questions per message.
 - Put each question whole in the message, every time it is asked, a
   repeat included: the question; the situation, with an everyday
   example; each option in plain words, with what it costs and what
