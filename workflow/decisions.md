@@ -15,8 +15,7 @@ description: Who decides each kind of choice and fix, and what the operator sees
 | Accepting a security risk or a known limit                                  | Operator            |
 | A module added, removed, split, merged or named; which module may use which | Operator            |
 | A library, a vendor, anything paid                                          | Operator            |
-| A rule made or changed                                                      | Operator            |
-| A shape or convention made or changed, where no Operator choice is in it    | Advisor             |
+| Anything in the kit, or a convention, made or changed (an advisor may read it first) | Operator |
 | A new brief, and its level                                                  | Operator            |
 | Undoing a decision the operator made                                        | Operator            |
 
