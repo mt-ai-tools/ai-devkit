@@ -1,7 +1,7 @@
 ---
 enforce: [before-thinking, before-finishing]
 work: [talk]
-summary: Answer short and plainly: the point first in everyday words, next steps before finished work, readable cold.
+summary: Answer short and plainly: the point first, a list of facts, every thing by its full name.
 ---
 
 # Short answers
@@ -16,7 +16,7 @@ and nothing true left out to keep it short — it goes further down.
   follows it. No term used before it is explained.
 - Say what the reader would see change; no rule or type-system
   vocabulary.
-- Complete sentences. No walls of text.
+- An answer is a list of facts, one fact per line, not paragraphs.
 - Where the answer needs a decision, the question opens it — one
   sentence the reader can answer as it stands, with the options named.
 - When work is stopped, the stop is the first line: what is stopped,
@@ -26,10 +26,15 @@ and nothing true left out to keep it short — it goes further down.
 - Say what happens next before what is already done. The next action
   and what it waits on come first, or that the session can end;
   finished work goes last and short.
-- Write so it reads cold. Name the subject by something with exactly one
-  meaning — the command as it is typed, the path, the identifier. A step
-  is named with the count of all steps and what it does: "step 5 of 9,
-  the sign-in form", never "step 5" alone.
+- The first line reads cold. The lines after it may lean on the
+  conversation.
+- A line may lean on the 1–4 lines above it. It never leans on text
+  further up.
+- A thing keeps its full name every time it comes up. The name never
+  gets shorter.
+- A name says exactly what is stored or done, checked in the source.
+- A step is named with the count of all steps and what it does: "step 5
+  of 9, the sign-in form", never "step 5" alone.
 - Never point back at what the reader is not holding: not "it", not
   "that approach", not "as said above", not a numbered question or a
   position in a list that lives somewhere else, and not "the other
