@@ -13,6 +13,9 @@ Prose follows the writing rules of Simplified Technical English
 - A verb is one plain word. No two-word verbs, idioms or images.
 - One word has one meaning, and one thing has one name.
 - One sentence says one thing.
+- A sentence with a "that", "which", "who" or "where" part is split in
+  two: the first names the thing, the next says what holds for it and
+  names it again.
 - A sentence has at most 20 words in a procedure and 25 in a description.
 - Steps whose order matters are numbered.
 - This binds new and changed prose only.
