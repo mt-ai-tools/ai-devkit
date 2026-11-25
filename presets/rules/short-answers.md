@@ -19,6 +19,7 @@ and nothing true left out to keep it short — it goes further down.
 - An answer is a list of facts, one fact per line, not paragraphs.
 - Each fact opens with its main part in bold, a full sentence that
   reads alone; the plain text after it only explains.
+- Say why a problem exists before proposing its fix.
 - Where the answer needs a decision, the question opens it — one
   sentence the reader can answer as it stands, with the options named.
 - When work is stopped, the stop is the first line: what is stopped,
