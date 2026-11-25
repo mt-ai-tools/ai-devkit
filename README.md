@@ -14,9 +14,10 @@ holds.
 - The rules: how an agent behaves. The kit ships a set, and a project
   may bring its own.
 - The shapes: the generic shapes of code and text. The kit ships a set,
-  and a project may bring its own.
+  and a project may bring its own. The rules and the shapes are adopted
+  together, all or nothing.
 - The conventions: the project's written conventions, one per file, named
-  for the convention. What an entry holds is the rules' to say. A README
+  for the convention. What an entry holds is the shapes' to say. A README
   there is not an entry. A project may have none.
 - The plans: the briefs and drafts the organizer keeps, in one folder
   per level of the kit's, made by hand. Worth keeping in version
