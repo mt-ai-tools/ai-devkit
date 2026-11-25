@@ -17,8 +17,8 @@ and nothing true left out to keep it short — it goes further down.
 - Say what the reader would see change; no rule or type-system
   vocabulary.
 - An answer is a list of facts, one fact per line, not paragraphs.
-- Each fact opens with its main part in bold, a full sentence that
-  reads alone; the plain text after it only explains.
+- Each fact opens with its main part in bold: who does what, in a few
+  words. The rest of the line stays plain.
 - Say why a problem exists before proposing its fix.
 - Where the answer needs a decision, the question opens it — one
   sentence the reader can answer as it stands, with the options named.

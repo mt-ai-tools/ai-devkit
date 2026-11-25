@@ -12,6 +12,8 @@ Prose follows the writing rules of Simplified Technical English
 - Each sentence says who does the action.
 - A verb is one plain word. No two-word verbs, idioms or images.
 - One word has one meaning, and one thing has one name.
+- Leave out only words the reader can fill in. Keep every word that
+  says who acts, on what, and which one.
 - One sentence says one thing.
 - A sentence with a "that", "which", "who" or "where" part is split in
   two: the first names the thing, the next says what holds for it and
