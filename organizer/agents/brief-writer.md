@@ -184,7 +184,8 @@ Do, in this order:
 4. No second brief: no other brief's summary or text covers the
    subject.
 5. After: for every name in after, quote the sentence saying why it
-   must land first. A name with no such sentence fails.
+   must land first and which of its steps the brief needs. A name
+   with no such sentence fails.
 - None is skipped; one that could not be run counts as failed.
 - After a fix, run every check again, in order. A check that cannot pass is
   reported as failed, and the brief is left as it stands.

@@ -10,6 +10,20 @@ Do:
 - The session takes the brief with the organizer's take command, so
   no other session starts it.
 
+## A brief waits on another
+When: the operator says go on a brief that waits on another.
+Do:
+- The session reads, in the brief waited on, only the steps the
+  waiting brief names, and judges them in the code against what the
+  waiting brief needs from them.
+- Met: the session writes its verdict and what it read beside the
+  wait's reason in the waiting brief, lifts the wait, and takes it.
+- Not met: the session tells the operator what is missing; the wait
+  stays.
+Don't:
+- A wait that names no step is not judged; the session asks the
+  operator.
+
 ## Building a step
 When: the brief has a step not yet built.
 Do, in this order:
