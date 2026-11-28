@@ -14,6 +14,7 @@ description: Who decides each kind of choice and fix, and what the operator sees
 | What a person using the app sees: wording, defaults, promises               | Operator            |
 | Accepting a security risk or a known limit                                  | Operator            |
 | A module added, removed, split, merged or named; which module may use which | Operator            |
+| Breaking a dependency loop between modules, real or made by a needed import | Operator |
 | A library, a vendor, anything paid                                          | Operator            |
 | Anything in the kit, or a convention, made or changed (an advisor may read it first) | Operator |
 | A new brief, and its level                                                  | Operator            |
